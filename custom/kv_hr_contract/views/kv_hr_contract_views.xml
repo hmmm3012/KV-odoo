@@ -1,0 +1,32 @@
+<!-- hr_contract_view_extension.xml -->
+<!-- <odoo>
+    <record id="view_hr_contract_form_inherit" model="ir.ui.view">
+        <field name="name">hr.contract.form.inherit</field>
+        <field name="model">hr.contract</field>
+        <field name="inherit_id" ref="hr_contract.hr_contract_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="%(kv_hr_contract.action_hr_contract_report)d"
+                        string="In"
+                        type="action"
+                        class="oe_highlight"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>  -->
+<!-- views/hr_contract_form_extension.xml -->
+<odoo>
+    <record id="view_hr_contract_form_inherit" model="ir.ui.view">
+        <field name="name">hr.contract.form.inherit</field>
+        <field name="model">hr.contract</field>
+        <field name="inherit_id" ref="hr_contract.hr_contract_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="generate_pdf_action" string="IN" type="object" class="oe_highlight"/>
+            </xpath>
+            <!-- <xpath expr="//field[@name='contract_type_id']" position="before">
+                <field name="contract_period"/>
+            </xpath> -->
+        </field>
+    </record>
+</odoo>

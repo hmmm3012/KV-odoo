@@ -1,0 +1,12 @@
+<!-- report_action.xml -->
+<odoo>
+    <record id="action_hr_contract_report" model="ir.actions.report">
+        <field name="name">Contract Report</field>
+        <field name="model">hr.contract</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">kv_hr_contract.report_hr_contract_template</field>
+        <field name="report_file">kv_hr_contract.report_hr_contract_template</field>
+        <field name="binding_model_id" ref="hr_contract.model_hr_contract"/>
+        <field name="binding_type">report</field>
+    </record>
+</odoo>
