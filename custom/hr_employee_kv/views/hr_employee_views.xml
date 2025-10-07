@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+  <!-- FORM: Replace private address fields and modify labels -->
+  <record id="view_employee_form_inherit_addresses" model="ir.ui.view">
+    <field name="name">hr.employee.form.addresses.custom</field>
+    <field name="model">hr.employee</field>
+    <field name="inherit_id" ref="hr.view_employee_form"/>
+    <field name="arch" type="xml">
+      
+      <!-- Replace the private address div with custom address fields -->
+      <xpath expr="//label[@for='private_street']" position="replace">
+        <field name="emp_permanent_address"/>
+      </xpath>
+      
+      <xpath expr="//div[@class='o_address_format']" position="replace">
+        <field name="emp_temporary_address"/>
+      </xpath>
+
+      <!-- Change identification_id label to CCCD -->
+      <xpath expr="//field[@name='identification_id']" position="attributes">
+        <attribute name="string">CCCD</attribute>
+      </xpath>
+
+      <!-- Add identification_date and identification_by after identification_id -->
+      <xpath expr="//field[@name='identification_id']" position="after">
+        <field name="identification_date"/>
+        <field name="identification_by"/>
+      </xpath>
+
+      <!-- Make country_id readonly and ensure it shows Vietnam -->
+      <xpath expr="//field[@name='country_id']" position="attributes">
+        <attribute name="readonly">1</attribute>
+        <attribute name="help">Country is set to Vietnam and cannot be changed</attribute>
+      </xpath>
+
+      <!-- Hide distance_home_work field -->
+      <xpath expr="//label[@for='distance_home_work']" position="attributes">
+        <attribute name="invisible">1</attribute>
+      </xpath>
+      
+      <xpath expr="//div[@name='div_km_home_work']" position="attributes">
+        <attribute name="invisible">1</attribute>
+      </xpath>
+
+    </field>
+  </record>
+
+  <!-- (Optional) LIST: avoid huge text columns; keep hidden by default -->
+  <record id="view_employee_list_inherit_addresses" model="ir.ui.view">
+    <field name="name">hr.employee.list.addresses</field>
+    <field name="model">hr.employee</field>
+    <field name="inherit_id" ref="hr.view_employee_tree"/>
+    <field name="arch" type="xml">
+      <!-- Support both <list> (v17+) and <tree> (older) -->
+      <xpath expr="//list | //tree" position="inside">
+        <field name="emp_permanent_address" optional="hide"/>
+        <field name="emp_temporary_address" optional="hide"/>
+      </xpath>
+    </field>
+  </record>
+
+</odoo>
