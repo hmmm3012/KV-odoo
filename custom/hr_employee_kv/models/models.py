@@ -76,34 +76,38 @@ class HrEmployee(models.Model):
             str: The next employee code in format 'KV123456'
         """
         try:
-            # Use fixed prefix "KV"
-            prefix = "KV"
-            
-            # Find the latest employee code for this company that starts with the prefix
+            # Find the latest employee code for this company
             latest_employee = self.search([
                 ('company_id', '=', company_id),
-                ('emp_code', '!=', False),
-                ('emp_code', 'like', prefix)
+                ('emp_code', '!=', False)
             ], order='emp_code desc', limit=1)
 
             if latest_employee and latest_employee.emp_code:
-                # Extract the number part from the latest code
                 latest_code = latest_employee.emp_code
-                # Remove prefix and get the number part
-                if latest_code.startswith(prefix):
-                    number_part = latest_code[len(prefix):]
+                
+                # Extract prefix and number from the latest code
+                # Split the code into letters (prefix) and numbers
+                import re
+                match = re.match(r'^([A-Za-z]+)(\d+)$', latest_code)
+                
+                if match:
+                    prefix = match.group(1)  # Extract letters part
+                    number_part = match.group(2)  # Extract numbers part
                     try:
                         next_number = int(number_part) + 1
                     except ValueError:
                         next_number = 1
                 else:
+                    # If format doesn't match, use default prefix
+                    prefix = "KV"
                     next_number = 1
             else:
-                # No existing employees with this prefix, start from 1
+                # No existing employees, use default prefix and start from 1
+                prefix = "KV"
                 next_number = 1
             
             # Format the new employee code
-            result = f"{prefix}{next_number:05d}"
+            result = f"{prefix}{next_number}"
             return result
         except Exception as e:
             # Fallback to a simple code
