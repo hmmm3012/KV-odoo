@@ -42,10 +42,95 @@
         <attribute name="invisible">1</attribute>
       </xpath>
 
+      <!-- Insert emp_code before the work_email field in the header area -->
+      <xpath expr="//field[@name='work_email']" position="before">
+        <field name="emp_code"/>
+      </xpath>
+
+      <!-- Insert Work Info group before the Location group (anchor by presence of address_id field) -->
+      <xpath expr="//page[@name='public']//div[@id='o_work_employee_main']/group[./field[@name='address_id']]" position="before">
+        <group>
+          <field name="tax_identification_number" string="Mã số thuế"/>
+          <field name="sinid" string="Mã bảo hiểm"/>
+          <field name="date_import" string="Ngày nhận việc"/>
+          <field name="departure_date" string="Ngày nghỉ việc"/>
+          <field name="notes" string="Ghi chú"/>
+        </group>
+      </xpath>
+
+      <!-- Hide Settings page -->
+      <xpath expr="//page[@name='hr_settings']" position="attributes">
+        <attribute name="invisible">1</attribute>
+      </xpath>
+
+      <!-- Hide coach_id and parent_id fields -->
+      <xpath expr="//field[@name='coach_id']" position="attributes">
+        <attribute name="invisible">1</attribute>
+      </xpath>
+      
+      <xpath expr="//field[@name='parent_id']" position="attributes">
+        <attribute name="invisible">1</attribute>
+      </xpath>
+
+      <!-- Hide work_location_id field -->
+      <xpath expr="//field[@name='work_location_id']" position="attributes">
+        <attribute name="invisible">1</attribute>
+      </xpath>
+
+      <!-- Hide Work Permit separator and related fields -->
+      <xpath expr="//separator[@name='has_work_permit']" position="attributes">
+        <attribute name="invisible">1</attribute>
+      </xpath>
+      
+      <xpath expr="//field[@name='visa_no']" position="attributes">
+        <attribute name="invisible">1</attribute>
+      </xpath>
+      
+      <xpath expr="//field[@name='permit_no']" position="attributes">
+        <attribute name="invisible">1</attribute>
+      </xpath>
+      
+      <xpath expr="//field[@name='visa_expire']" position="attributes">
+        <attribute name="invisible">1</attribute>
+      </xpath>
+      
+      <xpath expr="//field[@name='work_permit_expiration_date']" position="attributes">
+        <attribute name="invisible">1</attribute>
+      </xpath>
+      
+      <xpath expr="//field[@name='work_permit_name']" position="attributes">
+        <attribute name="invisible">1</attribute>
+      </xpath>
+      
+      <xpath expr="//field[@name='has_work_permit']" position="attributes">
+        <attribute name="invisible">1</attribute>
+      </xpath>
+
+      <!-- Hide Family Status separator and related fields -->
+      <xpath expr="//group[@name='emergency']/separator" position="attributes">
+        <attribute name="invisible">1</attribute>
+      </xpath>
+      
+      <xpath expr="//field[@name='marital']" position="attributes">
+        <attribute name="invisible">1</attribute>
+      </xpath>
+      
+      <xpath expr="//field[@name='spouse_complete_name']" position="attributes">
+        <attribute name="invisible">1</attribute>
+      </xpath>
+      
+      <xpath expr="//field[@name='spouse_birthdate']" position="attributes">
+        <attribute name="invisible">1</attribute>
+      </xpath>
+      
+      <xpath expr="//field[@name='children']" position="attributes">
+        <attribute name="invisible">1</attribute>
+      </xpath>
+
     </field>
   </record>
 
-  <!-- (Optional) LIST: avoid huge text columns; keep hidden by default -->
+  <!-- LIST: Add custom fields to employee list view -->
   <record id="view_employee_list_inherit_addresses" model="ir.ui.view">
     <field name="name">hr.employee.list.addresses</field>
     <field name="model">hr.employee</field>
@@ -55,7 +140,41 @@
       <xpath expr="//list | //tree" position="inside">
         <field name="emp_permanent_address" optional="hide"/>
         <field name="emp_temporary_address" optional="hide"/>
+        <field name="sinid" string="Mã bảo hiểm" optional="hide"/>
+        <field name="notes" string="Ghi chú" optional="hide"/>
+        <field name="departure_description" string="Ghi chú quá trình" optional="hide"/>
+        <field name="tax_identification_number" string="Mã số thuế" optional="hide"/>
+        <field name="emp_code" string="Mã nhân viên" optional="hide"/>
+        <field name="date_import" string="Ngày nhận việc" optional="hide"/>
       </xpath>
+    </field>
+  </record>
+
+  <!-- SEARCH: Add filters for month_of_birth and date_import -->
+  <record id="view_employee_search_inherit_filters" model="ir.ui.view">
+    <field name="name">hr.employee.search.filters.custom</field>
+    <field name="model">hr.employee</field>
+    <field name="inherit_id" ref="hr.view_employee_filter"/>
+    <field name="arch" type="xml">
+      <!-- Add month_of_birth field to search -->
+      <field name="job_id" position="after">
+        <field name="month_of_birth" string="Tháng sinh"/>
+      </field>
+      
+      <!-- Add date_import field to search -->
+      <field name="month_of_birth" position="after">
+        <field name="date_import" string="Ngày nhận việc"/>
+      </field>
+      
+      <!-- Add filter for month of birth -->
+      <filter name="inactive" position="before">
+        <filter name="filter_birth_month" string="Tháng sinh" domain="[]" context="{'group_by': 'month_of_birth'}"/>
+      </filter>
+      
+      <!-- Add filter for date import -->
+      <filter name="filter_birth_month" position="after">
+        <filter name="filter_date_import" string="Ngày nhận việc" domain="[]" context="{'group_by': 'date_import'}"/>
+      </filter>
     </field>
   </record>
 
