@@ -130,7 +130,7 @@
     </field>
   </record>
 
-  <!-- LIST: Add custom fields to employee list view -->
+  <!-- LIST: Set default visible fields in employee list view -->
   <record id="view_employee_list_inherit_addresses" model="ir.ui.view">
     <field name="name">hr.employee.list.addresses</field>
     <field name="model">hr.employee</field>
@@ -138,14 +138,80 @@
     <field name="arch" type="xml">
       <!-- Support both <list> (v17+) and <tree> (older) -->
       <xpath expr="//list | //tree" position="inside">
+        <!-- Default visible fields -->
+        <field name="emp_code" string="Mã nhân viên" optional="show"/>
+        <field name="notes" string="Ghi chú" optional="show"/>
+        <field name="date_import" string="Ngày nhận việc" optional="show"/>
+        <field name="departure_date" string="Ngày nghỉ việc" optional="show"/>
+        
+        <!-- Hidden fields by default -->
         <field name="emp_permanent_address" optional="hide"/>
         <field name="emp_temporary_address" optional="hide"/>
         <field name="sinid" string="Mã bảo hiểm" optional="hide"/>
-        <field name="notes" string="Ghi chú" optional="hide"/>
         <field name="departure_description" string="Ghi chú quá trình" optional="hide"/>
         <field name="tax_identification_number" string="Mã số thuế" optional="hide"/>
-        <field name="emp_code" string="Mã nhân viên" optional="hide"/>
-        <field name="date_import" string="Ngày nhận việc" optional="hide"/>
+      </xpath>
+      
+      <!-- Add mobile_phone field to the list -->
+      <xpath expr="//field[@name='work_phone']" position="after">
+        <field name="mobile_phone" string="Mobile Phone" optional="show"/>
+      </xpath>
+      
+      <!-- Set default visibility for existing fields -->
+      <xpath expr="//field[@name='name']" position="attributes">
+        <attribute name="optional">show</attribute>
+      </xpath>
+      
+      <xpath expr="//field[@name='work_phone']" position="attributes">
+        <attribute name="optional">hide</attribute>
+      </xpath>
+      
+      <xpath expr="//field[@name='company_id']" position="attributes">
+        <attribute name="optional">show</attribute>
+      </xpath>
+      
+      <xpath expr="//field[@name='work_email']" position="attributes">
+        <attribute name="optional">hide</attribute>
+      </xpath>
+      
+      <xpath expr="//field[@name='activity_ids']" position="attributes">
+        <attribute name="optional">hide</attribute>
+      </xpath>
+      
+      <xpath expr="//field[@name='activity_user_id']" position="attributes">
+        <attribute name="optional">hide</attribute>
+      </xpath>
+      
+      <xpath expr="//field[@name='activity_date_deadline']" position="attributes">
+        <attribute name="optional">hide</attribute>
+      </xpath>
+      
+      <xpath expr="//field[@name='department_id']" position="attributes">
+        <attribute name="optional">hide</attribute>
+      </xpath>
+      
+      <xpath expr="//field[@name='job_id']" position="attributes">
+        <attribute name="optional">hide</attribute>
+      </xpath>
+      
+      <xpath expr="//field[@name='parent_id']" position="attributes">
+        <attribute name="optional">hide</attribute>
+      </xpath>
+      
+      <xpath expr="//field[@name='work_location_id']" position="attributes">
+        <attribute name="optional">hide</attribute>
+      </xpath>
+      
+      <xpath expr="//field[@name='coach_id']" position="attributes">
+        <attribute name="optional">hide</attribute>
+      </xpath>
+      
+      <xpath expr="//field[@name='category_ids']" position="attributes">
+        <attribute name="optional">hide</attribute>
+      </xpath>
+      
+      <xpath expr="//field[@name='country_id']" position="attributes">
+        <attribute name="optional">hide</attribute>
       </xpath>
     </field>
   </record>

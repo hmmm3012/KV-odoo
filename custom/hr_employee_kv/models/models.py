@@ -20,8 +20,8 @@ class HrEmployee(models.Model):
                                 default=lambda self: self.env.ref('base.vn', False),
                                 readonly=True)
 
-    # # Departure date
-    # departure_date = fields.Date("Ngày nghỉ việc")
+    # Departure date
+    departure_date = fields.Date("Ngày nghỉ việc")
 
     # Date of import
     date_import = fields.Date("Ngày nhận việc")
