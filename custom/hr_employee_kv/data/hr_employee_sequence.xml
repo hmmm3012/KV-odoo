@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- 
+    Employee code sequences are now created dynamically per company
+    when the employee_code_prefix field is set on res.company.
+    
+    To initialize sequences for existing companies, run:
+    env['res.company'].init_employee_code_sequences()
+    in Odoo shell after setting the prefixes.
+    -->
+</odoo>
+

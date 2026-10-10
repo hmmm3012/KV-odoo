@@ -18,7 +18,7 @@ department_decode = {
     "SRCS": "Sunrise City South",
     "HLR": "HimLam Riverside",
     "HLPA": "Him Lam Phú An",
-    "SWP": "Sunwan Pearl",
+    "SWP": "Sunwah Pearl",
     "OPAL": "OPAL",
     "SGP": "Sài Gòn Pearl",
     "CM239": "Central Market ",
@@ -127,19 +127,19 @@ def create_pdf(contract):
     pdfmetrics.registerFont(
         TTFont(
             "tiro",
-            r"D:\odoo16\utils\font\font-times-new-roman\SVN-TimesNewRoman.ttf",
+            r"/home/debian1/KV-odoo/utils/font/font-times-new-roman/SVN-TimesNewRoman.ttf",
         )
     )
     pdfmetrics.registerFont(
         TTFont(
             "tiro_bold",
-            r"D:\odoo16\utils\font\font-times-new-roman\SVN-Times New Roman Bold.ttf",
+            r"/home/debian1/KV-odoo/utils/font/font-times-new-roman/SVN-Times New Roman Bold.ttf",
         )
     )
     pdfmetrics.registerFont(
         TTFont(
             "tiro_italic",
-            r"D:\odoo16\utils\font\font-times-new-roman\SVN-Times New Roman Italic.ttf",
+            r"/home/debian1/KV-odoo/utils/font/font-times-new-roman/SVN-Times New Roman Italic.ttf",
         )
     )
     add_text_to_page(
@@ -331,27 +331,27 @@ def create_pdf(contract):
 
     # Save the PDF to the buffer
     c1.save()
-    with open(r"D:\odoo16\dev\kv_hr_contract\report\overlay1.pdf", "wb") as pdf_file:
+    with open(r"/home/debian1/KV-odoo/custom/kv_hr_contract/report/overlay1.pdf", "wb") as pdf_file:
         pdf_file.write(pdf_buffer1.getvalue())
     # Save the PDF to the buffer
     c2.save()
-    with open(r"D:\odoo16\dev\kv_hr_contract\report\overlay2.pdf", "wb") as pdf_file:
+    with open(r"/home/debian1/KV-odoo/custom/kv_hr_contract/report/overlay2.pdf", "wb") as pdf_file:
         pdf_file.write(pdf_buffer2.getvalue())
 
     add_overlay_to_pdf(
-        r"D:\odoo16\dev\kv_hr_contract\report\rp_format.pdf",
-        r"D:\odoo16\dev\kv_hr_contract\report\overlay1.pdf",
-        r"D:\odoo16\dev\kv_hr_contract\report\output_page1.pdf",
+        r"/home/debian1/KV-odoo/custom/kv_hr_contract/report/rp_format.pdf",
+        r"/home/debian1/KV-odoo/custom/kv_hr_contract/report/overlay1.pdf",
+        r"/home/debian1/KV-odoo/custom/kv_hr_contract/report/output_page1.pdf",
         0,
     )
     add_overlay_to_pdf(
-        r"D:\odoo16\dev\kv_hr_contract\report\rp_format.pdf",
-        r"D:\odoo16\dev\kv_hr_contract\report\overlay2.pdf",
-        r"D:\odoo16\dev\kv_hr_contract\report\output_page2.pdf",
+        r"/home/debian1/KV-odoo/custom/kv_hr_contract/report/rp_format.pdf",
+        r"/home/debian1/KV-odoo/custom/kv_hr_contract/report/overlay2.pdf",
+        r"/home/debian1/KV-odoo/custom/kv_hr_contract/report/output_page2.pdf",
         1,
     )
-    pdf1_path = r"D:\odoo16\dev\kv_hr_contract\report\output_page1.pdf"
-    pdf2_path = r"D:\odoo16\dev\kv_hr_contract\report\output_page2.pdf"
+    pdf1_path = r"/home/debian1/KV-odoo/custom/kv_hr_contract/report/output_page1.pdf"
+    pdf2_path = r"/home/debian1/KV-odoo/custom/kv_hr_contract/report/output_page2.pdf"
     writer = PdfWriter()
 
     # Read and add all pages from the first PDF
@@ -363,7 +363,7 @@ def create_pdf(contract):
         writer.addpage(page)
 
     # Write the combined pages to a new PDF file
-    output_path = r"D:\odoo16\dev\kv_hr_contract\report\output.pdf"
+    output_path = r"/home/debian1/KV-odoo/custom/kv_hr_contract/report/output.pdf"
     writer.write(output_path)
     with open(output_path, "rb") as pdf_file:
         pdf_buffer1 = pdf_file.read()

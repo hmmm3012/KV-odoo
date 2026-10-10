@@ -26,18 +26,8 @@ class HrEmployee(models.Model):
     # Date of import
     date_import = fields.Date("Ngày nhận việc")
 
-    @api.model
-    def _get_default_emp_code(self):
-        """Default value for emp_code field"""
-        try:
-            company_id = self.env.company.id
-            code = self._get_next_employee_code(company_id)
-            return code
-        except Exception as e:
-            return f"EMP{self.env.company.id}0001"
-    
-    # Employee code
-    emp_code = fields.Char("Mã nhân viên", default=_get_default_emp_code)
+    # Employee code - generated automatically via ir.sequence in create()
+    emp_code = fields.Char("Mã nhân viên", readonly=True, copy=False)
 
     # Tax identification number
     tax_identification_number = fields.Char("MST")
@@ -65,50 +55,41 @@ class HrEmployee(models.Model):
             else:
                 record.month_of_birth = False
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        """Override create to assign emp_code using company-specific ir.sequence"""
+        IrSequence = self.env['ir.sequence'].sudo()
+        for vals in vals_list:
+            # Only assign emp_code if not already provided
+            if not vals.get('emp_code'):
+                # Get company_id from vals or use current company
+                company_id = vals.get('company_id') or self.env.company.id
+                company = self.env['res.company'].browse(company_id)
 
-    def _get_next_employee_code(self, company_id):
-        """Generate the next employee code for the given company.
-        
-        Args:
-            company_id (int): Company ID to generate code for
-            
-        Returns:
-            str: The next employee code in format 'KV123456'
-        """
-        try:
-            # Find the latest employee code for this company
-            latest_employee = self.search([
-                ('company_id', '=', company_id),
-                ('emp_code', '!=', False)
-            ], order='emp_code desc', limit=1)
+                if not company.exists():
+                    vals['emp_code'] = False
+                    continue
 
-            if latest_employee and latest_employee.emp_code:
-                latest_code = latest_employee.emp_code
-                
-                # Extract prefix and number from the latest code
-                # Split the code into letters (prefix) and numbers
-                import re
-                match = re.match(r'^([A-Za-z]+)(\d+)$', latest_code)
-                
-                if match:
-                    prefix = match.group(1)  # Extract letters part
-                    number_part = match.group(2)  # Extract numbers part
-                    try:
-                        next_number = int(number_part) + 1
-                    except ValueError:
-                        next_number = 1
+                # Search with sudo() so record rules don't hide the sequence
+                sequence = IrSequence.search([
+                    ('code', '=', 'hr.employee.emp_code'),
+                    ('company_id', '=', company.id)
+                ], limit=1)
+
+                if not sequence:
+                    # Try to create sequence if company has prefix set
+                    if company.employee_code_prefix:
+                        company.sudo()._create_employee_code_sequence()
+                        sequence = IrSequence.search([
+                            ('code', '=', 'hr.employee.emp_code'),
+                            ('company_id', '=', company.id)
+                        ], limit=1)
+
+                if sequence:
+                    # Use the sequence directly to get next number (sudo for _next)
+                    emp_code = sequence._next()
                 else:
-                    # If format doesn't match, use default prefix
-                    prefix = "KV"
-                    next_number = 1
-            else:
-                # No existing employees, use default prefix and start from 1
-                prefix = "KV"
-                next_number = 1
-            
-            # Format the new employee code
-            result = f"{prefix}{next_number}"
-            return result
-        except Exception as e:
-            # Fallback to a simple code
-            return f"KV{company_id}{len(self.search([])) + 1:04d}"
+                    emp_code = False
+
+                vals['emp_code'] = emp_code or False
+        return super().create(vals_list)

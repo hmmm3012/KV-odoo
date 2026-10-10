@@ -49,13 +49,13 @@ class KVHRContract(models.Model):
 
     def get_latest_contract_name(self):
         contracts = self.env["hr.contract"].search(
-            [("contract_year", "=", 2025)], order="contract_number desc", limit=1
+            [("contract_year", "=", 2026)], order="contract_number desc", limit=1
         )
         if contracts:
             formatted_number = "{:03}".format(contracts[0].contract_number + 1)
         else :
             formatted_number = "001"       
-        return "HD.2025." + formatted_number
+        return "HD.2026." + formatted_number
 
     def generate_pdf_action(self):
         self.ensure_one()

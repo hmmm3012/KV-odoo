@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_company_form_inherit_hr_employee" model="ir.ui.view">
+        <field name="name">res.company.form.inherit.hr.employee</field>
+        <field name="model">res.company</field>
+        <field name="inherit_id" ref="base.view_company_form"/>
+        <field name="arch" type="xml">
+            <!-- Add employee_code_prefix field in the General Information section -->
+            <xpath expr="//field[@name='country_id']" position="after">
+                <field name="employee_code_prefix" 
+                       string="Employee Code Prefix"
+                       placeholder="e.g., KV, TN, ZM"
+                       help="Prefix used for generating employee codes. Leave empty to disable employee code generation for this company."/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
