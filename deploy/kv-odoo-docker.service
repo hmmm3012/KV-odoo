@@ -1,0 +1,18 @@
+[Unit]
+Description=KV Odoo stack (Docker Compose)
+Documentation=file:///home/debian1/KV-odoo/deploy/README.md
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/home/debian1/KV-odoo/deploy
+ExecStart=/usr/bin/docker compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.tls.yml up -d --remove-orphans
+ExecStop=/usr/bin/docker compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.tls.yml stop
+ExecReload=/usr/bin/docker compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.tls.yml up -d --remove-orphans
+TimeoutStartSec=600
+
+[Install]
+WantedBy=multi-user.target

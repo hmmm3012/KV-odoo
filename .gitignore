@@ -19,6 +19,11 @@ __pycache__/
 status
 # odoo filestore
 odoo/filestore
+# docker DB dumps (may contain business data)
+deploy/backup/
+# generated TLS private keys / certs
+deploy/nginx/certs/*.pem
+deploy/nginx/certs/*.key
 # maintenance migration scripts
 odoo/addons/base/maintenance
 # window installation config file

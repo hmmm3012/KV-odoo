@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hr_attendance_form_portal" model="ir.ui.view">
+        <field name="name">hr.attendance.form.portal</field>
+        <field name="model">hr.attendance</field>
+        <field name="inherit_id" ref="hr_attendance.hr_attendance_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='in_location_info']" position="after">
+                <field name="in_location_id"/>
+                <field name="in_department_id"/>
+                <field name="in_gps_accuracy"/>
+            </xpath>
+            <xpath expr="//div[@name='out_location_info']" position="after">
+                <field name="out_location_id"/>
+                <field name="out_department_id"/>
+                <field name="out_gps_accuracy"/>
+            </xpath>
+            <xpath expr="//group[@name='check_in_group']" position="after">
+                <group string="Check-in Photo" name="in_face_image_group" colspan="2">
+                    <field name="in_face_detected"/>
+                    <field name="in_face_image" widget="punch_photo" options="{'size': [480, 360], 'img_class': 'o_punch_photo'}" nolabel="1" colspan="2"/>
+                </group>
+            </xpath>
+            <xpath expr="//group[@name='check_out_group']" position="after">
+                <group string="Check-out Photo" name="out_face_image_group" colspan="2">
+                    <field name="out_face_detected"/>
+                    <field name="out_face_image" widget="punch_photo" options="{'size': [480, 360], 'img_class': 'o_punch_photo'}" nolabel="1" colspan="2"/>
+                </group>
+            </xpath>
+            <xpath expr="//sheet" position="inside">
+                <notebook>
+                    <page string="Hour Decisions" name="hour_decisions">
+                        <field name="hour_decision_ids" readonly="1">
+                            <list>
+                                <field name="decided_at"/>
+                                <field name="decision_type"/>
+                                <field name="regular_before" widget="float_time"/>
+                                <field name="regular_after" widget="float_time"/>
+                                <field name="role"/>
+                                <field name="user_id"/>
+                                <field name="reason"/>
+                            </list>
+                        </field>
+                    </page>
+                    <page string="Time Corrections" name="time_corrections">
+                        <field name="correction_ids">
+                            <list>
+                                <field name="requested_at"/>
+                                <field name="correction_type"/>
+                                <field name="original_value"/>
+                                <field name="proposed_value"/>
+                                <field name="state"/>
+                                <field name="requester_id"/>
+                            </list>
+                        </field>
+                    </page>
+                </notebook>
+            </xpath>
+            <xpath expr="//sheet/group[1]" position="before">
+                <div class="oe_button_box" name="button_box">
+                    <button name="action_open_portal_events" type="object" class="oe_stat_button" icon="fa-history">
+                        <field name="portal_event_count" widget="statinfo" string="Events"/>
+                    </button>
+                </div>
+            </xpath>
+            <xpath expr="//form/header" position="inside">
+                <field name="can_decide_session" invisible="1"/>
+                <field name="can_review_overtime" invisible="1"/>
+                <field name="can_hr_review" invisible="1"/>
+                <button name="action_open_deny_wizard" type="object" string="Deny Session" invisible="not can_decide_session or session_state == 'denied'"/>
+                <button name="action_open_reduce_wizard" type="object" string="Reduce Hours" invisible="not can_decide_session or session_state == 'denied'"/>
+                <button name="action_open_overtime_wizard" type="object" string="Review Overtime" invisible="not can_review_overtime"/>
+                <button name="action_open_correction_wizard" type="object" string="Request Time Correction" invisible="not can_decide_session"/>
+                <button name="action_open_hr_overtime_wizard" type="object" string="HR Overtime Review" invisible="not can_hr_review"/>
+                <button name="action_open_restore_wizard" type="object" string="Restore Session" invisible="session_state != 'denied'" groups="hr_attendance.group_hr_attendance_officer"/>
+                <button name="action_close_session" type="object" string="Close Session" invisible="session_state == 'closed'" groups="hr_attendance.group_hr_attendance_officer"/>
+            </xpath>
+            <xpath expr="//field[@name='check_in']" position="attributes">
+                <attribute name="readonly">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='check_out']" position="attributes">
+                <attribute name="readonly">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='employee_id']" position="after">
+                <field name="portal_review_status" widget="badge" decoration-warning="portal_review_status == 'pending'" decoration-success="portal_review_status == 'reviewed'"/>
+                <field name="session_state" widget="badge"/>
+                <field name="exception_code"/>
+                <field name="raw_elapsed_hours" widget="float_time"/>
+                <field name="standard_hours" widget="float_time"/>
+                <field name="recognized_regular_hours" widget="float_time"/>
+                <field name="overtime_candidate_hours" widget="float_time"/>
+                <field name="overtime_state" widget="badge"/>
+                <field name="payroll_regular_hours" widget="float_time"/>
+                <field name="payroll_overtime_hours" widget="float_time"/>
+                <field name="effective_check_in"/>
+                <field name="effective_check_out"/>
+                <field name="resource_calendar_id"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_attendance_tree_portal" model="ir.ui.view">
+        <field name="name">hr.attendance.list.portal</field>
+        <field name="model">hr.attendance</field>
+        <field name="inherit_id" ref="hr_attendance.view_attendance_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='employee_id']" position="after">
+                <field name="work_status" widget="badge" decoration-success="work_status == 'at_work'"/>
+            </xpath>
+            <xpath expr="//field[@name='overtime_hours']" position="attributes">
+                <attribute name="optional">hide</attribute>
+            </xpath>
+            <xpath expr="//field[@name='validated_overtime_hours']" position="attributes">
+                <attribute name="optional">hide</attribute>
+            </xpath>
+            <xpath expr="//field[@name='check_out']" position="after">
+                <field name="recognized_regular_hours" widget="float_time" optional="show"/>
+                <field name="session_state" optional="show"/>
+                <field name="exception_code" optional="show"/>
+                <field name="raw_elapsed_hours" widget="float_time" optional="hide"/>
+                <field name="overtime_candidate_hours" string="Overtime Hours" widget="float_time" optional="show"/>
+                <field name="overtime_state" optional="hide"/>
+            </xpath>
+            <xpath expr="//field[@name='in_mode']" position="after">
+                <field name="in_department_id" optional="show" groups="hr_attendance.group_hr_attendance_officer"/>
+                <field name="in_location_id" optional="show" groups="hr_attendance.group_hr_attendance_officer"/>
+                <field name="portal_review_status" optional="hide" widget="badge" decoration-warning="portal_review_status == 'pending'"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_attendance_tree_captain" model="ir.ui.view">
+        <field name="name">hr.attendance.list.captain</field>
+        <field name="model">hr.attendance</field>
+        <field name="inherit_id" ref="hr_attendance.view_attendance_tree"/>
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <list position="attributes">
+                <attribute name="create">false</attribute>
+                <attribute name="edit">false</attribute>
+                <attribute name="delete">false</attribute>
+            </list>
+            <xpath expr="//header" position="replace"/>
+            <xpath expr="//field[@name='check_in']" position="attributes">
+                <attribute name="string">Time In</attribute>
+            </xpath>
+            <xpath expr="//field[@name='check_out']" position="attributes">
+                <attribute name="string">Time Out</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_hr_attendance_form_captain" model="ir.ui.view">
+        <field name="name">hr.attendance.form.captain</field>
+        <field name="model">hr.attendance</field>
+        <field name="inherit_id" ref="hr_attendance.hr_attendance_view_form"/>
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <form position="attributes">
+                <attribute name="create">false</attribute>
+                <attribute name="edit">false</attribute>
+                <attribute name="delete">false</attribute>
+            </form>
+            <xpath expr="//field[@name='check_in']" position="attributes">
+                <attribute name="string">Time In</attribute>
+            </xpath>
+            <xpath expr="//field[@name='check_out']" position="attributes">
+                <attribute name="string">Time Out</attribute>
+            </xpath>
+            <xpath expr="//group[@name='check_in_group']/preceding-sibling::separator[1]" position="attributes">
+                <attribute name="string">Time In</attribute>
+            </xpath>
+            <xpath expr="//separator[@name='check_out_separator']" position="attributes">
+                <attribute name="string">Time Out</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_attendance_search_captain" model="ir.ui.view">
+        <field name="name">hr.attendance.search.captain</field>
+        <field name="model">hr.attendance</field>
+        <field name="inherit_id" ref="hr_attendance.hr_attendance_view_filter"/>
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <xpath expr="//filter[@name='myattendances']" position="replace"/>
+            <xpath expr="//filter[@name='myteam']" position="replace"/>
+            <xpath expr="//filter[@name='errors']" position="replace"/>
+            <xpath expr="//filter[@name='auto_check']" position="replace"/>
+            <xpath expr="//filter[@name='nocheckout']" position="before">
+                <filter string="Pending Review" name="pending_review" domain="[('session_state', '=', 'pending_review')]"/>
+                <filter string="Missing Checkout" name="missing_checkout" domain="[('exception_code', '=', 'missing_checkout')]"/>
+                <filter string="Overtime To Review" name="overtime_waiting" domain="[('overtime_state', 'in', ['pending_captain', 'pending_hr_review'])]"/>
+            </xpath>
+            <xpath expr="//filter[@name='groupby_mode_in']" position="replace"/>
+            <xpath expr="//filter[@name='groupby_name']" position="after">
+                <filter string="Session Status" name="group_session" context="{'group_by': 'session_state'}"/>
+                <filter string="Exception" name="group_exception" context="{'group_by': 'exception_code'}"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="action_site_captain_attendance" model="ir.actions.act_window">
+        <field name="search_view_id" ref="view_attendance_search_captain"/>
+    </record>
+
+    <record id="action_site_captain_attendance_view_list" model="ir.actions.act_window.view">
+        <field name="sequence" eval="1"/>
+        <field name="view_mode">list</field>
+        <field name="view_id" ref="view_attendance_tree_captain"/>
+        <field name="act_window_id" ref="action_site_captain_attendance"/>
+    </record>
+
+    <record id="action_site_captain_attendance_view_form" model="ir.actions.act_window.view">
+        <field name="sequence" eval="2"/>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_hr_attendance_form_captain"/>
+        <field name="act_window_id" ref="action_site_captain_attendance"/>
+    </record>
+</odoo>

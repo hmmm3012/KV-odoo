@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hr_attendance_hour_wizard_form" model="ir.ui.view">
+        <field name="name">hr.attendance.hour.wizard.form</field>
+        <field name="model">hr.attendance.hour.wizard</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <field name="attendance_id" invisible="1"/>
+                    <field name="decision_type" readonly="1"/>
+                    <field name="hours" widget="float_time" invisible="decision_type == 'deny_session'"/>
+                    <field name="reason"/>
+                </group>
+                <footer>
+                    <button name="action_apply" type="object" string="Confirm" class="btn-primary"/>
+                    <button string="Cancel" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_hr_attendance_overtime_wizard_form" model="ir.ui.view">
+        <field name="name">hr.attendance.overtime.wizard.form</field>
+        <field name="model">hr.attendance.overtime.wizard</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <field name="attendance_id" invisible="1"/>
+                    <field name="rejected"/>
+                    <field name="hours" widget="float_time" invisible="rejected"/>
+                    <field name="reason"/>
+                </group>
+                <footer>
+                    <button name="action_apply" type="object" string="Confirm" class="btn-primary"/>
+                    <button string="Cancel" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_hr_attendance_overtime_hr_wizard_form" model="ir.ui.view">
+        <field name="name">hr.attendance.overtime.hr.wizard.form</field>
+        <field name="model">hr.attendance.overtime.hr.wizard</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <field name="attendance_id" invisible="1"/>
+                    <field name="discrepancy"/>
+                    <field name="hours" widget="float_time" invisible="discrepancy"/>
+                    <field name="note"/>
+                </group>
+                <footer>
+                    <button name="action_apply" type="object" string="Confirm" class="btn-primary"/>
+                    <button string="Cancel" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_hr_attendance_correction_wizard_form" model="ir.ui.view">
+        <field name="name">hr.attendance.correction.wizard.form</field>
+        <field name="model">hr.attendance.correction.wizard</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <field name="attendance_id" invisible="1"/>
+                    <field name="correction_type"/>
+                    <field name="proposed_value"/>
+                    <field name="reason"/>
+                </group>
+                <footer>
+                    <button name="action_apply" type="object" string="Send to HR" class="btn-primary"/>
+                    <button string="Cancel" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_hr_attendance_correction_list" model="ir.ui.view">
+        <field name="name">hr.attendance.correction.list</field>
+        <field name="model">hr.attendance.correction</field>
+        <field name="arch" type="xml">
+            <list create="0" delete="0">
+                <field name="requested_at"/>
+                <field name="employee_id"/>
+                <field name="correction_type"/>
+                <field name="original_value"/>
+                <field name="proposed_value"/>
+                <field name="state" widget="badge"/>
+                <field name="requester_id"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_hr_attendance_correction_form" model="ir.ui.view">
+        <field name="name">hr.attendance.correction.form</field>
+        <field name="model">hr.attendance.correction</field>
+        <field name="arch" type="xml">
+            <form create="0" delete="0">
+                <header>
+                    <button name="action_approve_button" type="object" string="Approve" class="btn-primary" invisible="state != 'pending'" groups="hr_attendance.group_hr_attendance_officer"/>
+                    <button name="action_reject_button" type="object" string="Reject" invisible="state != 'pending'" groups="hr_attendance.group_hr_attendance_officer"/>
+                    <field name="state" widget="statusbar" statusbar_visible="pending,approved,rejected"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="attendance_id"/>
+                            <field name="employee_id"/>
+                            <field name="correction_type"/>
+                            <field name="original_value"/>
+                            <field name="proposed_value"/>
+                            <field name="applied_value"/>
+                        </group>
+                        <group>
+                            <field name="requester_id"/>
+                            <field name="requested_at"/>
+                            <field name="reason"/>
+                            <field name="decider_id"/>
+                            <field name="decided_at"/>
+                            <field name="decision_reason" readonly="state != 'pending'"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_hr_attendance_overtime_case_list" model="ir.ui.view">
+        <field name="name">hr.attendance.overtime.case.list</field>
+        <field name="model">hr.attendance.overtime.case</field>
+        <field name="arch" type="xml">
+            <list create="0" delete="0">
+                <field name="employee_id"/>
+                <field name="candidate_hours" widget="float_time"/>
+                <field name="captain_hours" widget="float_time"/>
+                <field name="hr_hours" widget="float_time"/>
+                <field name="payroll_hours" widget="float_time"/>
+                <field name="state" widget="badge"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_hr_attendance_overtime_case_form" model="ir.ui.view">
+        <field name="name">hr.attendance.overtime.case.form</field>
+        <field name="model">hr.attendance.overtime.case</field>
+        <field name="arch" type="xml">
+            <form create="0" delete="0" edit="0">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="attendance_id"/>
+                            <field name="employee_id"/>
+                            <field name="state"/>
+                            <field name="candidate_hours" widget="float_time"/>
+                            <field name="captain_hours" widget="float_time"/>
+                            <field name="hr_hours" widget="float_time"/>
+                            <field name="payroll_hours" widget="float_time"/>
+                        </group>
+                        <group>
+                            <field name="captain_user_id"/>
+                            <field name="captain_at"/>
+                            <field name="captain_reason"/>
+                            <field name="hr_user_id"/>
+                            <field name="hr_at"/>
+                            <field name="hr_note"/>
+                        </group>
+                    </group>
+                    <field name="decision_ids" readonly="1">
+                        <list>
+                            <field name="decided_at"/>
+                            <field name="decision_type"/>
+                            <field name="hours_before" widget="float_time"/>
+                            <field name="hours_after" widget="float_time"/>
+                            <field name="user_id"/>
+                            <field name="reason"/>
+                        </list>
+                    </field>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_site_captain_session" model="ir.actions.act_window">
+        <field name="name">Sessions To Review</field>
+        <field name="res_model">hr.attendance</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_attendance_search_captain"/>
+        <field name="domain">['|', ('session_state', '=', 'pending_review'), ('exception_code', '=', 'missing_checkout')]</field>
+        <field name="context">{'create': False, 'edit': False, 'delete': False}</field>
+    </record>
+
+    <record id="action_hr_overtime_review" model="ir.actions.act_window">
+        <field name="name">Overtime Review</field>
+        <field name="res_model">hr.attendance.overtime.case</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('state', 'in', ['pending_hr_review', 'hr_discrepancy', 'captain_rejected'])]</field>
+    </record>
+
+    <record id="action_hr_attendance_correction" model="ir.actions.act_window">
+        <field name="name">Time Corrections</field>
+        <field name="res_model">hr.attendance.correction</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('state', '=', 'pending')]</field>
+    </record>
+
+    <menuitem
+        id="menu_site_captain_session"
+        name="Sessions To Review"
+        parent="hr_attendance.menu_hr_attendance_root"
+        action="action_site_captain_session"
+        sequence="7"
+        groups="group_hr_attendance_site_captain"/>
+
+    <menuitem
+        id="menu_hr_overtime_review"
+        name="Overtime Review"
+        parent="hr_attendance.menu_hr_attendance_root"
+        action="action_hr_overtime_review"
+        sequence="16"
+        groups="hr_attendance.group_hr_attendance_officer"/>
+
+    <menuitem
+        id="menu_hr_attendance_correction"
+        name="Time Corrections"
+        parent="hr_attendance.menu_hr_attendance_root"
+        action="action_hr_attendance_correction"
+        sequence="17"
+        groups="hr_attendance.group_hr_attendance_officer"/>
+</odoo>

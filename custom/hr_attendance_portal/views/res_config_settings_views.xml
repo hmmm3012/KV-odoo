@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_attendance_portal" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.attendance.portal</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="hr_attendance.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='attendance_kiosk_mode']/ancestor::setting[1]" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='attendance_kiosk_delay']/ancestor::block[1]" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//block[@name='kiosk_mode_setting_container']" position="after">
+                <block title="Attendance Portal" name="attendance_portal_settings">
+                    <setting string="Personal session lifetime" help="How long a personal-device attendance session stays valid after login.">
+                        <field name="attendance_portal_session_minutes" class="text-center" style="width: 6ch;"/>
+                        <span> minutes</span>
+                    </setting>
+                    <setting string="Kiosk session lifetime" invisible="1" help="Shared kiosk sessions are revoked after each check-in or check-out.">
+                        <field name="attendance_portal_kiosk_session_minutes" class="text-center" style="width: 6ch;"/>
+                        <span> minutes</span>
+                    </setting>
+                    <setting string="PIN attempt limit" help="Temporary lockout after this many failed PIN attempts per employee code. Lockouts are never permanent.">
+                        <field name="attendance_portal_pin_max_attempts" class="text-center" style="width: 6ch;"/>
+                        <span> attempts /</span>
+                        <field name="attendance_portal_pin_window_minutes" class="text-center ms-2" style="width: 6ch;"/>
+                        <span> minutes</span>
+                    </setting>
+                    <setting string="IP attempt limit" help="Temporary lockout for a source IP after this many failed logins.">
+                        <field name="attendance_portal_ip_max_attempts" class="text-center" style="width: 6ch;"/>
+                        <span> attempts per window</span>
+                    </setting>
+                    <setting string="Standard hours per session" help="Time beyond this is an overtime candidate. It is not payroll overtime until the captain and HR both review it.">
+                        <field name="attendance_standard_hours" widget="float_time" class="text-center" style="width: 6ch;"/>
+                    </setting>
+                    <setting string="Overtime cap per session" help="Maximum overtime a captain may approve for one session.">
+                        <field name="attendance_overtime_cap_hours" widget="float_time" class="text-center" style="width: 6ch;"/>
+                    </setting>
+                    <setting string="Missing checkout threshold" help="Flag an open session after this many hours. The system does not invent a checkout.">
+                        <field name="attendance_missing_checkout_hours" widget="float_time" class="text-center" style="width: 6ch;"/>
+                    </setting>
+                    <setting string="Missing GPS" help="Personal devices require GPS. Reject blocks the punch; Needs Review records it for HR.">
+                        <field name="attendance_portal_missing_gps_policy"/>
+                    </setting>
+                    <setting string="Inaccurate GPS">
+                        <field name="attendance_portal_gps_inaccurate_policy"/>
+                    </setting>
+                    <setting string="Outside workplace radius">
+                        <field name="attendance_portal_outside_geofence_policy"/>
+                    </setting>
+                    <setting string="No workplace configured">
+                        <field name="attendance_portal_no_location_policy"/>
+                    </setting>
+                    <setting string="Require GPS on kiosk" invisible="1">
+                        <field name="attendance_portal_kiosk_require_gps"/>
+                    </setting>
+                    <setting string="Missing photo" help="Personal devices capture a still for HR audit. Reject blocks the punch; Needs Review records it without a photo. Kiosk does not require a photo.">
+                        <field name="attendance_portal_missing_photo_policy"/>
+                    </setting>
+                    <setting string="No face in photo" help="Quality failures (no face, too small, tilted, turned, multiple faces) always recapture and do not record a punch.">
+                        <field name="attendance_portal_no_face_policy"/>
+                    </setting>
+                    <setting string="Face mismatch" help="Độ khớp trung bình (30-45%) luôn cần HR xác minh và vẫn ghi công. Dưới 30% bắt chụp lại, không ghi công.">
+                        <field name="attendance_portal_face_mismatch_policy"/>
+                    </setting>
+                    <setting string="Face not enrolled" help="When the employee has no registered attendance face. Needs Review records the punch for HR.">
+                        <field name="attendance_portal_face_not_enrolled_policy"/>
+                    </setting>
+                </block>
+            </xpath>
+        </field>
+    </record>
+</odoo>

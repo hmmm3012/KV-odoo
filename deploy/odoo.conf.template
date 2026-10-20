@@ -1,0 +1,32 @@
+[options]
+; Rendered at container start from deploy/odoo.conf.template via entrypoint.sh
+
+addons_path = /opt/odoo/addons,/opt/odoo/custom
+data_dir = /var/lib/odoo
+
+db_host = db
+db_port = 5432
+db_user = ${POSTGRES_USER}
+db_password = ${POSTGRES_PASSWORD}
+
+http_port = 8069
+http_interface = 0.0.0.0
+
+admin_passwd = ${ODOO_ADMIN_PASSWD}
+
+; Production (docker-compose.prod.yml): workers >= 1, proxy_mode True, gevent on 8072
+workers = ${ODOO_WORKERS}
+max_cron_threads = ${ODOO_MAX_CRON_THREADS}
+proxy_mode = ${ODOO_PROXY_MODE}
+gevent_port = ${ODOO_GEVENT_PORT}
+
+limit_memory_soft = ${ODOO_LIMIT_MEMORY_SOFT}
+limit_memory_hard = ${ODOO_LIMIT_MEMORY_HARD}
+limit_memory_soft_gevent = ${ODOO_LIMIT_MEMORY_SOFT_GEVENT}
+limit_memory_hard_gevent = ${ODOO_LIMIT_MEMORY_HARD_GEVENT}
+limit_time_real = ${ODOO_LIMIT_TIME_REAL}
+limit_time_cpu = ${ODOO_LIMIT_TIME_CPU}
+limit_request = ${ODOO_LIMIT_REQUEST}
+
+log_level = info
+logfile = False

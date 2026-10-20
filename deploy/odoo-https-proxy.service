@@ -1,0 +1,17 @@
+[Unit]
+Description=Odoo HTTPS proxy (self-signed, port 8443)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/debian1/KV-odoo/deploy
+Environment=HTTPS_LISTEN=0.0.0.0:8443
+Environment=ODOO_UPSTREAM=127.0.0.1:8069
+Environment=CERT_DIR=/home/debian1/KV-odoo/deploy/nginx/certs
+ExecStart=/usr/bin/python3 /home/debian1/KV-odoo/deploy/scripts/https-proxy.py
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target

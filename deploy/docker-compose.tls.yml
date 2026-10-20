@@ -1,0 +1,22 @@
+# HTTPS in front of the current stack (Odoo stays on :8069).
+# Usage:
+#   ./scripts/generate-tls-cert.sh
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.tls.yml up -d
+#
+# Open https://<host-ip>/attendance and accept the self-signed warning once.
+
+services:
+  odoo:
+    environment:
+      ODOO_PROXY_MODE: "True"
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    depends_on:
+      - odoo
+    ports:
+      - "${NGINX_HTTPS_PORT:-443}:443"
+    volumes:
+      - ./nginx/tls.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro

@@ -1,0 +1,12 @@
+# Development overrides: mount source for faster iteration (no image rebuild for Python/XML changes)
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+
+services:
+  odoo:
+    volumes:
+      - ../addons:/opt/odoo/addons:ro
+      - ../custom:/opt/odoo/custom:ro
+      - ../odoo:/opt/odoo/odoo:ro
+      - ../utils:/opt/odoo/utils:ro
+    environment:
+      LOG_LEVEL: debug

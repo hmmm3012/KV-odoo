@@ -10,11 +10,15 @@
       <!-- Replace the private address div with custom address fields -->
       <xpath expr="//label[@for='private_street']" position="replace">
         <field name="emp_permanent_address"/>
-      </xpath>
-      
-      <xpath expr="//div[@class='o_address_format']" position="replace">
         <field name="emp_temporary_address"/>
       </xpath>
+
+      <xpath expr="//div[@class='o_address_format']" position="replace">
+        <field name="emp_place_of_origin"/>
+        <field name="private_phone" string="Số điện thoại"/>
+      </xpath>
+
+      <xpath expr="//field[@name='private_email']/following-sibling::field[@name='private_phone']" position="replace"/>
 
       <!-- Change identification_id label to CCCD -->
       <xpath expr="//field[@name='identification_id']" position="attributes">
@@ -25,6 +29,7 @@
       <xpath expr="//field[@name='identification_id']" position="after">
         <field name="identification_date"/>
         <field name="identification_by"/>
+        <field name="id_card_front" widget="image" class="o_kv_id_thumb" groups="hr.group_hr_user" options="{'zoom': true, 'zoom_delay': 200}"/>
       </xpath>
 
       <!-- Make country_id readonly and ensure it shows Vietnam -->
@@ -124,6 +129,22 @@
       </xpath>
       
       <xpath expr="//field[@name='children']" position="attributes">
+        <attribute name="invisible">1</attribute>
+      </xpath>
+
+      <xpath expr="//field[@name='private_car_plate']" position="attributes">
+        <attribute name="invisible">1</attribute>
+      </xpath>
+      <xpath expr="//field[@name='ssnid']" position="attributes">
+        <attribute name="invisible">1</attribute>
+      </xpath>
+      <xpath expr="//field[@name='passport_id']" position="attributes">
+        <attribute name="invisible">1</attribute>
+      </xpath>
+      <xpath expr="//field[@name='place_of_birth']" position="attributes">
+        <attribute name="invisible">1</attribute>
+      </xpath>
+      <xpath expr="//field[@name='country_of_birth']" position="attributes">
         <attribute name="invisible">1</attribute>
       </xpath>
 

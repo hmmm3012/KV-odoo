@@ -1,0 +1,8 @@
+.o_field_punch_photo img,
+.o_punch_photo img {
+    cursor: zoom-in;
+    border-radius: 0.5rem;
+    object-fit: cover;
+    background: #0f172a;
+    max-width: 100%;
+}

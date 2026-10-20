@@ -1,0 +1,932 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* hr_attendance_portal
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 18.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-19 08:30+0000\n"
+"PO-Revision-Date: 2026-10-19 08:30+0000\n"
+"Last-Translator: \n"
+"Language-Team: Vietnamese\n"
+"Language: vi\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance__in_department_id
+msgid "Check-in Department"
+msgstr "Nơi chấm công vào"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance__out_department_id
+msgid "Check-out Department"
+msgstr "Nơi chấm công ra"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance__in_location_id
+msgid "Check-in Workplace"
+msgstr "Địa điểm vào"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance__out_location_id
+msgid "Check-out Workplace"
+msgstr "Địa điểm ra"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance__in_gps_accuracy
+msgid "Check-in GPS Accuracy (m)"
+msgstr "Sai số GPS lúc vào (m)"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance__out_gps_accuracy
+msgid "Check-out GPS Accuracy (m)"
+msgstr "Sai số GPS lúc ra (m)"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance__in_face_image
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.view_hr_attendance_form_portal
+msgid "Check-in Photo"
+msgstr "Ảnh lúc vào"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance__out_face_image
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.view_hr_attendance_form_portal
+msgid "Check-out Photo"
+msgstr "Ảnh lúc ra"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance__in_face_detected
+msgid "Check-in Face Detected"
+msgstr "Có khuôn mặt lúc vào"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance__out_face_detected
+msgid "Check-out Face Detected"
+msgstr "Có khuôn mặt lúc ra"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance__portal_review_status
+msgid "Portal Review"
+msgstr "Xác minh"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance__portal_event_ids
+msgid "Portal Events"
+msgstr "Lượt chấm công"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance__in_mode__personal_web
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance__out_mode__personal_web
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance_event__source__personal_web
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.view_hr_attendance_event_search
+msgid "Personal Web"
+msgstr "Điện thoại cá nhân"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance__portal_review_status__not_required
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance_event__review_status__not_required
+msgid "Not Required"
+msgstr "Không cần xác minh"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance__portal_review_status__pending
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance_event__review_status__pending
+msgid "Pending"
+msgstr "Chờ xác minh"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance__portal_review_status__reviewed
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance_event__review_status__reviewed
+msgid "Reviewed"
+msgstr "Đã xác minh"
+
+#. module: hr_attendance_portal
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.view_hr_attendance_form_portal
+msgid "Events"
+msgstr "Lượt chấm"
+
+#. module: hr_attendance_portal
+#: model:ir.ui.menu,name:hr_attendance_portal.menu_hr_attendance_event
+msgid "Exceptions & Audit"
+msgstr "Ngoại lệ"
+
+#. module: hr_attendance_portal
+#: model:ir.actions.act_window,name:hr_attendance_portal.action_hr_attendance_event
+#: code:addons/hr_attendance_portal/models/hr_attendance.py:0
+msgid "Attendance Events"
+msgstr "Nhật ký chấm công"
+
+#. module: hr_attendance_portal
+#: model:ir.actions.act_window,help:hr_attendance_portal.action_hr_attendance_event
+msgid "No attendance events yet"
+msgstr "Chưa có lượt chấm công nào"
+
+#. module: hr_attendance_portal
+#: model:ir.actions.act_window,help:hr_attendance_portal.action_hr_attendance_event
+msgid "Portal and kiosk check-in/out requests are logged here for audit and review."
+msgstr "Các lần chấm công vào/ra từ điện thoại và máy chấm chung được ghi ở đây để kiểm tra."
+
+#. module: hr_attendance_portal
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.view_hr_attendance_event_form
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.view_hr_attendance_event_list
+msgid "Mark Reviewed"
+msgstr "Đánh dấu đã xác minh"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance_event__employee_id
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.view_hr_attendance_event_search
+msgid "Employee"
+msgstr "Nhân viên"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance_event__attendance_id
+msgid "Attendance"
+msgstr "Bản ghi chấm công"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance_event__event_type
+msgid "Type"
+msgstr "Loại"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance_event__event_type__check_in
+msgid "Check In"
+msgstr "Vào"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance_event__event_type__check_out
+msgid "Check Out"
+msgstr "Ra"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance_event__result
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.view_hr_attendance_event_search
+msgid "Result"
+msgstr "Kết quả"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance_event__result__success
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.view_hr_attendance_event_search
+msgid "Success"
+msgstr "Thành công"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance_event__result__rejected
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.view_hr_attendance_event_search
+msgid "Rejected"
+msgstr "Bị từ chối"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance_event__result__needs_review
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.view_hr_attendance_event_search
+msgid "Needs Review"
+msgstr "Cần xác minh"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance_event__source
+msgid "Source"
+msgstr "Nguồn"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance_event__source__kiosk
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.view_hr_attendance_event_search
+msgid "Kiosk"
+msgstr "Máy chấm chung"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance_event__server_time
+msgid "Time"
+msgstr "Thời gian"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance_event__location_id
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance_device__location_id
+#: model:ir.ui.menu,name:hr_attendance_portal.menu_hr_attendance_location
+#: model:ir.actions.act_window,name:hr_attendance_portal.action_hr_attendance_location
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.view_hr_attendance_event_search
+msgid "Workplace"
+msgstr "Địa điểm"
+
+#. module: hr_attendance_portal
+#: model:ir.actions.act_window,name:hr_attendance_portal.action_hr_attendance_location
+#: model:ir.ui.menu,name:hr_attendance_portal.menu_hr_attendance_location
+msgid "Workplaces"
+msgstr "Địa điểm"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance_event__department_id
+msgid "Department / Site"
+msgstr "Nơi làm việc"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance_event__device_id
+msgid "Device"
+msgstr "Thiết bị"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance_event__latitude
+msgid "Latitude"
+msgstr "Vĩ độ"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance_event__longitude
+msgid "Longitude"
+msgstr "Kinh độ"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance_event__gps_accuracy
+msgid "GPS Accuracy (m)"
+msgstr "Sai số GPS (m)"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance_event__distance_meters
+msgid "Distance (m)"
+msgstr "Khoảng cách (m)"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance_event__ip_address
+msgid "IP Address"
+msgstr "Địa chỉ IP"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance_event__request_id
+msgid "Request ID"
+msgstr "Mã yêu cầu"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance_event__failure_reason_code
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.view_hr_attendance_event_search
+msgid "Reason"
+msgstr "Lý do"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance_event__face_image
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.view_hr_attendance_event_form
+msgid "Punch Photo"
+msgstr "Ảnh chấm công"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance_event__face_count
+msgid "Faces Detected"
+msgstr "Số khuôn mặt"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance_event__face_cosine
+msgid "Face Cosine"
+msgstr "Độ khớp"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance_event__review_status
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.view_hr_attendance_event_form
+msgid "Review"
+msgstr "Xác minh"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance_event__reviewed_by
+msgid "Reviewed By"
+msgstr "Người xác minh"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance_event__reviewed_at
+msgid "Reviewed At"
+msgstr "Xác minh lúc"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance_event__review_note
+msgid "Note"
+msgstr "Ghi chú"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance_event__failure_reason_code__invalid_credentials
+msgid "Invalid credentials"
+msgstr "Sai mã nhân viên hoặc PIN"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance_event__failure_reason_code__too_many_attempts
+msgid "Too many attempts"
+msgstr "Quá nhiều lần thử"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance_event__failure_reason_code__inactive_employee
+msgid "Inactive employee"
+msgstr "Nhân viên đã ngưng"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance_event__failure_reason_code__pin_not_set
+msgid "PIN not set"
+msgstr "Chưa có PIN"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance_event__failure_reason_code__not_eligible
+msgid "Not eligible"
+msgstr "Không được chấm công"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance_event__failure_reason_code__invalid_session
+msgid "Invalid session"
+msgstr "Phiên đã hết hạn"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance_event__failure_reason_code__missing_gps
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.res_config_settings_view_form_attendance_portal
+msgid "Missing GPS"
+msgstr "Thiếu vị trí GPS"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance_event__failure_reason_code__missing_photo
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.res_config_settings_view_form_attendance_portal
+msgid "Missing photo"
+msgstr "Thiếu ảnh"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance_event__failure_reason_code__no_face
+msgid "No face in photo"
+msgstr "Không thấy khuôn mặt"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance_event__failure_reason_code__multiple_faces
+msgid "Multiple faces in photo"
+msgstr "Nhiều khuôn mặt"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance_event__failure_reason_code__face_too_small
+msgid "Face too small"
+msgstr "Khuôn mặt quá nhỏ"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance_event__failure_reason_code__face_tilted
+msgid "Face tilted"
+msgstr "Khuôn mặt bị nghiêng"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance_event__failure_reason_code__face_turned
+msgid "Face turned"
+msgstr "Không nhìn thẳng"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance_event__failure_reason_code__face_mismatch
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.res_config_settings_view_form_attendance_portal
+msgid "Face mismatch"
+msgstr "Độ khớp chưa cao"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance_event__failure_reason_code__face_low_match
+msgid "Face match too low"
+msgstr "Độ khớp quá thấp"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance_event__failure_reason_code__face_not_enrolled
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.res_config_settings_view_form_attendance_portal
+msgid "Face not enrolled"
+msgstr "Chưa đăng ký khuôn mặt"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance_event__failure_reason_code__face_check_unavailable
+msgid "Face check unavailable"
+msgstr "Không kiểm tra được khuôn mặt"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance_event__failure_reason_code__gps_inaccurate
+msgid "GPS inaccurate"
+msgstr "GPS chưa chính xác"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance_event__failure_reason_code__outside_geofence
+msgid "Outside geofence"
+msgstr "Ngoài phạm vi"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance_event__failure_reason_code__no_location_configured
+msgid "No workplace configured"
+msgstr "Chưa cấu hình nơi làm việc"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance_event__failure_reason_code__device_revoked
+msgid "Device revoked"
+msgstr "Thiết bị đã khóa"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance_event__failure_reason_code__already_checked_in
+msgid "Already checked in"
+msgstr "Đã chấm công vào"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance_event__failure_reason_code__not_checked_in
+msgid "Not checked in"
+msgstr "Chưa chấm công vào"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance_event__failure_reason_code__duplicate_request
+msgid "Duplicate request"
+msgstr "Yêu cầu trùng"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance_event__failure_reason_code__invalid_event_type
+msgid "Invalid event type"
+msgstr "Loại chấm công không hợp lệ"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__res_company__attendance_portal_missing_gps_policy__reject
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__res_company__attendance_portal_gps_inaccurate_policy__reject
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__res_company__attendance_portal_outside_geofence_policy__reject
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__res_company__attendance_portal_no_location_policy__reject
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__res_company__attendance_portal_missing_photo_policy__reject
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__res_company__attendance_portal_no_face_policy__reject
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__res_company__attendance_portal_face_mismatch_policy__reject
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__res_company__attendance_portal_face_not_enrolled_policy__reject
+msgid "Reject"
+msgstr "Từ chối"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_employee__attendance_portal_enabled
+msgid "Allow Portal Check-in"
+msgstr "Cho phép chấm công"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_employee__attendance_pin_is_set
+msgid "Attendance PIN Set"
+msgstr "Đã có PIN"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_employee__attendance_location_ids
+msgid "Portal Workplaces"
+msgstr "Địa điểm được phép"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_employee__attendance_face_image
+msgid "Enrolled Face"
+msgstr "Ảnh khuôn mặt"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_employee__attendance_face_embedding
+msgid "Face Embedding"
+msgstr "Dữ liệu khuôn mặt"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_employee__attendance_face_enrolled_at
+msgid "Face Enrolled At"
+msgstr "Đăng ký khuôn mặt lúc"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_employee__attendance_face_is_enrolled
+msgid "Face Enrolled"
+msgstr "Đã đăng ký khuôn mặt"
+
+#. module: hr_attendance_portal
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.view_employee_form_attendance_portal
+msgid "Attendance PIN"
+msgstr "Mã PIN chấm công"
+
+#. module: hr_attendance_portal
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.view_employee_form_attendance_portal
+msgid "Register Face"
+msgstr "Đăng ký khuôn mặt"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_department__attendance_latitude
+msgid "Attendance Latitude"
+msgstr "Vĩ độ chấm công"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_department__attendance_longitude
+msgid "Attendance Longitude"
+msgstr "Kinh độ chấm công"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_department__attendance_radius_meters
+msgid "Attendance Radius (m)"
+msgstr "Bán kính (m)"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_department__attendance_max_gps_accuracy_meters
+msgid "Max GPS Accuracy (m)"
+msgstr "Sai số GPS tối đa (m)"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_department__attendance_is_geofenced
+msgid "Attendance Site"
+msgstr "Có tọa độ chấm công"
+
+#. module: hr_attendance_portal
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.view_department_form_attendance_portal
+msgid "Attendance parking site"
+msgstr "Tọa độ nơi chấm công"
+
+#. module: hr_attendance_portal
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.res_config_settings_view_form_attendance_portal
+msgid "Attendance Portal"
+msgstr "Cổng chấm công"
+
+#. module: hr_attendance_portal
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.res_config_settings_view_form_attendance_portal
+msgid "Personal session lifetime"
+msgstr "Thời gian đăng nhập trên điện thoại"
+
+#. module: hr_attendance_portal
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.res_config_settings_view_form_attendance_portal
+msgid "How long a personal-device attendance session stays valid after login."
+msgstr "Sau khi đăng nhập trên điện thoại, phiên chấm công còn hiệu lực trong bao lâu."
+
+#. module: hr_attendance_portal
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.res_config_settings_view_form_attendance_portal
+msgid "Kiosk session lifetime"
+msgstr "Thời gian phiên máy chấm chung"
+
+#. module: hr_attendance_portal
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.res_config_settings_view_form_attendance_portal
+msgid "Shared kiosk sessions are revoked after each check-in or check-out."
+msgstr "Phiên trên máy chấm chung sẽ đóng sau mỗi lần vào hoặc ra."
+
+#. module: hr_attendance_portal
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.res_config_settings_view_form_attendance_portal
+msgid "PIN attempt limit"
+msgstr "Số lần nhập PIN sai"
+
+#. module: hr_attendance_portal
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.res_config_settings_view_form_attendance_portal
+msgid "Temporary lockout after this many failed PIN attempts per employee code. Lockouts are never permanent."
+msgstr "Khóa tạm sau số lần nhập PIN sai này cho mỗi mã nhân viên. Không khóa vĩnh viễn."
+
+#. module: hr_attendance_portal
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.res_config_settings_view_form_attendance_portal
+msgid "IP attempt limit"
+msgstr "Số lần thử sai theo địa chỉ IP"
+
+#. module: hr_attendance_portal
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.res_config_settings_view_form_attendance_portal
+msgid "Temporary lockout for a source IP after this many failed logins."
+msgstr "Khóa tạm một địa chỉ IP sau số lần đăng nhập sai này."
+
+#. module: hr_attendance_portal
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.res_config_settings_view_form_attendance_portal
+msgid "Personal devices require GPS. Reject blocks the punch; Needs Review records it for HR."
+msgstr "Điện thoại bắt buộc có GPS. Từ chối thì không ghi công; Cần xác minh thì vẫn ghi để nhân sự kiểm tra."
+
+#. module: hr_attendance_portal
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.res_config_settings_view_form_attendance_portal
+msgid "Inaccurate GPS"
+msgstr "GPS chưa chính xác"
+
+#. module: hr_attendance_portal
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.res_config_settings_view_form_attendance_portal
+msgid "Outside workplace radius"
+msgstr "Ngoài phạm vi nơi làm việc"
+
+#. module: hr_attendance_portal
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.res_config_settings_view_form_attendance_portal
+msgid "No workplace configured"
+msgstr "Chưa cấu hình nơi làm việc"
+
+#. module: hr_attendance_portal
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.res_config_settings_view_form_attendance_portal
+msgid "Require GPS on kiosk"
+msgstr "Máy chấm chung bắt buộc GPS"
+
+#. module: hr_attendance_portal
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.res_config_settings_view_form_attendance_portal
+msgid "Personal devices capture a still for HR audit. Reject blocks the punch; Needs Review records it without a photo. Kiosk does not require a photo."
+msgstr "Điện thoại chụp ảnh để nhân sự kiểm tra. Từ chối thì không ghi công. Cần xác minh thì vẫn ghi dù thiếu ảnh. Máy chấm chung không bắt ảnh."
+
+#. module: hr_attendance_portal
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.res_config_settings_view_form_attendance_portal
+msgid "No face in photo"
+msgstr "Không thấy khuôn mặt"
+
+#. module: hr_attendance_portal
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.res_config_settings_view_form_attendance_portal
+msgid "Quality failures (no face, too small, tilted, turned, multiple faces) always recapture and do not record a punch."
+msgstr "Ảnh không đạt (không thấy mặt, quá nhỏ, nghiêng, quay mặt, nhiều người) luôn yêu cầu chụp lại và không ghi công."
+
+#. module: hr_attendance_portal
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.res_config_settings_view_form_attendance_portal
+msgid "When the employee has no registered attendance face. Needs Review records the punch for HR."
+msgstr "Khi nhân viên chưa có ảnh khuôn mặt. Cần xác minh thì vẫn ghi công để nhân sự kiểm tra."
+
+#. module: hr_attendance_portal
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.res_config_settings_view_form_attendance_portal
+msgid " minutes"
+msgstr " phút"
+
+#. module: hr_attendance_portal
+#: model:ir.ui.menu,name:hr_attendance_portal.menu_hr_attendance_device
+#: model:ir.actions.act_window,name:hr_attendance_portal.action_hr_attendance_device
+msgid "Kiosk Devices"
+msgstr "Máy chấm chung"
+
+#. module: hr_attendance_portal
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.view_hr_attendance_device_form
+msgid "Revoke"
+msgstr "Khóa thiết bị"
+
+#. module: hr_attendance_portal
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.view_hr_attendance_device_form
+msgid "Reactivate"
+msgstr "Mở lại"
+
+#. module: hr_attendance_portal
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.view_hr_attendance_location_form
+msgid "Restrictions"
+msgstr "Giới hạn"
+
+#. module: hr_attendance_portal
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.view_hr_attendance_location_form
+msgid "Workplace name"
+msgstr "Tên địa điểm"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance_location__allowed_radius_meters
+msgid "Allowed Radius (m)"
+msgstr "Bán kính cho phép (m)"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance_location__max_gps_accuracy_meters
+msgid "Max GPS Accuracy (m)"
+msgstr "Sai số GPS tối đa (m)"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance_location__employee_ids
+msgid "Restricted Employees"
+msgstr "Nhân viên được phép"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance_location__department_ids
+msgid "Restricted Departments"
+msgstr "Phòng ban được phép"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance_device__device_identifier
+msgid "Device Identifier"
+msgstr "Mã thiết bị"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance_device__last_seen_at
+msgid "Last Seen"
+msgstr "Lần cuối online"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance_device__revoked_at
+msgid "Revoked At"
+msgstr "Khóa lúc"
+
+#. module: hr_attendance_portal
+#: model:ir.model,name:hr_attendance_portal.model_hr_attendance_event
+msgid "Attendance Audit Event"
+msgstr "Nhật ký chấm công"
+
+#. module: hr_attendance_portal
+#: model:ir.model,name:hr_attendance_portal.model_hr_attendance_location
+msgid "Attendance Workplace"
+msgstr "Địa điểm chấm công"
+
+#. module: hr_attendance_portal
+#: model:ir.model,name:hr_attendance_portal.model_hr_attendance_device
+msgid "Attendance Kiosk Device"
+msgstr "Máy chấm chung"
+
+#. module: hr_attendance_portal
+#: model:ir.actions.act_window,name:hr_attendance_portal.action_site_captain_attendance
+#: model:ir.ui.menu,name:hr_attendance_portal.menu_site_captain_attendance
+msgid "Valid Attendances"
+msgstr "Lượt hợp lệ"
+
+#. module: hr_attendance_portal
+#: model:ir.actions.act_window,name:hr_attendance_portal.action_site_captain_exception
+#: model:ir.ui.menu,name:hr_attendance_portal.menu_site_captain_exception
+msgid "Exceptions"
+msgstr "Ngoại lệ"
+
+#. module: hr_attendance_portal
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.view_attendance_tree_captain
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.view_hr_attendance_form_captain
+msgid "Time In"
+msgstr "Giờ vào"
+
+#. module: hr_attendance_portal
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.view_attendance_tree_captain
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.view_hr_attendance_form_captain
+msgid "Time Out"
+msgstr "Giờ ra"
+
+#. module: hr_attendance_portal
+#: model:ir.actions.act_window,name:hr_attendance_portal.action_site_captain_employee
+#: model:ir.ui.menu,name:hr_attendance_portal.menu_site_captain_employee
+msgid "Department Employees"
+msgstr "Nhân viên bộ phận"
+
+#. module: hr_attendance_portal
+#: model:ir.actions.act_window,name:hr_attendance_portal.action_site_captain_event
+#: model:ir.ui.menu,name:hr_attendance_portal.menu_site_captain_event
+msgid "All Attendance Records"
+msgstr "Tất cả các lượt chấm công"
+
+#. module: hr_attendance_portal
+#: model:res.groups,name:hr_attendance_portal.group_hr_attendance_site_captain
+msgid "Department Captain"
+msgstr "Đội trưởng bộ phận"
+
+#. module: hr_attendance_portal
+#: model:ir.actions.act_window,name:hr_attendance_portal.action_site_captain_session
+#: model:ir.ui.menu,name:hr_attendance_portal.menu_site_captain_session
+msgid "Sessions To Review"
+msgstr "Ca cần xử lý"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance__work_status
+msgid "Work Status"
+msgstr "Làm việc"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance__recognized_regular_hours
+msgid "Recognized Hours"
+msgstr "Giờ được công nhận"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance__session_state
+msgid "Session Status"
+msgstr "Trạng thái ca"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance__exception_code
+msgid "Exception"
+msgstr "Ngoại lệ"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance__raw_elapsed_hours
+msgid "Raw Elapsed"
+msgstr "Tổng giờ thô"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance__standard_hours
+msgid "Standard Hours"
+msgstr "Giờ chuẩn"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance__overtime_candidate_hours
+msgid "Overtime Candidate"
+msgstr "Overtime đề xuất"
+
+#. module: hr_attendance_portal
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.view_attendance_tree_portal
+msgid "Overtime Hours"
+msgstr "Giờ làm thêm"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance__overtime_state
+msgid "Overtime Review"
+msgstr "Trạng thái overtime"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance__payroll_regular_hours
+msgid "Payroll Regular Hours"
+msgstr "Giờ công tính lương"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance__payroll_overtime_hours
+msgid "Payroll Overtime Hours"
+msgstr "Overtime tính lương"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance__effective_check_in
+msgid "Effective Check-in"
+msgstr "Giờ vào hiệu lực"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance__effective_check_out
+msgid "Effective Check-out"
+msgstr "Giờ ra hiệu lực"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance__session_state__active
+msgid "Active"
+msgstr "Đang mở"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance__session_state__pending_review
+msgid "Pending Review"
+msgstr "Cần xử lý"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance__session_state__validated
+msgid "Validated"
+msgstr "Hợp lệ"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance__session_state__denied
+msgid "Denied"
+msgstr "Từ chối"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance__session_state__modification_pending
+msgid "Modification Pending"
+msgstr "Chờ điều chỉnh"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance__session_state__corrected
+msgid "Corrected"
+msgstr "Đã điều chỉnh"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance__session_state__closed
+msgid "Closed"
+msgstr "Đã chốt"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance__exception_code__none
+msgid "None"
+msgstr "Không"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance__exception_code__missing_checkout
+msgid "Missing Checkout"
+msgstr "Quên giờ ra"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance__exception_code__excessive_duration
+msgid "Excessive Duration"
+msgstr "Vượt giờ chuẩn"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance__overtime_state__not_required
+msgid "Not Required"
+msgstr "Không có"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance__overtime_state__pending_captain
+msgid "Pending Captain"
+msgstr "Chờ đội trưởng"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance__overtime_state__pending_hr_review
+msgid "Pending HR Review"
+msgstr "Chờ HR"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance__overtime_state__captain_rejected
+msgid "Captain Rejected"
+msgstr "Đội trưởng từ chối"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance__overtime_state__hr_reviewed
+msgid "HR Reviewed"
+msgstr "HR đã đối chiếu"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance__overtime_state__hr_discrepancy
+msgid "HR Discrepancy"
+msgstr "HR thấy lệch"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance__overtime_state__closed
+msgid "Closed"
+msgstr "Đã chốt"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance__work_status__at_work
+msgid "At Work"
+msgstr "Đang làm việc"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance__work_status__finished
+msgid "Finished"
+msgstr "Đã kết thúc"
+
+#. module: hr_attendance_portal
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.view_attendance_search_captain
+msgid "Pending Review"
+msgstr "Cần xử lý"
+
+#. module: hr_attendance_portal
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.view_attendance_search_captain
+msgid "Missing Checkout"
+msgstr "Quên giờ ra"
+
+#. module: hr_attendance_portal
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.view_attendance_search_captain
+msgid "Overtime To Review"
+msgstr "Overtime cần duyệt"
+
+#. module: hr_attendance_portal
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.view_attendance_search_captain
+msgid "Session Status"
+msgstr "Trạng thái ca"
+
+#. module: hr_attendance_portal
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.view_attendance_search_captain
+msgid "Exception"
+msgstr "Ngoại lệ"
+
+#. module: hr_attendance_portal
+#: model:ir.actions.act_window,name:hr_attendance_portal.action_hr_overtime_review
+#: model:ir.ui.menu,name:hr_attendance_portal.menu_hr_overtime_review
+msgid "Overtime Review"
+msgstr "Đối chiếu overtime"
+
+#. module: hr_attendance_portal
+#: model:ir.actions.act_window,name:hr_attendance_portal.action_hr_attendance_correction
+#: model:ir.ui.menu,name:hr_attendance_portal.menu_hr_attendance_correction
+msgid "Time Corrections"
+msgstr "Điều chỉnh giờ"

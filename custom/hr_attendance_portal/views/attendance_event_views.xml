@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hr_attendance_event_list" model="ir.ui.view">
+        <field name="name">hr.attendance.event.list</field>
+        <field name="model">hr.attendance.event</field>
+        <field name="arch" type="xml">
+            <list
+                decoration-success="result == 'success'"
+                decoration-warning="result == 'needs_review'"
+                decoration-danger="result == 'rejected'">
+                <header>
+                    <button name="action_mark_reviewed" type="object" string="Mark Reviewed" groups="hr_attendance.group_hr_attendance_officer"/>
+                </header>
+                <field name="server_time"/>
+                <field name="employee_id"/>
+                <field name="event_type"/>
+                <field name="result" widget="badge" decoration-success="result == 'success'" decoration-warning="result == 'needs_review'" decoration-danger="result == 'rejected'"/>
+                <field name="source"/>
+                <field name="location_id"/>
+                <field name="department_id" optional="show"/>
+                <field name="failure_reason_code"/>
+                <field name="face_count" optional="hide"/>
+                <field name="face_cosine" optional="hide"/>
+                <field name="review_status" widget="badge"/>
+                <field name="gps_accuracy" optional="hide"/>
+                <field name="distance_meters" optional="hide"/>
+                <field name="ip_address" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_hr_attendance_event_form" model="ir.ui.view">
+        <field name="name">hr.attendance.event.form</field>
+        <field name="model">hr.attendance.event</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_mark_reviewed" type="object" string="Mark Reviewed" class="btn-primary" invisible="review_status != 'pending'" groups="hr_attendance.group_hr_attendance_officer"/>
+                    <field name="review_status" widget="statusbar" statusbar_visible="not_required,pending,reviewed"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="employee_id"/>
+                            <field name="attendance_id"/>
+                            <field name="event_type"/>
+                            <field name="result"/>
+                            <field name="source"/>
+                            <field name="server_time"/>
+                        </group>
+                        <group>
+                            <field name="location_id"/>
+                            <field name="department_id"/>
+                            <field name="device_id"/>
+                            <field name="latitude"/>
+                            <field name="longitude"/>
+                            <field name="gps_accuracy"/>
+                            <field name="distance_meters"/>
+                            <field name="failure_reason_code"/>
+                            <field name="ip_address"/>
+                            <field name="request_id"/>
+                        </group>
+                    </group>
+                    <group string="Punch Photo" col="1">
+                        <field name="face_count"/>
+                        <field name="face_cosine"/>
+                        <field name="face_image" widget="punch_photo" options="{'size': [640, 480], 'img_class': 'o_punch_photo'}" nolabel="1"/>
+                    </group>
+                    <group string="Review">
+                        <field name="reviewed_by"/>
+                        <field name="reviewed_at"/>
+                        <field name="review_note"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_hr_attendance_event_search" model="ir.ui.view">
+        <field name="name">hr.attendance.event.search</field>
+        <field name="model">hr.attendance.event</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="employee_id"/>
+                <field name="failure_reason_code"/>
+                <filter name="filter_needs_review" string="Needs Review" domain="[('result', '=', 'needs_review'), ('review_status', '=', 'pending')]"/>
+                <filter name="filter_rejected" string="Rejected" domain="[('result', '=', 'rejected')]"/>
+                <filter name="filter_success" string="Success" domain="[('result', '=', 'success')]"/>
+                <filter name="filter_personal" string="Personal Web" domain="[('source', '=', 'personal_web')]"/>
+                <filter name="filter_kiosk" string="Kiosk" domain="[('source', '=', 'kiosk')]"/>
+                <group>
+                    <filter name="group_employee" string="Employee" context="{'group_by': 'employee_id'}"/>
+                    <filter name="group_result" string="Result" context="{'group_by': 'result'}"/>
+                    <filter name="group_reason" string="Reason" context="{'group_by': 'failure_reason_code'}"/>
+                    <filter name="group_location" string="Workplace" context="{'group_by': 'location_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_hr_attendance_event" model="ir.actions.act_window">
+        <field name="name">Attendance Events</field>
+        <field name="res_model">hr.attendance.event</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_filter_needs_review': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No attendance events yet</p>
+            <p>Portal and kiosk check-in/out requests are logged here for audit and review.</p>
+        </field>
+    </record>
+
+    <record id="hr_attendance.menu_action_open_form" model="ir.ui.menu">
+        <field name="groups_id" eval="[(6, 0, [ref('base.group_no_one')])]"/>
+    </record>
+
+    <menuitem
+        id="menu_hr_attendance_event"
+        name="Exceptions &amp; Audit"
+        parent="hr_attendance.menu_hr_attendance_root"
+        action="action_hr_attendance_event"
+        sequence="7"
+        groups="hr_attendance.group_hr_attendance_officer"/>
+
+    <record id="hr_attendance.menu_hr_attendance_root" model="ir.ui.menu">
+        <field name="groups_id" eval="[(4, ref('group_hr_attendance_site_captain'))]"/>
+    </record>
+
+    <record id="action_site_captain_attendance" model="ir.actions.act_window">
+        <field name="name">Valid Attendances</field>
+        <field name="res_model">hr.attendance</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'create': False, 'edit': False, 'delete': False}</field>
+    </record>
+
+    <record id="action_site_captain_exception" model="ir.actions.act_window">
+        <field name="name">Exceptions</field>
+        <field name="res_model">hr.attendance.event</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('result', '=', 'needs_review'), ('review_status', '=', 'pending')]</field>
+        <field name="context">{'create': False, 'edit': False, 'delete': False}</field>
+    </record>
+
+    <record id="action_site_captain_event" model="ir.actions.act_window">
+        <field name="name">All Attendance Records</field>
+        <field name="res_model">hr.attendance.event</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'create': False, 'edit': False, 'delete': False}</field>
+    </record>
+
+    <menuitem
+        id="menu_site_captain_attendance"
+        name="Valid Attendances"
+        parent="hr_attendance.menu_hr_attendance_root"
+        action="action_site_captain_attendance"
+        sequence="5"
+        groups="group_hr_attendance_site_captain"/>
+
+    <menuitem
+        id="menu_site_captain_exception"
+        name="Exceptions"
+        parent="hr_attendance.menu_hr_attendance_root"
+        action="action_site_captain_exception"
+        sequence="6"
+        groups="group_hr_attendance_site_captain"/>
+
+    <delete model="ir.ui.menu" id="menu_site_captain_employee"/>
+    <delete model="ir.actions.act_window" id="action_site_captain_employee"/>
+
+    <record id="hr.menu_hr_employee_payroll" model="ir.ui.menu">
+        <field name="groups_id" eval="[(4, ref('group_hr_attendance_site_captain'))]"/>
+    </record>
+
+    <menuitem
+        id="menu_site_captain_event"
+        name="All Attendance Records"
+        parent="hr_attendance.menu_hr_attendance_root"
+        action="action_site_captain_event"
+        sequence="8"
+        groups="group_hr_attendance_site_captain"/>
+
+    <function model="res.users" name="_assign_attendance_captain_home_action"/>
+    <function model="ir.ui.menu" name="_sync_valid_attendance_label"/>
+    <function model="ir.ui.menu" name="_sync_session_vietnamese_labels"/>
+</odoo>

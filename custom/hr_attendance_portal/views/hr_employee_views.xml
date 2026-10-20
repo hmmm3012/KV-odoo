@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_employee_form_attendance_portal" model="ir.ui.view">
+        <field name="name">hr.employee.form.attendance.portal</field>
+        <field name="model">hr.employee</field>
+        <field name="inherit_id" ref="hr.view_employee_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='job_id']" position="after">
+                <field name="pin" password="True" string="Attendance PIN"/>
+                <field name="attendance_face_image" widget="image" class="o_kv_face_thumb" options="{'zoom': true, 'zoom_delay': 200}"/>
+                <field name="attendance_face_enrolled_at" readonly="1"/>
+                <button name="action_register_attendance_face" type="object" string="Register Face" class="btn-secondary" invisible="not attendance_face_image"/>
+            </xpath>
+            <xpath expr="//field[@name='department_id']" position="after">
+                <field name="attendance_location_ids" widget="many2many_tags" groups="base.group_system"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

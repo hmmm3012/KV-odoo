@@ -1,5 +1,7 @@
 import base64
+import tempfile
 from io import BytesIO
+from pathlib import Path
 
 from odoo import http
 from odoo.http import content_disposition, request
@@ -37,6 +39,28 @@ department_decode = {
     "TOTT": "The Opera Thủ Thiêm",
     "Sala-SRM":"Sala Sarimi"
 }
+
+_MODULE_DIR = Path(__file__).resolve().parent.parent
+_REPORT_DIR = _MODULE_DIR / "report"
+_REPO_ROOT = _MODULE_DIR.parent.parent
+_FONT_DIR = _REPO_ROOT / "utils" / "font" / "font-times-new-roman"
+_FONTS_REGISTERED = False
+
+
+def _register_pdf_fonts():
+    global _FONTS_REGISTERED
+    if _FONTS_REGISTERED:
+        return
+    pdfmetrics.registerFont(
+        TTFont("tiro", str(_FONT_DIR / "SVN-TimesNewRoman.ttf"))
+    )
+    pdfmetrics.registerFont(
+        TTFont("tiro_bold", str(_FONT_DIR / "SVN-Times New Roman Bold.ttf"))
+    )
+    pdfmetrics.registerFont(
+        TTFont("tiro_italic", str(_FONT_DIR / "SVN-Times New Roman Italic.ttf"))
+    )
+    _FONTS_REGISTERED = True
 
 
 def add_overlay_to_pdf(input_pdf, overlay_pdf, output_pdf, page_number=0):
@@ -102,6 +126,7 @@ def search_and_replace_text(doc, original_text, new_text, font_name, font_size):
 
 
 def create_pdf(contract):
+    _register_pdf_fonts()
     contract_name = contract.name
     employee_name = contract.employee_id.name
     date_start = contract.date_start
@@ -124,24 +149,6 @@ def create_pdf(contract):
     c1 = canvas.Canvas(pdf_buffer1, pagesize=A4)
     pdf_buffer2 = BytesIO()
     c2 = canvas.Canvas(pdf_buffer2, pagesize=A4)
-    pdfmetrics.registerFont(
-        TTFont(
-            "tiro",
-            r"/home/debian1/KV-odoo/utils/font/font-times-new-roman/SVN-TimesNewRoman.ttf",
-        )
-    )
-    pdfmetrics.registerFont(
-        TTFont(
-            "tiro_bold",
-            r"/home/debian1/KV-odoo/utils/font/font-times-new-roman/SVN-Times New Roman Bold.ttf",
-        )
-    )
-    pdfmetrics.registerFont(
-        TTFont(
-            "tiro_italic",
-            r"/home/debian1/KV-odoo/utils/font/font-times-new-roman/SVN-Times New Roman Italic.ttf",
-        )
-    )
     add_text_to_page(
         c1,
         contract_name,
@@ -329,45 +336,31 @@ def create_pdf(contract):
             1,
         )
 
-    # Save the PDF to the buffer
     c1.save()
-    with open(r"/home/debian1/KV-odoo/custom/kv_hr_contract/report/overlay1.pdf", "wb") as pdf_file:
-        pdf_file.write(pdf_buffer1.getvalue())
-    # Save the PDF to the buffer
     c2.save()
-    with open(r"/home/debian1/KV-odoo/custom/kv_hr_contract/report/overlay2.pdf", "wb") as pdf_file:
-        pdf_file.write(pdf_buffer2.getvalue())
 
-    add_overlay_to_pdf(
-        r"/home/debian1/KV-odoo/custom/kv_hr_contract/report/rp_format.pdf",
-        r"/home/debian1/KV-odoo/custom/kv_hr_contract/report/overlay1.pdf",
-        r"/home/debian1/KV-odoo/custom/kv_hr_contract/report/output_page1.pdf",
-        0,
-    )
-    add_overlay_to_pdf(
-        r"/home/debian1/KV-odoo/custom/kv_hr_contract/report/rp_format.pdf",
-        r"/home/debian1/KV-odoo/custom/kv_hr_contract/report/overlay2.pdf",
-        r"/home/debian1/KV-odoo/custom/kv_hr_contract/report/output_page2.pdf",
-        1,
-    )
-    pdf1_path = r"/home/debian1/KV-odoo/custom/kv_hr_contract/report/output_page1.pdf"
-    pdf2_path = r"/home/debian1/KV-odoo/custom/kv_hr_contract/report/output_page2.pdf"
-    writer = PdfWriter()
+    rp_format = _REPORT_DIR / "rp_format.pdf"
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmp = Path(tmpdir)
+        overlay1_path = tmp / "overlay1.pdf"
+        overlay2_path = tmp / "overlay2.pdf"
+        page1_path = tmp / "output_page1.pdf"
+        page2_path = tmp / "output_page2.pdf"
+        output_path = tmp / "output.pdf"
 
-    # Read and add all pages from the first PDF
-    for page in PdfReader(pdf1_path).pages:
-        writer.addpage(page)
+        overlay1_path.write_bytes(pdf_buffer1.getvalue())
+        overlay2_path.write_bytes(pdf_buffer2.getvalue())
 
-    # Read and add all pages from the second PDF
-    for page in PdfReader(pdf2_path).pages:
-        writer.addpage(page)
+        add_overlay_to_pdf(str(rp_format), str(overlay1_path), str(page1_path), 0)
+        add_overlay_to_pdf(str(rp_format), str(overlay2_path), str(page2_path), 1)
 
-    # Write the combined pages to a new PDF file
-    output_path = r"/home/debian1/KV-odoo/custom/kv_hr_contract/report/output.pdf"
-    writer.write(output_path)
-    with open(output_path, "rb") as pdf_file:
-        pdf_buffer1 = pdf_file.read()
-    return pdf_buffer1
+        writer = PdfWriter()
+        for page in PdfReader(str(page1_path)).pages:
+            writer.addpage(page)
+        for page in PdfReader(str(page2_path)).pages:
+            writer.addpage(page)
+        writer.write(str(output_path))
+        return output_path.read_bytes()
 
 
 class ContractPDFController(http.Controller):

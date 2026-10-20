@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="hr_attendance_portal.PunchPhotoField">
+        <div class="d-inline-block position-relative o_punch_photo">
+            <img
+                loading="lazy"
+                t-att-class="imgClass"
+                t-att-alt="imgAlt"
+                t-att-src="this.getUrl(props.previewImage or props.name)"
+                t-att-name="props.name"
+                t-att-height="props.height"
+                t-att-width="props.width"
+                t-att-style="sizeStyle"
+                t-on-error.stop="onLoadFailed"
+                t-on-click.stop="onPunchPhotoClick"
+                role="button"
+            />
+        </div>
+    </t>
+</templates>

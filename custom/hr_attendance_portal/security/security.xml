@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="group_hr_attendance_site_captain" model="res.groups">
+        <field name="name">Department Captain</field>
+        <field name="category_id" ref="base.module_category_human_resources_attendances"/>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        <field name="comment">Read employees and attendance in Authorized Departments only. No create, edit, or delete.</field>
+    </record>
+
+    <record id="hr_attendance_site_captain_attendance_rule" model="ir.rule">
+        <field name="name">Site captain: attendance in authorized departments</field>
+        <field name="model_id" ref="hr_attendance.model_hr_attendance"/>
+        <field name="groups" eval="[(4, ref('group_hr_attendance_site_captain'))]"/>
+        <field name="domain_force">user._hr_site_captain_attendance_domain()</field>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <record id="hr_attendance_site_captain_employee_rule" model="ir.rule">
+        <field name="name">Site captain: employees in authorized departments</field>
+        <field name="model_id" ref="hr.model_hr_employee"/>
+        <field name="groups" eval="[(4, ref('group_hr_attendance_site_captain'))]"/>
+        <field name="domain_force">user._hr_site_captain_employee_domain()</field>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <record id="hr_attendance_site_captain_event_rule" model="ir.rule">
+        <field name="name">Site captain: audit events in authorized departments</field>
+        <field name="model_id" ref="model_hr_attendance_event"/>
+        <field name="groups" eval="[(4, ref('group_hr_attendance_site_captain'))]"/>
+        <field name="domain_force">user._hr_site_captain_event_domain()</field>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <record id="hr_attendance_site_captain_location_rule" model="ir.rule">
+        <field name="name">Site captain: workplaces of authorized departments</field>
+        <field name="model_id" ref="model_hr_attendance_location"/>
+        <field name="groups" eval="[(4, ref('group_hr_attendance_site_captain'))]"/>
+        <field name="domain_force">user._hr_site_captain_location_domain()</field>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <record id="hr_attendance_hour_decision_captain_rule" model="ir.rule">
+        <field name="name">Site captain: hour decisions in their scope</field>
+        <field name="model_id" ref="model_hr_attendance_hour_decision"/>
+        <field name="groups" eval="[(4, ref('group_hr_attendance_site_captain'))]"/>
+        <field name="domain_force">user._hr_site_captain_attendance_domain()</field>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <record id="hr_attendance_overtime_case_captain_rule" model="ir.rule">
+        <field name="name">Site captain: overtime cases in their scope</field>
+        <field name="model_id" ref="model_hr_attendance_overtime_case"/>
+        <field name="groups" eval="[(4, ref('group_hr_attendance_site_captain'))]"/>
+        <field name="domain_force">user._hr_site_captain_attendance_domain()</field>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <record id="hr_attendance_overtime_decision_captain_rule" model="ir.rule">
+        <field name="name">Site captain: overtime decisions in their scope</field>
+        <field name="model_id" ref="model_hr_attendance_overtime_decision"/>
+        <field name="groups" eval="[(4, ref('group_hr_attendance_site_captain'))]"/>
+        <field name="domain_force">user._hr_site_captain_attendance_domain()</field>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <record id="hr_attendance_correction_captain_rule" model="ir.rule">
+        <field name="name">Site captain: time corrections in their scope</field>
+        <field name="model_id" ref="model_hr_attendance_correction"/>
+        <field name="groups" eval="[(4, ref('group_hr_attendance_site_captain'))]"/>
+        <field name="domain_force">user._hr_site_captain_attendance_domain()</field>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <record id="hr_attendance_hour_decision_company_rule" model="ir.rule">
+        <field name="name">Hour decision: multi-company</field>
+        <field name="model_id" ref="model_hr_attendance_hour_decision"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="hr_attendance_overtime_case_company_rule" model="ir.rule">
+        <field name="name">Overtime case: multi-company</field>
+        <field name="model_id" ref="model_hr_attendance_overtime_case"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="hr_attendance_overtime_decision_company_rule" model="ir.rule">
+        <field name="name">Overtime decision: multi-company</field>
+        <field name="model_id" ref="model_hr_attendance_overtime_decision"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <record id="hr_attendance_correction_company_rule" model="ir.rule">
+        <field name="name">Time correction: multi-company</field>
+        <field name="model_id" ref="model_hr_attendance_correction"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <data noupdate="1">
+        <record id="hr_attendance_location_company_rule" model="ir.rule">
+            <field name="name">Attendance location: multi-company</field>
+            <field name="model_id" ref="model_hr_attendance_location"/>
+            <field name="global" eval="True"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+
+        <record id="hr_attendance_device_company_rule" model="ir.rule">
+            <field name="name">Attendance device: multi-company</field>
+            <field name="model_id" ref="model_hr_attendance_device"/>
+            <field name="global" eval="True"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+
+        <record id="hr_attendance_event_company_rule" model="ir.rule">
+            <field name="name">Attendance event: multi-company</field>
+            <field name="model_id" ref="model_hr_attendance_event"/>
+            <field name="global" eval="True"/>
+            <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+        </record>
+
+        <record id="hr_attendance_session_company_rule" model="ir.rule">
+            <field name="name">Attendance session: multi-company</field>
+            <field name="model_id" ref="model_hr_attendance_session"/>
+            <field name="global" eval="True"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+
+        <record id="hr_attendance_event_officer_rule" model="ir.rule">
+            <field name="name">Attendance officer: events of managed employees</field>
+            <field name="model_id" ref="model_hr_attendance_event"/>
+            <field name="groups" eval="[(4, ref('hr_attendance.group_hr_attendance_officer'))]"/>
+            <field name="domain_force">
+                ['|',
+                 ('employee_id', '=', False),
+                 ('employee_id.attendance_manager_id', '=', user.id)]
+            </field>
+        </record>
+
+        <record id="hr_attendance_event_manager_rule" model="ir.rule">
+            <field name="name">Attendance manager: all events</field>
+            <field name="model_id" ref="model_hr_attendance_event"/>
+            <field name="groups" eval="[(4, ref('hr_attendance.group_hr_attendance_manager'))]"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+        </record>
+    </data>
+</odoo>
