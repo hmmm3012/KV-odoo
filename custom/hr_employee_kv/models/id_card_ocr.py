@@ -90,32 +90,59 @@ def _apply_card_defaults(values):
 
 
 def decode_id_card_front(raw):
-    """Read the printed front of a CCCD and return employee field values, or {}."""
-    values, _status = inspect_id_card_front(raw)
+    """Read one CCCD photo and return employee field values, or {}."""
+    values, _status = inspect_id_card(raw)
+    return values
+
+
+def decode_id_card(front=None, back=None, prefer="front"):
+    values, _status = inspect_id_card(front, back, prefer=prefer)
     return values
 
 
 def inspect_id_card_front(raw):
-    """Read the QR code and the printed text.
+    """Read a single CCCD photo (kept for callers that only have one image)."""
+    return inspect_id_card(raw)
 
-    A decoded QR fills the card fields, and OCR adds only place of origin.
-    When the QR cannot be read, OCR fills every field it can.
+
+def inspect_id_card(front=None, back=None, prefer="front"):
+    """Read QR from either side, then OCR.
+
+    QR is tried on the preferred side first, then the other side. A decoded
+    QR fills the card fields. OCR of the front (or the only photo) adds
+    place of origin, or fills every field when no QR is found.
     """
-    if not raw:
+    if not front and not back:
         return {}, "empty"
     from .id_card_qr import decode_id_card_front as decode_qr
 
-    qr_values = decode_qr(raw) or {}
-    text, status = _read_text(raw)
+    sides = (("front", front), ("back", back))
+    if prefer == "back":
+        sides = (("back", back), ("front", front))
+    qr_values = {}
+    qr_side = None
+    for side, raw in sides:
+        if not raw:
+            continue
+        values = decode_qr(raw) or {}
+        if values:
+            qr_values = values
+            qr_side = side
+            break
+    ocr_raw = front or back
+    text, status = _read_text(ocr_raw) if ocr_raw else ("", "empty")
     if qr_values:
-        _logger.info("CCCD QR decoded; OCR is used for place of origin only.")
+        _logger.info(
+            "CCCD QR decoded from %s; OCR is used for place of origin only.",
+            qr_side,
+        )
         return merge_card_reads(qr_values, text if status == "ok" else ""), "ok"
     if status != "ok":
-        _logger.warning("CCCD front was not read: %s", status)
+        _logger.warning("CCCD was not read: %s", status)
         return {}, status.split()[0]
     values = parse_cccd_text(text)
     if not values:
-        _logger.warning("CCCD front OCR found text but not a 12-digit ID and birth date.")
+        _logger.warning("CCCD OCR found text but not a 12-digit ID and birth date.")
         return {}, "not_found"
     return values, "ok"
 

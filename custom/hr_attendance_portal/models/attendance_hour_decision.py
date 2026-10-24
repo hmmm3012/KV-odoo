@@ -36,6 +36,7 @@ class HrAttendanceHourDecision(models.Model):
             ("deny_session", "Deny Session"),
             ("reduce_regular", "Reduce Hours"),
             ("restore_session", "Restore Session"),
+            ("confirm_checkout", "Confirm Checkout"),
         ],
         string="Decision",
         required=True,

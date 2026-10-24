@@ -5,7 +5,9 @@ import binascii
 import logging
 import os
 import uuid
+from datetime import datetime
 
+import pytz
 from psycopg2 import IntegrityError
 
 from odoo import api, fields, models
@@ -16,6 +18,7 @@ from odoo.tools import mute_logger
 _logger = logging.getLogger(__name__)
 
 GENERIC_AUTH_ERROR = "invalid_credentials"
+PORTAL_TZ = pytz.timezone("Asia/Ho_Chi_Minh")
 LOCK_NAMESPACE = 804455
 FACE_SLOT_NAMESPACE = 804456
 FACE_SLOT_COUNT = max(1, int(os.environ.get("ATTENDANCE_FACE_JOB_SLOTS", "4")))
@@ -244,6 +247,100 @@ class HrAttendancePortal(models.AbstractModel):
         if not session:
             return self._error_payload("invalid_session")
         return self._status_payload(session.employee_id, extra={"result": "success"})
+
+    @api.model
+    def attendance_sheet(self, year=False, month=False, token=None):
+        """Return one month of the logged-in employee's own shifts."""
+        session = self._require_session(token)
+        if not session:
+            return self._error_payload("invalid_session")
+        year, month = self._sheet_month(year, month)
+        if not year:
+            return self._error_payload("invalid_month")
+        start_utc, end_utc = self._sheet_bounds(year, month)
+        attendances = self.env["hr.attendance"].sudo().search([
+            ("employee_id", "=", session.employee_id.id),
+            ("check_in", ">=", start_utc),
+            ("check_in", "<", end_utc),
+        ], order="check_in desc, id desc")
+        rows = [self._sheet_row(attendance) for attendance in attendances]
+        total = sum(row.pop("hours_value") for row in rows)
+        return {
+            "ok": True,
+            "year": year,
+            "month": month,
+            "month_label": "Tháng %s/%s" % (month, year),
+            "rows": rows,
+            "shift_count": len(rows),
+            "total_hours": self._format_sheet_hours(total),
+            "server_time": fields.Datetime.now(),
+        }
+
+    @api.model
+    def _sheet_month(self, year, month):
+        now = datetime.now(PORTAL_TZ)
+        if not year and not month:
+            return now.year, now.month
+        try:
+            year = int(year)
+            month = int(month)
+        except (TypeError, ValueError):
+            return False, False
+        if year < 2000 or year > 2100 or month < 1 or month > 12:
+            return False, False
+        return year, month
+
+    @api.model
+    def _sheet_bounds(self, year, month):
+        start = PORTAL_TZ.localize(datetime(year, month, 1))
+        if month == 12:
+            end = PORTAL_TZ.localize(datetime(year + 1, 1, 1))
+        else:
+            end = PORTAL_TZ.localize(datetime(year, month + 1, 1))
+        return (
+            start.astimezone(pytz.UTC).replace(tzinfo=None),
+            end.astimezone(pytz.UTC).replace(tzinfo=None),
+        )
+
+    @api.model
+    def _sheet_row(self, attendance):
+        check_in = self._sheet_local(attendance.check_in)
+        check_out = self._sheet_local(attendance.check_out)
+        hours = attendance.recognized_regular_hours or 0.0
+        return {
+            "date": check_in.strftime("%d/%m/%Y") if check_in else "",
+            "check_in": check_in.strftime("%H:%M") if check_in else "",
+            "check_out": check_out.strftime("%H:%M") if check_out else "",
+            "hours": self._format_sheet_hours(hours),
+            "hours_value": hours,
+            "note": self._sheet_note(attendance),
+        }
+
+    @api.model
+    def _sheet_local(self, value):
+        if not value:
+            return False
+        return pytz.UTC.localize(value).astimezone(PORTAL_TZ)
+
+    @api.model
+    def _sheet_note(self, attendance):
+        if attendance.session_state == "denied":
+            return "Từ chối"
+        if not attendance.check_out:
+            if attendance.exception_code == "missing_checkout":
+                return "Quên giờ ra"
+            return "Chưa ra"
+        if attendance.overtime_state in ("pending_captain", "pending_hr_review"):
+            return "Chờ duyệt làm thêm"
+        return ""
+
+    @api.model
+    def _format_sheet_hours(self, hours):
+        minutes = int(round((hours or 0.0) * 60))
+        if minutes < 0:
+            minutes = 0
+        whole, remainder = divmod(minutes, 60)
+        return "%d:%02d" % (whole, remainder)
 
     @api.model
     def resolve_location(self, latitude=False, longitude=False, gps_accuracy=False, token=None):

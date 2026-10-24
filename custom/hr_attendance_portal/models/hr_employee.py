@@ -20,6 +20,30 @@ PIN_CRYPT_CONTEXT = CryptContext(
 class HrEmployee(models.Model):
     _inherit = "hr.employee"
 
+    def _attendance_captain_keeps_private_profile(self, access_uid=None):
+        """Captains open the same employee form as the Employees menu.
+
+        Stock HR sends every non-officer to hr.employee.public. A captain can
+        read the private record, including a visitor who punched at their site,
+        but the public profile is outside that scope.
+        """
+        user = self.env.user
+        if access_uid:
+            user = self.env["res.users"].browse(access_uid).sudo()
+        return user.has_group("hr_attendance_portal.group_hr_attendance_site_captain")
+
+    def get_formview_id(self, access_uid=None):
+        if self._attendance_captain_keeps_private_profile(access_uid):
+            return False
+        return super().get_formview_id(access_uid=access_uid)
+
+    def get_formview_action(self, access_uid=None):
+        action = super().get_formview_action(access_uid=access_uid)
+        if self._attendance_captain_keeps_private_profile(access_uid):
+            action["res_model"] = "hr.employee"
+            action["views"] = [(False, "form")]
+        return action
+
     attendance_portal_enabled = fields.Boolean(
         string="Allow Portal Check-in",
         default=True,
@@ -210,7 +234,8 @@ class HrEmployee(models.Model):
             self.id,
             message,
         )
-        self.message_post(body=message)
+        if not self.env.context.get("attendance_face_enroll_quiet"):
+            self.message_post(body=message)
         return False
 
     @api.model

@@ -697,7 +697,7 @@ msgstr "Lượt hợp lệ"
 #: model:ir.actions.act_window,name:hr_attendance_portal.action_site_captain_exception
 #: model:ir.ui.menu,name:hr_attendance_portal.menu_site_captain_exception
 msgid "Exceptions"
-msgstr "Ngoại lệ"
+msgstr "Cần xác minh"
 
 #. module: hr_attendance_portal
 #: model_terms:ir.ui.view,arch_db:hr_attendance_portal.view_attendance_tree_captain
@@ -930,3 +930,213 @@ msgstr "Đối chiếu overtime"
 #: model:ir.ui.menu,name:hr_attendance_portal.menu_hr_attendance_correction
 msgid "Time Corrections"
 msgstr "Điều chỉnh giờ"
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/hr_attendance.py:0
+msgid "Session Decision"
+msgstr "Quyết định ca"
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/hr_attendance.py:0
+msgid "Overtime Decision"
+msgstr "Duyệt làm thêm"
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/hr_attendance.py:0
+msgid "HR Overtime Review"
+msgstr "Nhân sự đối chiếu làm thêm"
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/hr_attendance.py:0
+msgid "Request Time Correction"
+msgstr "Xin điều chỉnh giờ"
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/hr_attendance.py:0
+msgid "A reason is required."
+msgstr "Cần nhập lý do."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/hr_attendance.py:0
+msgid "A closed session cannot be changed."
+msgstr "Ca đã chốt không thể sửa."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/hr_attendance.py:0
+msgid "A denied session has no hours to reduce."
+msgstr "Ca đã từ chối không còn giờ để giảm."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/hr_attendance.py:0
+msgid "Recognized hours cannot be negative."
+msgstr "Giờ được công nhận không được âm."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/hr_attendance.py:0
+msgid "Recognized hours cannot be increased."
+msgstr "Không được tăng giờ được công nhận."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/hr_attendance.py:0
+msgid "A denied session has no overtime to review."
+msgstr "Ca đã từ chối không có giờ làm thêm để duyệt."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/hr_attendance.py:0
+msgid "This session has no overtime to review."
+msgstr "Ca này không có giờ làm thêm để duyệt."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/hr_attendance.py:0
+msgid "You cannot change recognized hours."
+msgstr "Bạn không được sửa giờ được công nhận."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/hr_attendance.py:0
+msgid "Restored hours cannot exceed the standard hours or the elapsed time."
+msgstr "Giờ khôi phục không được vượt giờ chuẩn hoặc thời gian đã làm."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/hr_attendance.py:0
+msgid "Only HR can restore a denied session."
+msgstr "Chỉ nhân sự được khôi phục ca đã từ chối."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/hr_attendance.py:0
+msgid "Only HR can review overtime."
+msgstr "Chỉ nhân sự được đối chiếu giờ làm thêm."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/hr_attendance.py:0
+msgid "Only HR can close a session."
+msgstr "Chỉ nhân sự được chốt ca."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/hr_attendance.py:0
+msgid "Original check-in and check-out times cannot be changed."
+msgstr "Không được sửa giờ vào và giờ ra gốc."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/hr_attendance.py:0
+msgid "Recognized hours are changed only through a session decision."
+msgstr "Giờ được công nhận chỉ đổi qua quyết định ca."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/attendance_overtime.py:0
+msgid "Approved overtime cannot exceed the candidate hours or the policy cap."
+msgstr "Giờ làm thêm duyệt không được vượt giờ đề xuất hoặc trần quy định."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/attendance_overtime.py:0
+msgid "Overtime has already been reviewed by HR."
+msgstr "Nhân sự đã đối chiếu giờ làm thêm này."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/attendance_overtime.py:0
+msgid "HR reviews overtime after the captain decision."
+msgstr "Nhân sự đối chiếu giờ làm thêm sau khi đội trưởng đã quyết."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/attendance_overtime.py:0
+msgid "HR cannot approve more overtime than the captain approved."
+msgstr "Nhân sự không được duyệt nhiều giờ làm thêm hơn đội trưởng."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/attendance_correction.py:0
+msgid "The proposed end cannot be earlier than the start."
+msgstr "Giờ ra đề xuất không được sớm hơn giờ vào."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/attendance_correction.py:0
+msgid "A proposed time is required."
+msgstr "Cần chọn giờ đề xuất."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/attendance_correction.py:0
+msgid "Choose a check-in or check-out correction."
+msgstr "Chọn điều chỉnh giờ vào hoặc giờ ra."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/attendance_correction.py:0
+msgid "You cannot approve a correction you requested."
+msgstr "Bạn không được duyệt yêu cầu do chính mình gửi."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/attendance_correction.py:0
+msgid "This correction has already been decided."
+msgstr "Yêu cầu điều chỉnh này đã được xử lý."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/hr_attendance.py:0
+msgid "Confirm Checkout"
+msgstr "Xác nhận giờ ra"
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/hr_attendance.py:0
+msgid "This shift already has a checkout."
+msgstr "Ca này đã có giờ ra."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/hr_attendance.py:0
+msgid "A checkout time is required."
+msgstr "Cần nhập giờ ra."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/hr_attendance.py:0
+msgid "Checkout must be after check-in."
+msgstr "Giờ ra phải sau giờ vào."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/hr_attendance.py:0
+msgid "Checkout cannot be in the future."
+msgstr "Giờ ra không được ở tương lai."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/hr_attendance.py:0
+msgid "No selected shift is waiting for overtime approval."
+msgstr "Không có ca làm thêm nào đang chờ duyệt trong các dòng đã chọn."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/hr_attendance.py:0
+msgid "Approve Selected Overtime"
+msgstr "Duyệt làm thêm đã chọn"
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/hr_attendance.py:0
+msgid "Reject Selected Overtime"
+msgstr "Từ chối làm thêm đã chọn"

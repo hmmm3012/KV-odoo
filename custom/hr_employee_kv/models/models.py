@@ -2,7 +2,7 @@ import logging
 
 from odoo import api, fields, models
 
-from .id_card_ocr import decode_id_card_front, inspect_id_card_front
+from .id_card_ocr import decode_id_card, inspect_id_card
 
 _logger = logging.getLogger(__name__)
 
@@ -41,7 +41,15 @@ class HrEmployee(models.Model):
         max_height=1920,
         copy=False,
         groups="hr.group_hr_user",
-        help="Front of the citizen ID. A decoded QR fills the card fields, and the printed place of origin is added from the card text. If the QR cannot be read, the printed text fills the fields.",
+        help="Front of the citizen ID. The QR on either side fills the card fields. Printed place of origin is read from this photo.",
+    )
+    id_card_back = fields.Image(
+        string="CCCD mặt sau",
+        max_width=1920,
+        max_height=1920,
+        copy=False,
+        groups="hr.group_hr_user",
+        help="Back of the citizen ID. Used when the QR is on this side instead of the front.",
     )
 
     # Override country_id to set default to Vietnam and make readonly
@@ -89,8 +97,8 @@ class HrEmployee(models.Model):
         """Override create to assign emp_code using company-specific ir.sequence"""
         IrSequence = self.env['ir.sequence'].sudo()
         for vals in vals_list:
-            if vals.get("id_card_front"):
-                vals.update(self._id_card_qr_updates(vals["id_card_front"], vals))
+            if vals.get("id_card_front") or vals.get("id_card_back"):
+                vals.update(self._id_card_qr_updates(vals))
             # Only assign emp_code if not already provided
             if not vals.get('emp_code'):
                 # Get company_id from vals or use current company
@@ -126,24 +134,31 @@ class HrEmployee(models.Model):
         return super().create(vals_list)
 
     def write(self, vals):
-        if vals.get("id_card_front") and not self.env.context.get("skip_id_card_qr"):
+        if (
+            (vals.get("id_card_front") or vals.get("id_card_back"))
+            and not self.env.context.get("skip_id_card_qr")
+        ):
             if len(self) == 1:
                 vals = dict(vals)
-                vals.update(self._id_card_qr_updates(vals["id_card_front"], vals))
+                vals.update(self._id_card_qr_updates(vals))
             else:
                 res = super().write(vals)
                 for employee in self:
-                    updates = employee._id_card_qr_updates(vals["id_card_front"], vals)
+                    updates = employee._id_card_qr_updates(vals)
                     if updates:
                         employee.with_context(skip_id_card_qr=True).write(updates)
                 return res
         return super().write(vals)
 
-    @api.onchange("id_card_front")
-    def _onchange_id_card_front(self):
-        if not self.id_card_front:
+    @api.onchange("id_card_front", "id_card_back")
+    def _onchange_id_card_images(self):
+        if not self.id_card_front and not self.id_card_back:
             return
-        parsed, status = inspect_id_card_front(self.id_card_front)
+        parsed, status = inspect_id_card(
+            self.id_card_front,
+            self.id_card_back,
+            prefer="back" if self.id_card_back and not self.id_card_front else "front",
+        )
         if not parsed:
             return {
                 "warning": {
@@ -158,19 +173,31 @@ class HrEmployee(models.Model):
     def _id_card_qr_warning(self, status):
         return {
             "unreadable": (
-                "The front image could not be opened. Upload a JPG or PNG photo of the card."
+                "The ID card image could not be opened. Upload a JPG or PNG photo of the card."
             ),
         }.get(status, (
-            "The printed text on the front of the card could not be read. "
+            "No QR code or printed card text could be read on either side. "
             "The photo is kept; fill in the fields manually."
         ))
 
-    def _id_card_qr_updates(self, image, incoming):
-        """QR values for fields this save did not already set."""
-        parsed = decode_id_card_front(image)
+    def _id_card_images(self, incoming):
+        front = incoming.get("id_card_front")
+        back = incoming.get("id_card_back")
+        record = self[:1]
+        if "id_card_front" not in incoming and record:
+            front = record.with_context(bin_size=False).id_card_front
+        if "id_card_back" not in incoming and record:
+            back = record.with_context(bin_size=False).id_card_back
+        return front, back
+
+    def _id_card_qr_updates(self, incoming):
+        """QR/OCR values for fields this save did not already set."""
+        front, back = self._id_card_images(incoming)
+        prefer = "back" if incoming.get("id_card_back") and not incoming.get("id_card_front") else "front"
+        parsed = decode_id_card(front, back, prefer=prefer)
         if not parsed:
             _logger.warning(
-                "CCCD front was not read (employees %s).",
+                "CCCD was not read (employees %s).",
                 self.ids or "new",
             )
             return {}

@@ -3,6 +3,7 @@
         invalid_credentials: "Mã nhân viên hoặc PIN không đúng.",
         too_many_attempts: "Quá nhiều lần thử. Vui lòng thử lại sau.",
         invalid_session: "Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại.",
+        invalid_month: "Tháng không hợp lệ.",
         missing_gps: "Không lấy được vị trí GPS. Hãy bật định vị và thử lại.",
         gps_inaccurate: "Tín hiệu GPS chưa đủ chính xác. HR sẽ xem xét.",
         outside_geofence: "Bạn đang ngoài phạm vi nơi làm việc.",
@@ -38,11 +39,13 @@
 
     const loginPanel = app.querySelector('[data-panel="login"]');
     const statusPanel = app.querySelector('[data-panel="status"]');
+    const sheetPanel = app.querySelector('[data-panel="sheet"]');
     const loginForm = document.getElementById("kv-login-form");
     const loginBtn = document.getElementById("kv-login-btn");
     const checkBtn = document.getElementById("kv-check-btn");
     const logoutBtn = document.getElementById("kv-logout-btn");
     const messageEl = document.getElementById("kv-message");
+    const messageTextEl = document.getElementById("kv-message-text");
     const clockEl = document.getElementById("kv-clock");
     const employeeEl = document.getElementById("kv-employee-name");
     const stateEl = document.getElementById("kv-state-label");
@@ -58,8 +61,12 @@
     let previewEl = document.getElementById("kv-camera-preview");
     let canvasEl = document.getElementById("kv-camera-canvas");
     let cameraHintEl = document.getElementById("kv-camera-hint");
+    let cameraTapEl = document.getElementById("kv-camera-tap");
+    let cameraWrapEl = null;
     let cameraStream = null;
     let cameraRequestId = 0;
+    let cameraAcquirePending = false;
+    let cameraFailed = false;
     let previewFrame = 0;
 
     function ensureCameraUi() {
@@ -69,7 +76,7 @@
         let wrap = statusPanel.querySelector(".kv-camera-wrap");
         if (!wrap) {
             wrap = document.createElement("div");
-            wrap.className = "kv-camera-wrap";
+            wrap.className = "kv-camera-wrap is-closed";
             const anchor = checkBtn || statusPanel.lastElementChild;
             if (anchor && anchor.parentNode === statusPanel) {
                 statusPanel.insertBefore(wrap, anchor);
@@ -102,12 +109,28 @@
             previewEl.className = "kv-camera-preview";
             wrap.appendChild(previewEl);
         }
+        cameraTapEl = wrap.querySelector(".kv-camera-tap");
+        if (!cameraTapEl) {
+            cameraTapEl = document.createElement("p");
+            cameraTapEl.id = "kv-camera-tap";
+            cameraTapEl.className = "kv-camera-tap";
+            cameraTapEl.textContent = "Nhấn để mở camera";
+            wrap.appendChild(cameraTapEl);
+        }
+        cameraWrapEl = wrap;
         if (!wrap.dataset.previewBound) {
             wrap.dataset.previewBound = "1";
             wrap.addEventListener("click", () => {
+                if (!cameraStream || !cameraStream.active) {
+                    if (!cameraAcquirePending) {
+                        startCamera().catch(() => {});
+                    }
+                    return;
+                }
                 keepVideoPlaying();
             });
         }
+        syncCameraTap();
         if (!canvasEl) {
             canvasEl = document.createElement("canvas");
             canvasEl.id = "kv-camera-canvas";
@@ -146,15 +169,23 @@
     }
 
     function showMessage(code, kind) {
+        if (!messageEl || !messageTextEl) {
+            return;
+        }
         if (!code) {
             messageEl.hidden = true;
-            messageEl.textContent = "";
+            messageTextEl.textContent = "";
             messageEl.className = "kv-message";
             return;
         }
         messageEl.hidden = false;
         messageEl.className = "kv-message is-" + (kind || "error");
-        messageEl.textContent = MESSAGES[code] || code;
+        messageTextEl.textContent = MESSAGES[code] || code;
+    }
+
+    const messageCloseBtn = document.getElementById("kv-message-close");
+    if (messageCloseBtn) {
+        messageCloseBtn.addEventListener("click", () => showMessage(false));
     }
 
     async function rpc(route, params) {
@@ -221,17 +252,51 @@
         throw lastError || new Error("server_busy");
     }
 
+    let statusSnapshot = null;
+
+    function formatWorkedDuration(checkIn) {
+        const start = parseOdooDatetime(checkIn);
+        if (!start || Number.isNaN(start.getTime())) {
+            return "";
+        }
+        let seconds = Math.max(0, Math.floor((Date.now() - start.getTime()) / 1000));
+        const hours = Math.floor(seconds / 3600);
+        seconds -= hours * 3600;
+        const minutes = Math.floor(seconds / 60);
+        seconds -= minutes * 60;
+        const parts = [];
+        if (hours) {
+            parts.push(hours + " giờ");
+        }
+        parts.push(minutes + " phút");
+        parts.push(seconds + " giây");
+        return "Đã làm " + parts.join(" ");
+    }
+
+    function renderWorkedTime() {
+        if (!statusSnapshot || statusSnapshot.attendance_state !== "checked_in" || !statusSnapshot.check_in) {
+            return;
+        }
+        lastPunchEl.textContent = "Vào lúc " + formatTime(statusSnapshot.check_in) + ". " + formatWorkedDuration(statusSnapshot.check_in) + ".";
+    }
+
     function renderStatus(result) {
         const checkedIn = result.attendance_state === "checked_in";
+        statusSnapshot = result;
         loginPanel.classList.add("kv-hidden");
+        if (sheetPanel) {
+            sheetPanel.classList.add("kv-hidden");
+        }
         statusPanel.classList.remove("kv-hidden");
         employeeEl.textContent = result.employee_name || "";
         stateEl.textContent = checkedIn ? "Đang làm việc" : "Chưa chấm công vào";
-        lastPunchEl.textContent = checkedIn
-            ? "Vào lúc " + formatTime(result.check_in)
-            : result.check_out
+        if (checkedIn) {
+            renderWorkedTime();
+        } else {
+            lastPunchEl.textContent = result.check_out
                 ? "Ra lúc " + formatTime(result.check_out)
                 : "";
+        }
         checkBtn.textContent = checkedIn ? "Chấm công ra" : "Chấm công vào";
         checkBtn.dataset.eventType = checkedIn ? "check_out" : "check_in";
         ensureCameraUi();
@@ -239,7 +304,11 @@
 
     function renderLogin() {
         statusPanel.classList.add("kv-hidden");
+        if (sheetPanel) {
+            sheetPanel.classList.add("kv-hidden");
+        }
         loginPanel.classList.remove("kv-hidden");
+        statusSnapshot = null;
         document.getElementById("pin").value = "";
         setLocationHint("");
         stopCamera();
@@ -323,6 +392,20 @@
         return getPosition();
     }
 
+    function previewHasFrame() {
+        return Boolean(videoEl && videoEl.videoWidth && videoEl.videoHeight && !videoEl.paused);
+    }
+
+    function syncCameraTap() {
+        const show = !cameraFailed && !previewHasFrame();
+        if (cameraTapEl) {
+            cameraTapEl.hidden = !show;
+        }
+        if (cameraWrapEl) {
+            cameraWrapEl.classList.toggle("is-closed", show);
+        }
+    }
+
     function setCameraHint(text, kind) {
         if (!cameraHintEl) {
             return;
@@ -372,6 +455,9 @@
             return;
         }
         context.drawImage(videoEl, 0, 0, previewEl.width, previewEl.height);
+        if (!videoEl.paused) {
+            syncCameraTap();
+        }
     }
 
     function startPreviewLoop() {
@@ -381,18 +467,22 @@
 
     function keepVideoPlaying() {
         if (!videoEl || !cameraStream || !cameraStream.active) {
+            syncCameraTap();
             return;
         }
         if (typeof videoEl.webkitExitFullscreen === "function" && videoEl.webkitDisplayingFullscreen) {
             videoEl.webkitExitFullscreen();
         }
         if (videoEl.paused) {
-            videoEl.play().catch(() => {});
+            videoEl.play().then(() => syncCameraTap()).catch(() => syncCameraTap());
+            return;
         }
+        syncCameraTap();
     }
 
     function stopCamera() {
         cameraRequestId += 1;
+        cameraAcquirePending = false;
         stopPreviewLoop();
         if (cameraStream) {
             cameraStream.getTracks().forEach((track) => track.stop());
@@ -401,6 +491,7 @@
         if (videoEl) {
             videoEl.srcObject = null;
         }
+        syncCameraTap();
     }
 
     function waitForVideoFrame() {
@@ -426,16 +517,18 @@
     }
 
     async function acquireCameraStream() {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            throw new Error("missing_photo");
-        }
-        if (!window.isSecureContext) {
-            throw new Error("camera_insecure");
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.isSecureContext) {
+            cameraFailed = true;
+            syncCameraTap();
+            throw new Error(window.isSecureContext ? "missing_photo" : "camera_insecure");
         }
         if (cameraStream && cameraStream.active) {
             return cameraStream;
         }
         const requestId = ++cameraRequestId;
+        cameraAcquirePending = true;
+        cameraFailed = false;
+        syncCameraTap();
         setCameraHint("Đang xin quyền camera từ trình duyệt…");
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
@@ -457,11 +550,17 @@
             return stream;
         } catch (error) {
             if (requestId === cameraRequestId) {
+                cameraFailed = true;
+                syncCameraTap();
                 const code = cameraErrorCode(error);
                 setCameraHint(MESSAGES[code] || code, "error");
                 throw new Error(code);
             }
             throw error;
+        } finally {
+            if (requestId === cameraRequestId) {
+                cameraAcquirePending = false;
+            }
         }
     }
 
@@ -490,11 +589,17 @@
         try {
             await videoEl.play();
         } catch (_error) {
-            /* Autoplay can fail until the punch screen is visible; stream is still live. */
+            /* iOS in-app browsers (Zalo) block autoplay until the preview is tapped. */
         }
+        syncCameraTap();
         startPreviewLoop();
         await waitForVideoFrame();
-        setCameraHint("Camera đã sẵn sàng. Hãy nhìn thẳng, rồi nhấn chấm công.", "ok");
+        syncCameraTap();
+        if (previewHasFrame()) {
+            setCameraHint("Camera đã sẵn sàng. Hãy nhìn thẳng, rồi nhấn chấm công.", "ok");
+        } else {
+            setCameraHint("Nhấn vào khung hình để mở camera.", "warn");
+        }
         return cameraStream;
     }
 
@@ -626,6 +731,115 @@
         }
     });
 
+    let sheetYear = 0;
+    let sheetMonth = 0;
+
+    function currentSheetMonth() {
+        const parts = new Intl.DateTimeFormat("en-US", {
+            timeZone: DISPLAY_TZ,
+            year: "numeric",
+            month: "numeric",
+        }).formatToParts(new Date());
+        const values = {};
+        parts.forEach((part) => {
+            values[part.type] = part.value;
+        });
+        return { year: Number(values.year), month: Number(values.month) };
+    }
+
+    function previousSheetMonth() {
+        if (sheetMonth <= 1) {
+            return { year: sheetYear - 1, month: 12 };
+        }
+        return { year: sheetYear, month: sheetMonth - 1 };
+    }
+
+    function renderSheet(result) {
+        const title = document.getElementById("kv-sheet-title");
+        const rowsEl = document.getElementById("kv-sheet-rows");
+        const totalEl = document.getElementById("kv-sheet-total");
+        if (!title || !rowsEl || !totalEl) {
+            return;
+        }
+        sheetYear = result.year;
+        sheetMonth = result.month;
+        title.textContent = result.month_label || "Bảng công";
+        rowsEl.textContent = "";
+        const rows = result.rows || [];
+        if (!rows.length) {
+            const empty = document.createElement("p");
+            empty.className = "kv-sheet-empty";
+            empty.textContent = "Không có ca trong tháng này.";
+            rowsEl.appendChild(empty);
+        } else {
+            rows.forEach((row) => {
+                const item = document.createElement("article");
+                item.className = "kv-sheet-row";
+                const date = document.createElement("p");
+                date.className = "kv-sheet-date";
+                date.textContent = row.date || "";
+                const times = document.createElement("p");
+                times.textContent = "Vào " + (row.check_in || "—") + " · Ra " + (row.check_out || "—");
+                const hours = document.createElement("p");
+                hours.textContent = "Giờ công " + (row.hours || "0:00");
+                item.appendChild(date);
+                item.appendChild(times);
+                item.appendChild(hours);
+                if (row.note) {
+                    const note = document.createElement("p");
+                    note.className = "kv-sheet-note";
+                    note.textContent = row.note;
+                    item.appendChild(note);
+                }
+                rowsEl.appendChild(item);
+            });
+        }
+        totalEl.textContent = (result.shift_count || 0) + " ca · " + (result.total_hours || "0:00") + " giờ công";
+    }
+
+    async function loadSheet(year, month) {
+        showMessage(false);
+        const result = await rpc("/attendance/api/sheet", { year: year, month: month });
+        if (!result.ok) {
+            if (result.error === "invalid_session") {
+                renderLogin();
+            }
+            showMessage(result.error || "network", "error");
+            return;
+        }
+        renderSheet(result);
+        loginPanel.classList.add("kv-hidden");
+        statusPanel.classList.add("kv-hidden");
+        sheetPanel.classList.remove("kv-hidden");
+        stopCamera();
+    }
+
+    const sheetOpenBtn = document.getElementById("kv-sheet-open");
+    if (sheetOpenBtn && sheetPanel) {
+        sheetOpenBtn.addEventListener("click", async () => {
+            const current = currentSheetMonth();
+            try {
+                await loadSheet(current.year, current.month);
+            } catch (_error) {
+                showMessage("network", "error");
+            }
+        });
+        document.getElementById("kv-sheet-prev").addEventListener("click", async () => {
+            const target = previousSheetMonth();
+            try {
+                await loadSheet(target.year, target.month);
+            } catch (_error) {
+                showMessage("network", "error");
+            }
+        });
+        document.getElementById("kv-sheet-back").addEventListener("click", () => {
+            sheetPanel.classList.add("kv-hidden");
+            statusPanel.classList.remove("kv-hidden");
+            showMessage(false);
+            startCamera().catch(() => {});
+        });
+    }
+
     logoutBtn.addEventListener("click", async () => {
         stopCamera();
         await rpc("/attendance/api/logout", {});
@@ -635,6 +849,7 @@
 
     setInterval(() => {
         clockEl.textContent = formatTime();
+        renderWorkedTime();
     }, 1000);
     clockEl.textContent = formatTime();
 

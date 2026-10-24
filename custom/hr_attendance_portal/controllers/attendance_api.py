@@ -32,6 +32,10 @@ class AttendancePortalController(http.Controller):
     def api_status(self):
         return self._portal().session_status()
 
+    @http.route("/attendance/api/sheet", type="json", auth="public", methods=["POST"])
+    def api_sheet(self, year=False, month=False):
+        return self._portal().attendance_sheet(year=year, month=month)
+
     @http.route("/attendance/api/location", type="json", auth="public", methods=["POST"])
     def api_location(self, latitude=False, longitude=False, gps_accuracy=False):
         return self._portal().resolve_location(

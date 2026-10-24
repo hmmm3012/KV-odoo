@@ -57,6 +57,43 @@
         </field>
     </record>
 
+    <record id="view_hr_attendance_overtime_bulk_wizard_form" model="ir.ui.view">
+        <field name="name">hr.attendance.overtime.bulk.wizard.form</field>
+        <field name="model">hr.attendance.overtime.bulk.wizard</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <field name="attendance_ids" invisible="1"/>
+                    <field name="rejected" invisible="1"/>
+                    <field name="shift_count" readonly="1"/>
+                    <field name="reason"/>
+                </group>
+                <footer>
+                    <button name="action_apply" type="object" string="Confirm" class="btn-primary"/>
+                    <button string="Cancel" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_hr_attendance_checkout_wizard_form" model="ir.ui.view">
+        <field name="name">hr.attendance.checkout.wizard.form</field>
+        <field name="model">hr.attendance.checkout.wizard</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <field name="attendance_id" invisible="1"/>
+                    <field name="check_out"/>
+                    <field name="reason"/>
+                </group>
+                <footer>
+                    <button name="action_apply" type="object" string="Confirm Checkout" class="btn-primary"/>
+                    <button string="Cancel" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
     <record id="view_hr_attendance_correction_wizard_form" model="ir.ui.view">
         <field name="name">hr.attendance.correction.wizard.form</field>
         <field name="model">hr.attendance.correction.wizard</field>
@@ -181,6 +218,26 @@
         </field>
     </record>
 
+    <record id="view_attendance_tree_captain_session" model="ir.ui.view">
+        <field name="name">hr.attendance.list.captain.session</field>
+        <field name="model">hr.attendance</field>
+        <field name="arch" type="xml">
+            <list string="Sessions To Review" create="false" edit="false" delete="false" duplicate="false">
+                <header>
+                    <button name="action_open_bulk_overtime_wizard" type="object" string="Approve Selected Overtime" context="{'overtime_bulk_reject': False}" groups="hr_attendance_portal.group_hr_attendance_site_captain,hr_attendance.group_hr_attendance_officer"/>
+                    <button name="action_open_bulk_overtime_wizard" type="object" string="Reject Selected Overtime" context="{'overtime_bulk_reject': True}" groups="hr_attendance_portal.group_hr_attendance_site_captain,hr_attendance.group_hr_attendance_officer"/>
+                </header>
+                <field name="employee_id" widget="many2one_avatar_user"/>
+                <field name="work_status" string="Status" widget="badge" decoration-success="work_status == 'at_work'"/>
+                <field name="check_in" string="Time In"/>
+                <field name="check_out" string="Time Out"/>
+                <field name="recognized_regular_hours" widget="float_time"/>
+                <field name="exception_code" string="Reason"/>
+                <field name="overtime_candidate_hours" string="Overtime Hours" widget="float_time"/>
+            </list>
+        </field>
+    </record>
+
     <record id="action_site_captain_session" model="ir.actions.act_window">
         <field name="name">Sessions To Review</field>
         <field name="res_model">hr.attendance</field>
@@ -188,6 +245,20 @@
         <field name="search_view_id" ref="view_attendance_search_captain"/>
         <field name="domain">['|', ('session_state', '=', 'pending_review'), ('exception_code', '=', 'missing_checkout')]</field>
         <field name="context">{'create': False, 'edit': False, 'delete': False}</field>
+    </record>
+
+    <record id="action_site_captain_session_view_list" model="ir.actions.act_window.view">
+        <field name="sequence" eval="1"/>
+        <field name="view_mode">list</field>
+        <field name="view_id" ref="view_attendance_tree_captain_session"/>
+        <field name="act_window_id" ref="action_site_captain_session"/>
+    </record>
+
+    <record id="action_site_captain_session_view_form" model="ir.actions.act_window.view">
+        <field name="sequence" eval="2"/>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_hr_attendance_form_captain"/>
+        <field name="act_window_id" ref="action_site_captain_session"/>
     </record>
 
     <record id="action_hr_overtime_review" model="ir.actions.act_window">
@@ -209,7 +280,7 @@
         name="Sessions To Review"
         parent="hr_attendance.menu_hr_attendance_root"
         action="action_site_captain_session"
-        sequence="7"
+        sequence="6"
         groups="group_hr_attendance_site_captain"/>
 
     <menuitem
@@ -227,4 +298,6 @@
         action="action_hr_attendance_correction"
         sequence="17"
         groups="hr_attendance.group_hr_attendance_officer"/>
+
+    <function model="ir.ui.menu" name="_sync_session_vietnamese_labels"/>
 </odoo>

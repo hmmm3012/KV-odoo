@@ -4,7 +4,17 @@
         <field name="name">hr.employee.form.attendance.portal</field>
         <field name="model">hr.employee</field>
         <field name="inherit_id" ref="hr.view_employee_form"/>
+        <field name="priority" eval="100"/>
         <field name="arch" type="xml">
+            <xpath expr="//chatter" position="attributes">
+                <attribute name="groups">hr.group_hr_user</attribute>
+            </xpath>
+            <xpath expr="//button[@name='action_timesheet_from_employee']" position="attributes">
+                <attribute name="groups">hr.group_hr_user</attribute>
+            </xpath>
+            <xpath expr="//div[field[@name='resource_calendar_id']]/widget[@name='contract_warning_tooltip']" position="attributes">
+                <attribute name="groups">hr.group_hr_user</attribute>
+            </xpath>
             <xpath expr="//field[@name='job_id']" position="after">
                 <field name="pin" password="True" string="Attendance PIN"/>
                 <field name="attendance_face_image" widget="image" class="o_kv_face_thumb" options="{'zoom': true, 'zoom_delay': 200}"/>

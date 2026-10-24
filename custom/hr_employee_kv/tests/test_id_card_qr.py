@@ -76,7 +76,7 @@ class TestIdCardQr(TransactionCase):
             "z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
         )
         with patch(
-            "odoo.addons.hr_employee_kv.models.models.decode_id_card_front",
+            "odoo.addons.hr_employee_kv.models.models.decode_id_card",
             return_value=dict(PARSED),
         ):
             filled = self.env["hr.employee"].create({
@@ -87,6 +87,7 @@ class TestIdCardQr(TransactionCase):
             kept = self.env["hr.employee"].create({
                 "name": "Manual Name",
                 "id_card_front": front,
+                "id_card_back": front,
                 "emp_code": "QR-KEEP-001",
                 "company_id": self.env.company.id,
             })
@@ -98,3 +99,4 @@ class TestIdCardQr(TransactionCase):
         self.assertEqual(filled.identification_date, date(2021, 8, 15))
         self.assertEqual(kept.name, "Manual Name")
         self.assertEqual(kept.identification_id, "001234567890")
+        self.assertTrue(kept.id_card_back)

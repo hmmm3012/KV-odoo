@@ -37,11 +37,15 @@ class IrUiMenu(models.Model):
         Module upgrades do not overwrite an existing translation, so the old
         name would stay on screen.
         """
-        label = "Lượt hợp lệ"
-        for xmlid in (
-            "hr_attendance_portal.menu_site_captain_attendance",
-            "hr_attendance_portal.action_site_captain_attendance",
-        ):
+        labels = {
+            "hr_attendance_portal.menu_site_captain_attendance": "Lượt hợp lệ",
+            "hr_attendance_portal.action_site_captain_attendance": "Lượt hợp lệ",
+            "hr_attendance_portal.menu_site_captain_exception": "Cần xác minh",
+            "hr_attendance_portal.action_site_captain_exception": "Cần xác minh",
+            "hr_attendance_portal.menu_site_captain_session": "Ca cần xử lý",
+            "hr_attendance_portal.action_site_captain_session": "Ca cần xử lý",
+        }
+        for xmlid, label in labels.items():
             record = self.env.ref(xmlid, raise_if_not_found=False)
             if record:
                 record.with_context(lang="vi_VN").write({"name": label})
@@ -56,10 +60,10 @@ class IrUiMenu(models.Model):
             "hr_attendance_portal.field_hr_attendance__exception_code": "Ngoại lệ",
             "hr_attendance_portal.field_hr_attendance__raw_elapsed_hours": "Tổng giờ thô",
             "hr_attendance_portal.field_hr_attendance__standard_hours": "Giờ chuẩn",
-            "hr_attendance_portal.field_hr_attendance__overtime_candidate_hours": "Overtime đề xuất",
-            "hr_attendance_portal.field_hr_attendance__overtime_state": "Trạng thái overtime",
+            "hr_attendance_portal.field_hr_attendance__overtime_candidate_hours": "Giờ làm thêm đề xuất",
+            "hr_attendance_portal.field_hr_attendance__overtime_state": "Trạng thái làm thêm",
             "hr_attendance_portal.field_hr_attendance__payroll_regular_hours": "Giờ công tính lương",
-            "hr_attendance_portal.field_hr_attendance__payroll_overtime_hours": "Overtime tính lương",
+            "hr_attendance_portal.field_hr_attendance__payroll_overtime_hours": "Giờ làm thêm tính lương",
             "hr_attendance_portal.field_hr_attendance__effective_check_in": "Giờ vào hiệu lực",
             "hr_attendance_portal.field_hr_attendance__effective_check_out": "Giờ ra hiệu lực",
         }
@@ -76,10 +80,10 @@ class IrUiMenu(models.Model):
             "hr_attendance_portal.selection__hr_attendance__exception_code__excessive_duration": "Vượt giờ chuẩn",
             "hr_attendance_portal.selection__hr_attendance__overtime_state__not_required": "Không có",
             "hr_attendance_portal.selection__hr_attendance__overtime_state__pending_captain": "Chờ đội trưởng",
-            "hr_attendance_portal.selection__hr_attendance__overtime_state__pending_hr_review": "Chờ HR",
+            "hr_attendance_portal.selection__hr_attendance__overtime_state__pending_hr_review": "Chờ nhân sự",
             "hr_attendance_portal.selection__hr_attendance__overtime_state__captain_rejected": "Đội trưởng từ chối",
-            "hr_attendance_portal.selection__hr_attendance__overtime_state__hr_reviewed": "HR đã đối chiếu",
-            "hr_attendance_portal.selection__hr_attendance__overtime_state__hr_discrepancy": "HR thấy lệch",
+            "hr_attendance_portal.selection__hr_attendance__overtime_state__hr_reviewed": "Nhân sự đã đối chiếu",
+            "hr_attendance_portal.selection__hr_attendance__overtime_state__hr_discrepancy": "Nhân sự thấy lệch",
             "hr_attendance_portal.selection__hr_attendance__overtime_state__closed": "Đã chốt",
             "hr_attendance_portal.selection__hr_attendance__work_status__at_work": "Đang làm việc",
             "hr_attendance_portal.selection__hr_attendance__work_status__finished": "Đã kết thúc",
@@ -92,3 +96,180 @@ class IrUiMenu(models.Model):
             record = self.env.ref(xmlid, raise_if_not_found=False)
             if record:
                 record.with_context(lang="vi_VN").write({"name": label})
+        self._sync_edge_case_vietnamese_labels()
+
+    @api.model
+    def _sync_edge_case_vietnamese_labels(self):
+        """Vietnamese labels for the captain session, overtime, and correction dialogs."""
+        field_labels = {
+            ("hr.attendance.hour.wizard", "decision_type"): "Loại quyết định",
+            ("hr.attendance.hour.wizard", "hours"): "Giờ được công nhận",
+            ("hr.attendance.hour.wizard", "reason"): "Lý do",
+            ("hr.attendance.overtime.bulk.wizard", "shift_count"): "Số ca",
+            ("hr.attendance.overtime.bulk.wizard", "reason"): "Lý do",
+            ("hr.attendance.checkout.wizard", "check_out"): "Giờ ra",
+            ("hr.attendance.checkout.wizard", "reason"): "Lý do",
+            ("hr.attendance.hour.decision", "attendance_id"): "Ca",
+            ("hr.attendance.hour.decision", "decision_type"): "Quyết định",
+            ("hr.attendance.hour.decision", "regular_before"): "Giờ trước",
+            ("hr.attendance.hour.decision", "regular_after"): "Giờ sau",
+            ("hr.attendance.hour.decision", "reason"): "Lý do",
+            ("hr.attendance.hour.decision", "user_id"): "Người quyết định",
+            ("hr.attendance.hour.decision", "decided_at"): "Thời điểm",
+            ("hr.attendance.hour.decision", "role"): "Vai trò",
+            ("hr.attendance.overtime.wizard", "rejected"): "Từ chối làm thêm",
+            ("hr.attendance.overtime.wizard", "hours"): "Giờ làm thêm duyệt",
+            ("hr.attendance.overtime.wizard", "reason"): "Lý do",
+            ("hr.attendance.overtime.hr.wizard", "discrepancy"): "Lệch số liệu",
+            ("hr.attendance.overtime.hr.wizard", "hours"): "Giờ làm thêm tính lương",
+            ("hr.attendance.overtime.hr.wizard", "note"): "Ghi chú đối chiếu",
+            ("hr.attendance.overtime.case", "attendance_id"): "Ca",
+            ("hr.attendance.overtime.case", "candidate_hours"): "Giờ làm thêm đề xuất",
+            ("hr.attendance.overtime.case", "captain_hours"): "Giờ đội trưởng duyệt",
+            ("hr.attendance.overtime.case", "hr_hours"): "Giờ nhân sự duyệt",
+            ("hr.attendance.overtime.case", "payroll_hours"): "Giờ làm thêm tính lương",
+            ("hr.attendance.overtime.case", "state"): "Trạng thái",
+            ("hr.attendance.overtime.case", "captain_user_id"): "Đội trưởng",
+            ("hr.attendance.overtime.case", "captain_at"): "Đội trưởng duyệt lúc",
+            ("hr.attendance.overtime.case", "captain_reason"): "Lý do đội trưởng",
+            ("hr.attendance.overtime.case", "hr_user_id"): "Nhân sự",
+            ("hr.attendance.overtime.case", "hr_at"): "Nhân sự đối chiếu lúc",
+            ("hr.attendance.overtime.case", "hr_note"): "Ghi chú nhân sự",
+            ("hr.attendance.overtime.case", "decision_ids"): "Các quyết định",
+            ("hr.attendance.overtime.decision", "decision_type"): "Quyết định",
+            ("hr.attendance.overtime.decision", "hours_before"): "Giờ trước",
+            ("hr.attendance.overtime.decision", "hours_after"): "Giờ sau",
+            ("hr.attendance.overtime.decision", "reason"): "Lý do",
+            ("hr.attendance.overtime.decision", "user_id"): "Người quyết định",
+            ("hr.attendance.overtime.decision", "decided_at"): "Thời điểm",
+            ("hr.attendance.correction.wizard", "correction_type"): "Mốc giờ",
+            ("hr.attendance.correction.wizard", "proposed_value"): "Giờ đề xuất",
+            ("hr.attendance.correction.wizard", "reason"): "Lý do",
+            ("hr.attendance.correction", "attendance_id"): "Ca",
+            ("hr.attendance.correction", "correction_type"): "Mốc giờ",
+            ("hr.attendance.correction", "original_value"): "Giờ gốc",
+            ("hr.attendance.correction", "proposed_value"): "Giờ đề xuất",
+            ("hr.attendance.correction", "applied_value"): "Giờ đã áp dụng",
+            ("hr.attendance.correction", "reason"): "Lý do",
+            ("hr.attendance.correction", "requester_id"): "Người yêu cầu",
+            ("hr.attendance.correction", "requested_at"): "Thời điểm yêu cầu",
+            ("hr.attendance.correction", "state"): "Trạng thái",
+            ("hr.attendance.correction", "decider_id"): "Người quyết định",
+            ("hr.attendance.correction", "decided_at"): "Thời điểm",
+            ("hr.attendance.correction", "decision_reason"): "Lý do quyết định",
+        }
+        selection_labels = {
+            ("hr.attendance.hour.wizard", "decision_type"): {
+                "deny_session": "Từ chối ca",
+                "reduce_regular": "Giảm giờ",
+                "restore_session": "Khôi phục ca",
+            },
+            ("hr.attendance.hour.decision", "decision_type"): {
+                "deny_session": "Từ chối ca",
+                "reduce_regular": "Giảm giờ",
+                "restore_session": "Khôi phục ca",
+                "confirm_checkout": "Xác nhận giờ ra",
+            },
+            ("hr.attendance.hour.decision", "role"): {
+                "captain": "Đội trưởng",
+                "hr": "Nhân sự",
+            },
+            ("hr.attendance.correction.wizard", "correction_type"): {
+                "check_in": "Giờ vào",
+                "check_out": "Giờ ra",
+            },
+            ("hr.attendance.correction", "correction_type"): {
+                "check_in": "Giờ vào",
+                "check_out": "Giờ ra",
+            },
+            ("hr.attendance.correction", "state"): {
+                "pending": "Chờ duyệt",
+                "approved": "Đã duyệt",
+                "rejected": "Từ chối",
+            },
+            ("hr.attendance.overtime.case", "state"): {
+                "not_required": "Không có",
+                "pending_captain": "Chờ đội trưởng",
+                "pending_hr_review": "Chờ nhân sự",
+                "captain_rejected": "Đội trưởng từ chối",
+                "hr_reviewed": "Nhân sự đã đối chiếu",
+                "hr_discrepancy": "Nhân sự thấy lệch",
+                "closed": "Đã chốt",
+            },
+            ("hr.attendance.overtime.decision", "decision_type"): {
+                "captain_approve": "Đội trưởng duyệt",
+                "captain_reject": "Đội trưởng từ chối",
+                "hr_review": "Nhân sự đối chiếu",
+                "hr_discrepancy": "Nhân sự thấy lệch",
+            },
+        }
+        Fields = self.env["ir.model.fields"].sudo()
+        Selection = self.env["ir.model.fields.selection"].sudo()
+        for (model, name), label in field_labels.items():
+            field = Fields._get(model, name)
+            if field:
+                field.with_context(lang="vi_VN").write({"field_description": label})
+        for (model, name), values in selection_labels.items():
+            field = Fields._get(model, name)
+            if not field:
+                continue
+            for value, label in values.items():
+                selection = Selection.search([
+                    ("field_id", "=", field.id),
+                    ("value", "=", value),
+                ], limit=1)
+                if selection:
+                    selection.with_context(lang="vi_VN").write({"name": label})
+
+        terms = {
+            "Deny Session": "Từ chối ca",
+            "Reduce Hours": "Giảm giờ",
+            "Review Overtime": "Duyệt làm thêm",
+            "Approve Selected Overtime": "Duyệt làm thêm đã chọn",
+            "Reject Selected Overtime": "Từ chối làm thêm đã chọn",
+            "Request Time Correction": "Xin điều chỉnh giờ",
+            "HR Overtime Review": "Nhân sự đối chiếu làm thêm",
+            "Restore Session": "Khôi phục ca",
+            "Close Session": "Chốt ca",
+            "Hour Decisions": "Quyết định giờ",
+            "Time Corrections": "Điều chỉnh giờ",
+            "Confirm": "Xác nhận",
+            "Confirm Checkout": "Xác nhận giờ ra",
+            "Checkout Time": "Giờ ra",
+            "Cancel": "Hủy",
+            "Send to HR": "Gửi nhân sự",
+            "Approve": "Duyệt",
+            "Reject": "Từ chối",
+            "Overtime Hours": "Giờ làm thêm",
+            "Overtime To Review": "Làm thêm cần duyệt",
+            "Pending Review": "Cần xử lý",
+            "Missing Checkout": "Quên giờ ra",
+            "Session Status": "Trạng thái ca",
+            "Exception": "Ngoại lệ",
+            "Check-in Photo": "Ảnh lúc vào",
+            "Check-out Photo": "Ảnh lúc ra",
+            "Events": "Lượt chấm",
+            "Time In": "Giờ vào",
+            "Time Out": "Giờ ra",
+            "Status": "Trạng thái",
+            "Reason": "Lý do",
+        }
+        for xmlid in (
+            "hr_attendance_portal.view_hr_attendance_form_portal",
+            "hr_attendance_portal.view_hr_attendance_hour_wizard_form",
+            "hr_attendance_portal.view_hr_attendance_overtime_wizard_form",
+            "hr_attendance_portal.view_hr_attendance_overtime_bulk_wizard_form",
+            "hr_attendance_portal.view_hr_attendance_overtime_hr_wizard_form",
+            "hr_attendance_portal.view_hr_attendance_checkout_wizard_form",
+            "hr_attendance_portal.view_hr_attendance_correction_wizard_form",
+            "hr_attendance_portal.view_hr_attendance_correction_form",
+            "hr_attendance_portal.view_attendance_search_captain",
+            "hr_attendance_portal.view_attendance_tree_portal",
+            "hr_attendance_portal.view_attendance_tree_captain",
+            "hr_attendance_portal.view_attendance_tree_captain_session",
+            "hr_attendance_portal.view_hr_attendance_form_captain",
+        ):
+            view = self.env.ref(xmlid, raise_if_not_found=False)
+            if view:
+                view.sudo().update_field_translations("arch_db", {"vi_VN": terms})
+        self._sync_valid_attendance_label()

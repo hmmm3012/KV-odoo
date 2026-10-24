@@ -56,6 +56,50 @@ class TestAttendancePortalAPI(AttendancePortalMixin, TransactionCase):
         self.assertEqual(event.face_count, 1)
         self.assertAlmostEqual(event.face_cosine, 0.82, places=2)
 
+    def test_attendance_sheet_lists_only_own_month(self):
+        from datetime import datetime
+
+        _, token = self._issue_token()
+        other = self.env["hr.employee"].create({
+            "name": "Other Employee",
+            "emp_code": "KV-PORTAL-002",
+            "pin": "2468",
+            "attendance_portal_enabled": True,
+            "company_id": self.company.id,
+        })
+        own = self.env["hr.attendance"].create({
+            "employee_id": self.employee.id,
+            "check_in": datetime(2026, 10, 23, 0, 5, 0),
+        })
+        own.with_context(attendance_original_punch=True).write({
+            "check_out": datetime(2026, 10, 23, 8, 5, 0),
+        })
+        self.env["hr.attendance"].create({
+            "employee_id": other.id,
+            "check_in": datetime(2026, 10, 23, 1, 0, 0),
+            "check_out": datetime(2026, 10, 23, 9, 0, 0),
+        })
+        open_shift = self.env["hr.attendance"].create({
+            "employee_id": self.employee.id,
+            "check_in": datetime(2026, 10, 22, 23, 30, 0),
+        })
+        sheet = self.portal.attendance_sheet(year=2026, month=10, token=token)
+        self.assertTrue(sheet["ok"])
+        self.assertEqual(sheet["month_label"], "Tháng 10/2026")
+        self.assertEqual(sheet["shift_count"], 2)
+        self.assertEqual(sheet["rows"][0]["date"], "23/10/2026")
+        self.assertEqual(sheet["rows"][0]["check_in"], "07:05")
+        self.assertEqual(sheet["rows"][0]["check_out"], "15:05")
+        self.assertEqual(sheet["rows"][0]["note"], "")
+        self.assertEqual(sheet["rows"][1]["check_in"], "06:30")
+        self.assertEqual(sheet["rows"][1]["check_out"], "")
+        self.assertEqual(sheet["rows"][1]["note"], "Chưa ra")
+        self.assertNotIn(other.name, str(sheet["rows"]))
+        self.assertTrue(open_shift)
+        missing = self.portal.attendance_sheet(year=13, month=2026, token=token)
+        self.assertEqual(missing["error"], "invalid_month")
+        self.assertEqual(self.portal.attendance_sheet(year=2026, month=10)["error"], "invalid_session")
+
     def test_resolve_location_returns_workplace_name(self):
         _, token = self._issue_token()
         result = self.portal.resolve_location(
@@ -456,7 +500,8 @@ class TestAttendancePortalHttp(AttendancePortalMixin, HttpCase):
         response = self.url_open("/attendance")
         self.assertEqual(response.status_code, 200)
         self.assertIn("Chấm công", response.text)
-        self.assertIn("attendance_portal.js?v=20261019l", response.text)
+        self.assertIn("attendance_portal.js?v=20261023c", response.text)
+        self.assertIn("Bảng công", response.text)
 
     def test_http_login_sets_cookie_and_check_in(self):
         result = self.make_jsonrpc_request("/attendance/api/login", {

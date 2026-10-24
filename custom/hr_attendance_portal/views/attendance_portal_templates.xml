@@ -7,11 +7,15 @@
             <t t-set="head">
                 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
                 <meta name="theme-color" content="#0f172a"/>
-                <link rel="stylesheet" href="/hr_attendance_portal/static/src/attendance_portal.css?v=20261019l"/>
-                <script src="/hr_attendance_portal/static/src/attendance_portal.js?v=20261019l" defer="defer"></script>
+                <link rel="stylesheet" href="/hr_attendance_portal/static/src/attendance_portal.css?v=20261023d"/>
+                <script src="/hr_attendance_portal/static/src/attendance_portal.js?v=20261023d" defer="defer"></script>
             </t>
             <t t-set="body_classname">kv-attendance-body</t>
             <main class="kv-shell" id="kv-attendance-app">
+                <div class="kv-message" id="kv-message" hidden="hidden" role="alert">
+                    <p id="kv-message-text"></p>
+                    <button type="button" id="kv-message-close" aria-label="Đóng">×</button>
+                </div>
                 <header class="kv-header">
                     <p class="kv-kicker">Kien Viet</p>
                     <h1>Chấm công</h1>
@@ -33,17 +37,28 @@
                     <p class="kv-state" id="kv-state-label"></p>
                     <p class="kv-meta" id="kv-last-punch"></p>
                     <p class="kv-location-hint" id="kv-location-hint">Nhấn chấm công để trình duyệt xin quyền vị trí.</p>
-                    <div class="kv-camera-wrap">
+                    <div class="kv-camera-wrap is-closed">
                         <video id="kv-camera" autoplay="autoplay" playsinline="playsinline" webkit-playsinline="webkit-playsinline" muted="muted" x5-playsinline="true" x5-video-player-type="h5" x5-video-player-fullscreen="false"></video>
                         <canvas id="kv-camera-preview" class="kv-camera-preview"></canvas>
+                        <p class="kv-camera-tap" id="kv-camera-tap">Nhấn để mở camera</p>
                     </div>
                     <canvas id="kv-camera-canvas" class="kv-hidden"></canvas>
                     <p class="kv-location-hint" id="kv-camera-hint">Nhìn thẳng vào camera. Ảnh sẽ được kiểm tra trước khi chấm công.</p>
                     <button type="button" class="kv-btn kv-btn-primary kv-btn-lg" id="kv-check-btn">Chấm công vào</button>
+                    <button type="button" class="kv-btn kv-btn-ghost" id="kv-sheet-open">Bảng công</button>
                     <button type="button" class="kv-btn kv-btn-ghost" id="kv-logout-btn">Đăng xuất</button>
                 </section>
 
-                <p class="kv-message" id="kv-message" hidden="hidden"></p>
+                <section class="kv-card kv-hidden" data-panel="sheet">
+                    <div class="kv-sheet-nav">
+                        <button type="button" class="kv-sheet-step" id="kv-sheet-prev">Tháng trước</button>
+                        <p id="kv-sheet-title">Bảng công</p>
+                    </div>
+                    <div id="kv-sheet-rows"></div>
+                    <p class="kv-sheet-total" id="kv-sheet-total"></p>
+                    <button type="button" class="kv-btn kv-btn-ghost" id="kv-sheet-back">Quay lại</button>
+                </section>
+
             </main>
         </t>
     </template>

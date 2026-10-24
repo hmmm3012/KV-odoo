@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from datetime import timedelta
+
 from odoo import api, fields, models
 from odoo.exceptions import AccessError, UserError
 from odoo.tools import float_compare
@@ -259,6 +261,43 @@ class HrAttendance(models.Model):
             return 0.0
         return (end - start).total_seconds() / 3600.0
 
+    @api.model
+    def _round_seconds_to_half_hour(self, total_seconds):
+        """Snap a duration to a half hour.
+
+        A remainder of 15 minutes or more rounds up to the next half hour.
+        A smaller remainder floors to the previous half hour. The result is
+        only a whole hour or a half hour (12:00, 12:30, 13:00, ...).
+        """
+        if not total_seconds or total_seconds <= 0:
+            return 0
+        total_seconds = int(total_seconds)
+        half_hour = 30 * 60
+        remainder = total_seconds % half_hour
+        if remainder >= 15 * 60:
+            return total_seconds + (half_hour - remainder)
+        return total_seconds - remainder
+
+    @api.model
+    def _round_elapsed_hours(self, start, end):
+        if not start or not end or end < start:
+            return 0.0
+        seconds = self._round_seconds_to_half_hour((end - start).total_seconds())
+        return seconds / 3600.0
+
+    @api.model
+    def _round_worked_hours(self, hours):
+        if not hours or hours <= 0:
+            return 0.0
+        seconds = self._round_seconds_to_half_hour(round(hours * 3600.0))
+        return seconds / 3600.0
+
+    def _compute_worked_hours(self):
+        super()._compute_worked_hours()
+        for attendance in self:
+            if attendance.worked_hours:
+                attendance.worked_hours = attendance._round_worked_hours(attendance.worked_hours)
+
     def _session_bounds(self):
         self.ensure_one()
         start = self.effective_check_in or self.check_in
@@ -268,7 +307,7 @@ class HrAttendance(models.Model):
     def _session_duration(self):
         self.ensure_one()
         start, end = self._session_bounds()
-        return self._session_elapsed(start, end)
+        return self._round_elapsed_hours(start, end)
 
     def _max_regular_hours(self):
         """Regular hours cannot exceed the standard day or the elapsed time."""
@@ -288,9 +327,15 @@ class HrAttendance(models.Model):
     def write(self, vals):
         protected = {"check_in", "check_out"} & set(vals)
         if protected and not self.env.context.get("attendance_original_punch"):
-            raise UserError(self.env._(
-                "Original check-in and check-out times cannot be changed."
-            ))
+            captain_checkout = (
+                self.env.context.get("attendance_captain_checkout")
+                and protected == {"check_out"}
+                and all(not attendance.check_out for attendance in self)
+            )
+            if not captain_checkout:
+                raise UserError(self.env._(
+                    "Original check-in and check-out times cannot be changed."
+                ))
         if (
             not self.env.context.get("attendance_session_apply")
             and self._DERIVED_SESSION_FIELDS & set(vals)
@@ -322,8 +367,8 @@ class HrAttendance(models.Model):
                 continue
             company = attendance.employee_id.company_id or self.env.company
             raw = self._session_elapsed(attendance.check_in, attendance.check_out)
-            start, end = attendance._session_bounds()
-            duration = self._session_elapsed(start, end)
+            _start, end = attendance._session_bounds()
+            duration = attendance._session_duration()
             has_end = bool(end)
             standard_default = company.attendance_standard_hours or 8.0
             standard = attendance.standard_hours or (standard_default if has_end else 0.0)
@@ -570,6 +615,66 @@ class HrAttendance(models.Model):
             self._apply_session_vals({"overtime_state": "closed"})
         return True
 
+    def action_confirm_checkout(self, check_out, reason):
+        """Close an open shift with the checkout time a captain confirms.
+
+        The original check-in stays unchanged. This is only for a shift that
+        has no checkout yet, so the employee can start a new shift afterwards.
+        """
+        self.ensure_one()
+        self._check_session_visible()
+        self._ensure_session_open()
+        if self.check_out:
+            raise UserError(self.env._("This shift already has a checkout."))
+        if not check_out:
+            raise UserError(self.env._("A checkout time is required."))
+        if check_out <= self.check_in:
+            raise UserError(self.env._("Checkout must be after check-in."))
+        if check_out > fields.Datetime.now():
+            raise UserError(self.env._("Checkout cannot be in the future."))
+        role = self._session_actor_role()
+        reason = self._require_reason(reason)
+        actor_id = self.env.uid
+        before = self.recognized_regular_hours
+        self.with_context(attendance_captain_checkout=True).sudo().write({
+            "check_out": check_out,
+            "out_mode": "manual",
+        })
+        self.env["hr.attendance.hour.decision"].sudo().create({
+            "attendance_id": self.id,
+            "decision_type": "confirm_checkout",
+            "regular_before": before,
+            "regular_after": self.recognized_regular_hours,
+            "reason": reason,
+            "user_id": actor_id,
+            "role": role,
+        })
+        return True
+
+    def action_open_confirm_checkout_wizard(self):
+        self.ensure_one()
+        self._check_session_visible()
+        self._ensure_session_open()
+        if self.check_out:
+            raise UserError(self.env._("This shift already has a checkout."))
+        company = self.employee_id.company_id or self.env.company
+        standard = company.attendance_standard_hours or 8.0
+        suggested = self.check_in + timedelta(hours=standard)
+        now = fields.Datetime.now()
+        if suggested > now:
+            suggested = now
+        return {
+            "type": "ir.actions.act_window",
+            "name": self.env._("Confirm Checkout"),
+            "res_model": "hr.attendance.checkout.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {
+                "default_attendance_id": self.id,
+                "default_check_out": suggested,
+            },
+        }
+
     def action_open_deny_wizard(self):
         return self._open_hour_wizard("deny_session")
 
@@ -593,6 +698,37 @@ class HrAttendance(models.Model):
                 "default_attendance_id": self.id,
                 "default_decision_type": decision_type,
                 "default_hours": self.recognized_regular_hours,
+            },
+        }
+
+    def _overtime_waiting_for_captain(self):
+        return self.filtered(lambda attendance: (
+            attendance.session_state not in ("closed", "denied")
+            and attendance.overtime_state == "pending_captain"
+            and attendance.overtime_case_ids
+        ))
+
+    def action_open_bulk_overtime_wizard(self):
+        """Open one decision for every selected shift that is waiting on the captain."""
+        waiting = self._overtime_waiting_for_captain()
+        if not waiting:
+            raise UserError(self.env._(
+                "No selected shift is waiting for overtime approval."
+            ))
+        for attendance in waiting:
+            attendance._check_session_visible()
+        rejected = bool(self.env.context.get("overtime_bulk_reject"))
+        return {
+            "type": "ir.actions.act_window",
+            "name": self.env._(
+                "Reject Selected Overtime" if rejected else "Approve Selected Overtime"
+            ),
+            "res_model": "hr.attendance.overtime.bulk.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {
+                "default_attendance_ids": [(6, 0, waiting.ids)],
+                "default_rejected": rejected,
             },
         }
 

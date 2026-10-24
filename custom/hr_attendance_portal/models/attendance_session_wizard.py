@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from odoo import fields, models
+from odoo import api, fields, models
 
 
 class HrAttendanceHourWizard(models.TransientModel):
@@ -48,6 +48,31 @@ class HrAttendanceOvertimeWizard(models.TransientModel):
         return {"type": "ir.actions.act_window_close"}
 
 
+class HrAttendanceOvertimeBulkWizard(models.TransientModel):
+    _name = "hr.attendance.overtime.bulk.wizard"
+    _description = "Attendance Bulk Overtime Decision Wizard"
+
+    attendance_ids = fields.Many2many("hr.attendance", string="Selected Shifts", required=True)
+    rejected = fields.Boolean(string="Reject Overtime")
+    shift_count = fields.Integer(string="Shifts", compute="_compute_shift_count")
+    reason = fields.Text(string="Reason", required=True)
+
+    @api.depends("attendance_ids")
+    def _compute_shift_count(self):
+        for wizard in self:
+            wizard.shift_count = len(wizard.attendance_ids)
+
+    def action_apply(self):
+        self.ensure_one()
+        for attendance in self.attendance_ids:
+            if self.rejected:
+                attendance.action_captain_overtime(0, self.reason, rejected=True)
+            else:
+                case = attendance.overtime_case_ids[:1]
+                attendance.action_captain_overtime(case._cap_hours(), self.reason, rejected=False)
+        return {"type": "ir.actions.act_window_close"}
+
+
 class HrAttendanceOvertimeHrWizard(models.TransientModel):
     _name = "hr.attendance.overtime.hr.wizard"
     _description = "Attendance HR Overtime Review Wizard"
@@ -62,6 +87,20 @@ class HrAttendanceOvertimeHrWizard(models.TransientModel):
         self.attendance_id.action_hr_overtime(
             self.hours, self.note, discrepancy=self.discrepancy
         )
+        return {"type": "ir.actions.act_window_close"}
+
+
+class HrAttendanceCheckoutWizard(models.TransientModel):
+    _name = "hr.attendance.checkout.wizard"
+    _description = "Attendance Checkout Confirmation Wizard"
+
+    attendance_id = fields.Many2one("hr.attendance", required=True)
+    check_out = fields.Datetime(string="Checkout Time", required=True)
+    reason = fields.Text(string="Reason", required=True)
+
+    def action_apply(self):
+        self.ensure_one()
+        self.attendance_id.action_confirm_checkout(self.check_out, self.reason)
         return {"type": "ir.actions.act_window_close"}
 
 

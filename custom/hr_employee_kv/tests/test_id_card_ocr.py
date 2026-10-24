@@ -2,10 +2,12 @@
 
 from datetime import date
 from pathlib import Path
+from unittest.mock import patch
 
 from odoo.tests.common import TransactionCase, tagged
 
 from odoo.addons.hr_employee_kv.models.id_card_ocr import (
+    inspect_id_card,
     inspect_id_card_front,
     merge_card_reads,
     parse_cccd_text,
@@ -76,3 +78,29 @@ class TestIdCardOcr(TransactionCase):
         self.assertEqual(values["birthday"], date(2003, 12, 30))
         self.assertEqual(values["gender"], "male")
         self.assertIn("Quận 6", values["emp_permanent_address"])
+
+    def test_qr_on_back_fills_fields(self):
+        qr_values = {
+            "identification_id": "079203042389",
+            "name": "Trịnh Hoàng Minh",
+            "birthday": date(2003, 12, 30),
+            "gender": "male",
+            "emp_permanent_address": "14/21 Bửu Đình, Phường 5, Quận 6, TP. Hồ Chí Minh",
+            "identification_date": date(2023, 5, 22),
+        }
+
+        def decode_qr(raw):
+            return dict(qr_values) if raw == b"BACK" else {}
+
+        with patch(
+            "odoo.addons.hr_employee_kv.models.id_card_qr.decode_id_card_front",
+            side_effect=decode_qr,
+        ), patch(
+            "odoo.addons.hr_employee_kv.models.id_card_ocr._read_text",
+            return_value=(SAMPLE_TEXT, "ok"),
+        ):
+            values, status = inspect_id_card(b"FRONT", b"BACK", prefer="back")
+        self.assertEqual(status, "ok")
+        self.assertEqual(values["identification_id"], "079203042389")
+        self.assertEqual(values["identification_date"], date(2023, 5, 22))
+        self.assertEqual(values["emp_place_of_origin"], "Dưỡng Điểm, Châu Thành, Tiền Giang")

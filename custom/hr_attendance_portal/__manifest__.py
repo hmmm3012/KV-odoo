@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     "name": "HR Attendance Portal",
-    "version": "18.0.1.8.5",
+    "version": "18.0.1.8.7",
     "category": "Human Resources/Attendances",
     "summary": "PIN-based attendance portal for employees without Odoo user accounts",
     "description": """

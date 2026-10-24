@@ -67,6 +67,7 @@
                 <field name="can_decide_session" invisible="1"/>
                 <field name="can_review_overtime" invisible="1"/>
                 <field name="can_hr_review" invisible="1"/>
+                <button name="action_open_confirm_checkout_wizard" type="object" string="Confirm Checkout" invisible="check_out or session_state == 'closed'" groups="hr_attendance_portal.group_hr_attendance_site_captain,hr_attendance.group_hr_attendance_officer"/>
                 <button name="action_open_deny_wizard" type="object" string="Deny Session" invisible="not can_decide_session or session_state == 'denied'"/>
                 <button name="action_open_reduce_wizard" type="object" string="Reduce Hours" invisible="not can_decide_session or session_state == 'denied'"/>
                 <button name="action_open_overtime_wizard" type="object" string="Review Overtime" invisible="not can_review_overtime"/>

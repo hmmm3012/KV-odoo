@@ -129,6 +129,7 @@
         <field name="name">Valid Attendances</field>
         <field name="res_model">hr.attendance</field>
         <field name="view_mode">list,form</field>
+        <field name="domain">['|', ('check_out', '=', False), ('recognized_regular_hours', '&gt;', 0)]</field>
         <field name="context">{'create': False, 'edit': False, 'delete': False}</field>
     </record>
 
@@ -160,7 +161,7 @@
         name="Exceptions"
         parent="hr_attendance.menu_hr_attendance_root"
         action="action_site_captain_exception"
-        sequence="6"
+        sequence="7"
         groups="group_hr_attendance_site_captain"/>
 
     <delete model="ir.ui.menu" id="menu_site_captain_employee"/>

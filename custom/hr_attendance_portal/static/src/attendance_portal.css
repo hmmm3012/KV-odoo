@@ -120,13 +120,94 @@ input {
     background: #0b1220;
     transform: scaleX(-1);
 }
+.kv-camera-wrap.is-closed {
+    cursor: pointer;
+}
+.kv-camera-tap {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: 1rem;
+    color: #fff;
+    font-size: 1.05rem;
+    font-weight: 700;
+    line-height: 1.35;
+    text-align: center;
+    pointer-events: none;
+}
+.kv-camera-tap[hidden] {
+    display: none;
+}
 
 .kv-message {
-    margin-top: 1rem;
-    padding: 0.85rem 1rem;
-    border-radius: 0.9rem;
-    background: rgba(15, 23, 42, 0.65);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 40;
+    margin: 0;
+    padding: 0.95rem 2.75rem;
+    border-radius: 0;
+    background: #9f1239;
+    color: #fff;
+    text-align: center;
+    font-size: 1.05rem;
+    font-weight: 700;
+    line-height: 1.35;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
 }
-.kv-message.is-error { color: var(--kv-danger); }
-.kv-message.is-ok { color: var(--kv-ok); }
-.kv-message.is-warn { color: var(--kv-warn); }
+.kv-message p { margin: 0; }
+.kv-message button {
+    position: absolute;
+    top: 0.35rem;
+    right: 0.45rem;
+    width: 2rem;
+    height: 2rem;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: inherit;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+}
+.kv-sheet-nav {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    align-items: center;
+}
+.kv-sheet-nav p {
+    margin: 0;
+    text-align: center;
+    font-weight: 700;
+}
+.kv-sheet-step {
+    border: 0;
+    background: transparent;
+    color: var(--kv-accent);
+    font: inherit;
+    font-size: 0.85rem;
+    padding: 0.35rem 0;
+    cursor: pointer;
+}
+.kv-sheet-row {
+    margin-top: 0.85rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid rgba(148, 163, 184, 0.2);
+}
+.kv-sheet-row p { margin: 0.15rem 0; }
+.kv-sheet-date { font-weight: 700; }
+.kv-sheet-note { color: var(--kv-warn); }
+.kv-sheet-empty, .kv-sheet-total { color: var(--kv-muted); }
+.kv-sheet-total { margin: 1rem 0 0; font-weight: 600; }
+
+.kv-message.is-error { background: #9f1239; color: #fff; }
+.kv-message.is-ok { background: #065f46; color: #fff; }
+.kv-message.is-warn { background: #92400e; color: #fff; }
