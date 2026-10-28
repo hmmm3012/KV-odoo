@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from odoo import api, fields, models
+from odoo.exceptions import UserError
 
 
 class HrAttendanceHourWizard(models.TransientModel):
@@ -43,7 +44,7 @@ class HrAttendanceOvertimeWizard(models.TransientModel):
     def action_apply(self):
         self.ensure_one()
         self.attendance_id.action_captain_overtime(
-            self.hours, self.reason, rejected=self.rejected
+            self.hours, self.reason, rejected=False
         )
         return {"type": "ir.actions.act_window_close"}
 
@@ -65,11 +66,8 @@ class HrAttendanceOvertimeBulkWizard(models.TransientModel):
     def action_apply(self):
         self.ensure_one()
         for attendance in self.attendance_ids:
-            if self.rejected:
-                attendance.action_captain_overtime(0, self.reason, rejected=True)
-            else:
-                case = attendance.overtime_case_ids[:1]
-                attendance.action_captain_overtime(case._cap_hours(), self.reason, rejected=False)
+            case = attendance.overtime_case_ids[:1]
+            attendance.action_captain_overtime(case._cap_hours(), self.reason, rejected=False)
         return {"type": "ir.actions.act_window_close"}
 
 
@@ -102,6 +100,59 @@ class HrAttendanceCheckoutWizard(models.TransientModel):
         self.ensure_one()
         self.attendance_id.action_confirm_checkout(self.check_out, self.reason)
         return {"type": "ir.actions.act_window_close"}
+
+
+class HrAttendanceCorrectionBulkWizard(models.TransientModel):
+    _name = "hr.attendance.correction.bulk.wizard"
+    _description = "Attendance Bulk Time Correction Wizard"
+
+    correction_type = fields.Selection(
+        [("check_in", "Check-in"), ("check_out", "Check-out")],
+        string="Boundary",
+        required=True,
+        default="check_out",
+    )
+    reason = fields.Text(string="Reason", required=True)
+    line_ids = fields.One2many(
+        "hr.attendance.correction.bulk.line",
+        "wizard_id",
+        string="Shifts",
+    )
+
+    @api.onchange("correction_type")
+    def _onchange_correction_type(self):
+        for line in self.line_ids:
+            attendance = line.attendance_id
+            if self.correction_type == "check_in":
+                line.proposed_value = attendance.check_in
+            else:
+                line.proposed_value = attendance.check_out
+
+    def action_apply(self):
+        self.ensure_one()
+        if not self.line_ids:
+            raise UserError(self.env._("No selected shift can be sent for a time correction."))
+        for line in self.line_ids:
+            line.attendance_id.action_request_correction(
+                self.correction_type, line.proposed_value, self.reason
+            )
+        return {"type": "ir.actions.act_window_close"}
+
+
+class HrAttendanceCorrectionBulkLine(models.TransientModel):
+    _name = "hr.attendance.correction.bulk.line"
+    _description = "Attendance Bulk Time Correction Line"
+
+    wizard_id = fields.Many2one(
+        "hr.attendance.correction.bulk.wizard",
+        required=True,
+        ondelete="cascade",
+    )
+    attendance_id = fields.Many2one("hr.attendance", required=True)
+    employee_id = fields.Many2one(related="attendance_id.employee_id")
+    check_in = fields.Datetime(related="attendance_id.check_in")
+    check_out = fields.Datetime(related="attendance_id.check_out")
+    proposed_value = fields.Datetime(string="Proposed Time", required=True)
 
 
 class HrAttendanceCorrectionWizard(models.TransientModel):

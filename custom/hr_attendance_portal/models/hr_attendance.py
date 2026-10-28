@@ -416,6 +416,20 @@ class HrAttendance(models.Model):
                     })
                 continue
             candidate = duration - standard
+            case = attendance.overtime_case_ids[:1]
+            captain_decided = bool(case) and case.state not in ("pending_captain", "not_required")
+            if captain_decided:
+                corrected = bool(attendance.effective_check_in or attendance.effective_check_out)
+                vals.update({
+                    "session_state": "corrected" if corrected else "validated",
+                    "exception_code": "none",
+                    "recognized_regular_hours": standard,
+                    "payroll_regular_hours": standard,
+                    "overtime_candidate_hours": candidate,
+                    "overtime_state": case.state,
+                })
+                attendance._apply_session_vals(vals)
+                continue
             vals.update({
                 "session_state": "pending_review",
                 "exception_code": "excessive_duration",
@@ -427,6 +441,26 @@ class HrAttendance(models.Model):
             })
             attendance._apply_session_vals(vals)
             Case._ensure_case(attendance, candidate)
+        return True
+
+    @api.model
+    def _release_reviewed_overtime_sessions(self):
+        """Drop overtime shifts from the captain queue once a captain has decided.
+
+        Older approvals stored the overtime decision but left the session in
+        Pending Review, so the shift stayed on Sessions To Review.
+        """
+        sessions = self.sudo().search([
+            ("session_state", "=", "pending_review"),
+            ("exception_code", "=", "excessive_duration"),
+            ("overtime_state", "not in", ["not_required", "pending_captain"]),
+        ])
+        for attendance in sessions:
+            corrected = bool(attendance.effective_check_in or attendance.effective_check_out)
+            attendance._apply_session_vals({
+                "session_state": "corrected" if corrected else "validated",
+                "exception_code": "none",
+            })
         return True
 
     @api.model
@@ -461,12 +495,12 @@ class HrAttendance(models.Model):
             raise UserError(self.env._("A reason is required."))
         return reason
 
-    def action_deny_session(self, reason):
+    def action_deny_session(self, reason=None):
         self.ensure_one()
         self._check_session_visible()
         self._ensure_session_open()
         role = self._session_actor_role()
-        reason = self._require_reason(reason)
+        reason = (reason or "").strip() or self.env._("Deny Session")
         before = self.recognized_regular_hours
         self.env["hr.attendance.hour.decision"].sudo().create({
             "attendance_id": self.id,
@@ -717,18 +751,15 @@ class HrAttendance(models.Model):
             ))
         for attendance in waiting:
             attendance._check_session_visible()
-        rejected = bool(self.env.context.get("overtime_bulk_reject"))
         return {
             "type": "ir.actions.act_window",
-            "name": self.env._(
-                "Reject Selected Overtime" if rejected else "Approve Selected Overtime"
-            ),
+            "name": self.env._("Approve Selected Overtime"),
             "res_model": "hr.attendance.overtime.bulk.wizard",
             "view_mode": "form",
             "target": "new",
             "context": {
                 "default_attendance_ids": [(6, 0, waiting.ids)],
-                "default_rejected": rejected,
+                "default_rejected": False,
             },
         }
 
@@ -760,6 +791,44 @@ class HrAttendance(models.Model):
             "context": {
                 "default_attendance_id": self.id,
                 "default_hours": case.captain_hours if case else 0.0,
+            },
+        }
+
+    def _corrections_waiting(self):
+        pending = self.env["hr.attendance.correction"].sudo().search([
+            ("attendance_id", "in", self.ids),
+            ("state", "=", "pending"),
+        ]).mapped("attendance_id")
+        return self.filtered(lambda attendance: (
+            attendance.session_state != "closed"
+            and attendance not in pending
+        ))
+
+    def action_open_bulk_correction_wizard(self):
+        """Ask HR to correct several selected shifts in one request."""
+        waiting = self._corrections_waiting()
+        if not waiting:
+            raise UserError(self.env._(
+                "No selected shift can be sent for a time correction."
+            ))
+        for attendance in waiting:
+            attendance._check_session_visible()
+        lines = [
+            (0, 0, {
+                "attendance_id": attendance.id,
+                "proposed_value": attendance.check_out or attendance.check_in,
+            })
+            for attendance in waiting
+        ]
+        return {
+            "type": "ir.actions.act_window",
+            "name": self.env._("Request Time Correction"),
+            "res_model": "hr.attendance.correction.bulk.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {
+                "default_line_ids": lines,
+                "default_correction_type": "check_out",
             },
         }
 

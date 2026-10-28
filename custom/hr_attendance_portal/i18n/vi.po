@@ -940,6 +940,12 @@ msgstr "Quyết định ca"
 #. module: hr_attendance_portal
 #. odoo-python
 #: code:addons/hr_attendance_portal/models/hr_attendance.py:0
+msgid "Deny Session"
+msgstr "Từ chối ca"
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/hr_attendance.py:0
 msgid "Overtime Decision"
 msgstr "Duyệt làm thêm"
 
@@ -954,6 +960,12 @@ msgstr "Nhân sự đối chiếu làm thêm"
 #: code:addons/hr_attendance_portal/models/hr_attendance.py:0
 msgid "Request Time Correction"
 msgstr "Xin điều chỉnh giờ"
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/hr_attendance.py:0
+msgid "No selected shift can be sent for a time correction."
+msgstr "Không có ca nào trong các dòng đã chọn có thể xin điều chỉnh giờ."
 
 #. module: hr_attendance_portal
 #. odoo-python

@@ -26,8 +26,7 @@
             <form>
                 <group>
                     <field name="attendance_id" invisible="1"/>
-                    <field name="rejected"/>
-                    <field name="hours" widget="float_time" invisible="rejected"/>
+                    <field name="hours" widget="float_time"/>
                     <field name="reason"/>
                 </group>
                 <footer>
@@ -88,6 +87,32 @@
                 </group>
                 <footer>
                     <button name="action_apply" type="object" string="Confirm Checkout" class="btn-primary"/>
+                    <button string="Cancel" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_hr_attendance_correction_bulk_wizard_form" model="ir.ui.view">
+        <field name="name">hr.attendance.correction.bulk.wizard.form</field>
+        <field name="model">hr.attendance.correction.bulk.wizard</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <field name="correction_type"/>
+                    <field name="reason"/>
+                </group>
+                <field name="line_ids">
+                    <list editable="bottom" create="false" delete="false">
+                        <field name="attendance_id" column_invisible="1"/>
+                        <field name="employee_id" readonly="1"/>
+                        <field name="check_in" string="Time In" readonly="1"/>
+                        <field name="check_out" string="Time Out" readonly="1"/>
+                        <field name="proposed_value"/>
+                    </list>
+                </field>
+                <footer>
+                    <button name="action_apply" type="object" string="Send to HR" class="btn-primary"/>
                     <button string="Cancel" special="cancel"/>
                 </footer>
             </form>
@@ -224,8 +249,8 @@
         <field name="arch" type="xml">
             <list string="Sessions To Review" create="false" edit="false" delete="false" duplicate="false">
                 <header>
-                    <button name="action_open_bulk_overtime_wizard" type="object" string="Approve Selected Overtime" context="{'overtime_bulk_reject': False}" groups="hr_attendance_portal.group_hr_attendance_site_captain,hr_attendance.group_hr_attendance_officer"/>
-                    <button name="action_open_bulk_overtime_wizard" type="object" string="Reject Selected Overtime" context="{'overtime_bulk_reject': True}" groups="hr_attendance_portal.group_hr_attendance_site_captain,hr_attendance.group_hr_attendance_officer"/>
+                    <button name="action_open_bulk_overtime_wizard" type="object" string="Approve Selected Overtime" groups="hr_attendance_portal.group_hr_attendance_site_captain,hr_attendance.group_hr_attendance_officer"/>
+                    <button name="action_open_bulk_correction_wizard" type="object" string="Request Time Correction" groups="hr_attendance_portal.group_hr_attendance_site_captain,hr_attendance.group_hr_attendance_officer"/>
                 </header>
                 <field name="employee_id" widget="many2one_avatar_user"/>
                 <field name="work_status" string="Status" widget="badge" decoration-success="work_status == 'at_work'"/>
@@ -234,6 +259,7 @@
                 <field name="recognized_regular_hours" widget="float_time"/>
                 <field name="exception_code" string="Reason"/>
                 <field name="overtime_candidate_hours" string="Overtime Hours" widget="float_time"/>
+                <field name="overtime_state" widget="badge"/>
             </list>
         </field>
     </record>

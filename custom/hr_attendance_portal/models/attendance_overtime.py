@@ -83,10 +83,10 @@ class HrAttendanceOvertimeCase(models.Model):
             })
         if case.state == "closed":
             return case
+        if case.state not in ("pending_captain", "not_required"):
+            return case
         case.write({
             "candidate_hours": candidate,
-            "captain_hours": 0.0,
-            "hr_hours": 0.0,
             "payroll_hours": 0.0,
             "state": "pending_captain",
         })
@@ -151,10 +151,22 @@ class HrAttendanceOvertimeCase(models.Model):
             "hr_hours": 0.0,
             "state": state,
         })
-        self.attendance_id._apply_session_vals({
+        attendance = self.attendance_id
+        session_vals = {
             "overtime_state": state,
             "payroll_overtime_hours": 0.0,
-        })
+        }
+        if (
+            not from_session_deny
+            and attendance.session_state == "pending_review"
+            and attendance.exception_code in ("excessive_duration", "none")
+        ):
+            corrected = bool(attendance.effective_check_in or attendance.effective_check_out)
+            session_vals.update({
+                "session_state": "corrected" if corrected else "validated",
+                "exception_code": "none",
+            })
+        attendance._apply_session_vals(session_vals)
 
     def action_record_hr(self, hours, note, discrepancy=False, actor_id=None):
         self.ensure_one()

@@ -97,6 +97,7 @@ class IrUiMenu(models.Model):
             if record:
                 record.with_context(lang="vi_VN").write({"name": label})
         self._sync_edge_case_vietnamese_labels()
+        self.env["hr.attendance"]._release_reviewed_overtime_sessions()
 
     @api.model
     def _sync_edge_case_vietnamese_labels(self):
@@ -108,6 +109,12 @@ class IrUiMenu(models.Model):
             ("hr.attendance.overtime.bulk.wizard", "shift_count"): "Số ca",
             ("hr.attendance.overtime.bulk.wizard", "reason"): "Lý do",
             ("hr.attendance.checkout.wizard", "check_out"): "Giờ ra",
+            ("hr.attendance.correction.bulk.wizard", "correction_type"): "Mốc giờ",
+            ("hr.attendance.correction.bulk.wizard", "reason"): "Lý do",
+            ("hr.attendance.correction.bulk.line", "employee_id"): "Nhân viên",
+            ("hr.attendance.correction.bulk.line", "check_in"): "Giờ vào",
+            ("hr.attendance.correction.bulk.line", "check_out"): "Giờ ra",
+            ("hr.attendance.correction.bulk.line", "proposed_value"): "Giờ đề xuất",
             ("hr.attendance.checkout.wizard", "reason"): "Lý do",
             ("hr.attendance.hour.decision", "attendance_id"): "Ca",
             ("hr.attendance.hour.decision", "decision_type"): "Quyết định",
@@ -178,6 +185,10 @@ class IrUiMenu(models.Model):
                 "check_in": "Giờ vào",
                 "check_out": "Giờ ra",
             },
+            ("hr.attendance.correction.bulk.wizard", "correction_type"): {
+                "check_in": "Giờ vào",
+                "check_out": "Giờ ra",
+            },
             ("hr.attendance.correction", "correction_type"): {
                 "check_in": "Giờ vào",
                 "check_out": "Giờ ra",
@@ -223,6 +234,7 @@ class IrUiMenu(models.Model):
 
         terms = {
             "Deny Session": "Từ chối ca",
+            "Deny this shift?": "Từ chối ca này?",
             "Reduce Hours": "Giảm giờ",
             "Review Overtime": "Duyệt làm thêm",
             "Approve Selected Overtime": "Duyệt làm thêm đã chọn",
@@ -262,6 +274,7 @@ class IrUiMenu(models.Model):
             "hr_attendance_portal.view_hr_attendance_overtime_hr_wizard_form",
             "hr_attendance_portal.view_hr_attendance_checkout_wizard_form",
             "hr_attendance_portal.view_hr_attendance_correction_wizard_form",
+            "hr_attendance_portal.view_hr_attendance_correction_bulk_wizard_form",
             "hr_attendance_portal.view_hr_attendance_correction_form",
             "hr_attendance_portal.view_attendance_search_captain",
             "hr_attendance_portal.view_attendance_tree_portal",
