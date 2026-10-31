@@ -74,3 +74,7 @@ class ResConfigSettings(models.TransientModel):
         related="company_id.attendance_portal_face_not_enrolled_policy",
         readonly=False,
     )
+    attendance_google_maps_api_key = fields.Char(
+        related="company_id.attendance_google_maps_api_key",
+        readonly=False,
+    )

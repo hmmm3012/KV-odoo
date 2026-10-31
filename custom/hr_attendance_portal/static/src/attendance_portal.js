@@ -8,7 +8,7 @@
         gps_inaccurate: "Tín hiệu GPS chưa đủ chính xác. HR sẽ xem xét.",
         outside_geofence: "Bạn đang ngoài phạm vi nơi làm việc.",
         no_location_configured: "Chưa cấu hình nơi làm việc.",
-        unknown_location: "Không xác định được nơi làm việc. HR sẽ xem xét.",
+        unknown_location: "Không thành công",
         already_checked_in: "Bạn đã chấm công vào.",
         not_checked_in: "Bạn chưa chấm công vào.",
         device_revoked: "Thiết bị kiosk không còn hiệu lực.",
@@ -369,7 +369,7 @@
         if (name) {
             return { text: "Vị trí hiện tại: " + name, kind: "ok" };
         }
-        return { text: "Không xác định được nơi hiện tại", kind: "warn" };
+        return { text: "Đang nằm ngoài phạm vi đơn vị", kind: "warn" };
     }
 
     async function applyWorkplaceHint(position) {
@@ -782,9 +782,12 @@
                 times.textContent = "Vào " + (row.check_in || "—") + " · Ra " + (row.check_out || "—");
                 const hours = document.createElement("p");
                 hours.textContent = "Giờ công " + (row.hours || "0:00");
+                const overtime = document.createElement("p");
+                overtime.textContent = "Giờ làm thêm " + (row.overtime_hours || "0:00");
                 item.appendChild(date);
                 item.appendChild(times);
                 item.appendChild(hours);
+                item.appendChild(overtime);
                 if (row.note) {
                     const note = document.createElement("p");
                     note.className = "kv-sheet-note";
@@ -794,7 +797,7 @@
                 rowsEl.appendChild(item);
             });
         }
-        totalEl.textContent = (result.shift_count || 0) + " ca · " + (result.total_hours || "0:00") + " giờ công";
+        totalEl.textContent = (result.shift_count || 0) + " ca · " + (result.total_hours || "0:00") + " giờ công · " + (result.total_overtime_hours || "0:00") + " giờ làm thêm";
     }
 
     async function loadSheet(year, month) {

@@ -194,9 +194,8 @@ class TestAttendancePortalSecurity(AttendancePortalMixin, TransactionCase):
         self.assertIn(self.employee, staff)
         self.assertNotIn(visitor, staff)
         self.assertIn(visitor, employees.search([]))
-        action = visitor.with_user(captain).get_formview_action()
-        self.assertEqual(action["res_model"], "hr.employee")
-        self.assertEqual(action["res_id"], visitor.id)
+        with self.assertRaises(AccessError):
+            visitor.with_user(captain).get_formview_action()
 
         events = self.env["hr.attendance.event"].with_user(captain).search([])
         self.assertEqual(set(events.mapped("request_id")), {"captain-in", "visitor-in"})

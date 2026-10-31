@@ -9,6 +9,12 @@ class HrAttendanceEvent(models.Model):
     _description = "Attendance Audit Event"
     _order = "server_time desc, id desc"
 
+    def get_view(self, view_id=None, view_type="form", **options):
+        result = super().get_view(view_id=view_id, view_type=view_type, **options)
+        if view_type in ("form", "list"):
+            result["arch"] = self.env["hr.employee"]._attendance_captain_disable_open(result["arch"])
+        return result
+
     employee_id = fields.Many2one("hr.employee", string="Employee", index=True, ondelete="set null")
     attendance_id = fields.Many2one("hr.attendance", string="Attendance", index=True, ondelete="set null")
     company_id = fields.Many2one(

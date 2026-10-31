@@ -91,6 +91,8 @@ class TestAttendancePortalAPI(AttendancePortalMixin, TransactionCase):
         self.assertEqual(sheet["rows"][0]["check_in"], "07:05")
         self.assertEqual(sheet["rows"][0]["check_out"], "15:05")
         self.assertEqual(sheet["rows"][0]["note"], "")
+        self.assertEqual(sheet["rows"][0]["overtime_hours"], "0:00")
+        self.assertEqual(sheet["total_overtime_hours"], "0:00")
         self.assertEqual(sheet["rows"][1]["check_in"], "06:30")
         self.assertEqual(sheet["rows"][1]["check_out"], "")
         self.assertEqual(sheet["rows"][1]["note"], "Chưa ra")
@@ -500,7 +502,7 @@ class TestAttendancePortalHttp(AttendancePortalMixin, HttpCase):
         response = self.url_open("/attendance")
         self.assertEqual(response.status_code, 200)
         self.assertIn("Chấm công", response.text)
-        self.assertIn("attendance_portal.js?v=20261023c", response.text)
+        self.assertIn("attendance_portal.js?v=20261031c", response.text)
         self.assertIn("Bảng công", response.text)
 
     def test_http_login_sets_cookie_and_check_in(self):

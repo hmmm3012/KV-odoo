@@ -80,6 +80,33 @@ class HrAttendanceCorrection(models.Model):
             raise UserError(self.env._("A correction request cannot be deleted."))
         return super().unlink()
 
+    def _effective_field_name(self):
+        self.ensure_one()
+        return (
+            "effective_check_in"
+            if self.correction_type == "check_in"
+            else "effective_check_out"
+        )
+
+    def _apply_to_attendance(self, decider_id, decision_reason):
+        """Apply the proposed boundary and reclassify the session."""
+        for correction in self:
+            if correction.attendance_id.session_state == "closed":
+                raise UserError(self.env._("A closed session cannot be changed."))
+            correction.write({
+                "state": "approved",
+                "decider_id": decider_id,
+                "decided_at": fields.Datetime.now(),
+                "decision_reason": decision_reason,
+                "applied_value": correction.proposed_value,
+            })
+            attendance = correction.attendance_id
+            attendance._apply_session_vals({
+                correction._effective_field_name(): correction.proposed_value,
+            })
+            if attendance.session_state != "denied":
+                attendance._classify_session(force=True)
+
     @api.model
     def submit_for(self, attendance, correction_type, proposed, reason, attachment=False, requester_id=None):
         reason = (reason or "").strip()
@@ -89,31 +116,45 @@ class HrAttendanceCorrection(models.Model):
             raise UserError(self.env._("Choose a check-in or check-out correction."))
         if not proposed:
             raise UserError(self.env._("A proposed time is required."))
+        if attendance.session_state == "closed":
+            raise UserError(self.env._("A closed session cannot be changed."))
         original = attendance.check_in if correction_type == "check_in" else attendance.check_out
         start = proposed if correction_type == "check_in" else (attendance.effective_check_in or attendance.check_in)
         end = proposed if correction_type == "check_out" else (attendance.effective_check_out or attendance.check_out)
         if start and end and end < start:
             raise UserError(self.env._("The proposed end cannot be earlier than the start."))
+        actor_id = requester_id or self.env.uid
         correction = self.create({
             "attendance_id": attendance.id,
             "correction_type": correction_type,
             "original_value": original,
             "proposed_value": proposed,
             "reason": reason,
-            "requester_id": requester_id or self.env.uid,
+            "requester_id": actor_id,
             "requested_at": fields.Datetime.now(),
             "attachment": attachment,
             "previous_session_state": attendance.session_state,
         })
-        attendance._apply_session_vals({"session_state": "modification_pending"})
+        # Captain (or officer) correction is final: apply immediately.
+        correction.sudo()._apply_to_attendance(actor_id, reason)
         return correction
+
+    @api.model
+    def _finalize_pending_corrections(self):
+        """Apply correction requests that were still waiting for HR."""
+        pending = self.search([("state", "=", "pending")])
+        for correction in pending:
+            if correction.attendance_id.session_state == "closed":
+                continue
+            actor_id = correction.requester_id.id or self.env.uid
+            reason = correction.reason or self.env._("Captain decision")
+            correction.sudo()._apply_to_attendance(actor_id, reason)
+        return True
 
     def _check_hr_decider(self):
         self.ensure_one()
         if not self.env.user.has_group("hr_attendance.group_hr_attendance_officer"):
             raise AccessError(self.env._("Only HR can decide a time correction."))
-        if self.requester_id == self.env.user:
-            raise UserError(self.env._("You cannot approve a correction you requested."))
         if self.state != "pending":
             raise UserError(self.env._("This correction has already been decided."))
         if self.attendance_id.session_state == "closed":
@@ -133,22 +174,7 @@ class HrAttendanceCorrection(models.Model):
             raise UserError(self.env._("A reason is required."))
         for correction in self:
             correction._check_hr_decider()
-            field_name = (
-                "effective_check_in"
-                if correction.correction_type == "check_in"
-                else "effective_check_out"
-            )
-            correction.write({
-                "state": "approved",
-                "decider_id": self.env.uid,
-                "decided_at": fields.Datetime.now(),
-                "decision_reason": decision_reason,
-                "applied_value": correction.proposed_value,
-            })
-            attendance = correction.attendance_id
-            attendance._apply_session_vals({field_name: correction.proposed_value})
-            if attendance.session_state != "denied":
-                attendance._classify_session(force=True)
+            correction._apply_to_attendance(self.env.uid, decision_reason)
         return True
 
     def action_reject(self, decision_reason):

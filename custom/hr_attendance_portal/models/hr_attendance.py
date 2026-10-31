@@ -10,6 +10,12 @@ from odoo.tools import float_compare
 class HrAttendance(models.Model):
     _inherit = "hr.attendance"
 
+    def get_view(self, view_id=None, view_type="form", **options):
+        result = super().get_view(view_id=view_id, view_type=view_type, **options)
+        if view_type in ("form", "list"):
+            result["arch"] = self.env["hr.employee"]._attendance_captain_disable_open(result["arch"])
+        return result
+
     in_mode = fields.Selection(
         selection_add=[("personal_web", "Personal Web")],
         ondelete={"personal_web": "set default"},
@@ -175,6 +181,8 @@ class HrAttendance(models.Model):
         readonly=True,
         copy=False,
     )
+    closed_from_session_state = fields.Char(copy=False)
+    closed_from_overtime_state = fields.Char(copy=False)
     resource_calendar_id = fields.Many2one(
         "resource.calendar",
         related="employee_id.resource_calendar_id",
@@ -204,6 +212,39 @@ class HrAttendance(models.Model):
     can_decide_session = fields.Boolean(compute="_compute_session_buttons")
     can_review_overtime = fields.Boolean(compute="_compute_session_buttons")
     can_hr_review = fields.Boolean(compute="_compute_session_buttons")
+    captain_approved_hours = fields.Float(
+        string="Captain Hours",
+        compute="_compute_captain_overtime_review",
+        digits=(16, 4),
+    )
+    captain_overtime_reason = fields.Text(
+        string="Captain Reason",
+        compute="_compute_captain_overtime_review",
+    )
+    captain_approved_at = fields.Datetime(
+        string="Captain Decision At",
+        compute="_compute_captain_overtime_review",
+    )
+    hr_reviewed_at = fields.Datetime(
+        string="HR Review At",
+        compute="_compute_captain_overtime_review",
+    )
+    approved_list_status = fields.Selection(
+        [
+            ("pending_hr", "Pending HR"),
+            ("pending_captain", "Pending Captain"),
+            ("hr_reviewed", "HR Reviewed"),
+            ("hr_discrepancy", "HR Discrepancy"),
+            ("captain_rejected", "Captain Rejected"),
+            ("corrected", "Corrected"),
+            ("correction_rejected", "Correction Rejected"),
+            ("denied", "Denied"),
+            ("closed", "Closed"),
+            ("done", "Done"),
+        ],
+        string="Status",
+        compute="_compute_approved_list_status",
+    )
 
     _DERIVED_SESSION_FIELDS = {
         "session_state",
@@ -218,6 +259,54 @@ class HrAttendance(models.Model):
         "payroll_regular_hours",
         "payroll_overtime_hours",
     }
+
+    @api.depends(
+        "overtime_case_ids.captain_hours",
+        "overtime_case_ids.captain_reason",
+        "overtime_case_ids.captain_at",
+        "overtime_case_ids.hr_at",
+    )
+    def _compute_captain_overtime_review(self):
+        for attendance in self:
+            case = attendance.overtime_case_ids[:1]
+            attendance.captain_approved_hours = case.captain_hours or 0.0
+            attendance.captain_overtime_reason = case.captain_reason or False
+            attendance.captain_approved_at = case.captain_at
+            attendance.hr_reviewed_at = case.hr_at
+
+    @api.depends(
+        "session_state",
+        "overtime_state",
+        "correction_ids.state",
+    )
+    def _compute_approved_list_status(self):
+        """Unified status for the Approved list (overtime and corrections)."""
+        for attendance in self:
+            correction_states = set(attendance.correction_ids.mapped("state"))
+            if "pending" in correction_states or attendance.overtime_state == "pending_hr_review":
+                attendance.approved_list_status = "pending_hr"
+            elif attendance.overtime_state == "pending_captain":
+                attendance.approved_list_status = "pending_captain"
+            elif attendance.overtime_state in (
+                "hr_reviewed",
+                "hr_discrepancy",
+                "captain_rejected",
+                "closed",
+            ):
+                attendance.approved_list_status = attendance.overtime_state
+            elif attendance.session_state == "denied":
+                attendance.approved_list_status = "denied"
+            elif (
+                "approved" in correction_states
+                or attendance.session_state == "corrected"
+            ):
+                attendance.approved_list_status = "corrected"
+            elif "rejected" in correction_states:
+                attendance.approved_list_status = "correction_rejected"
+            elif attendance.session_state == "closed":
+                attendance.approved_list_status = "closed"
+            else:
+                attendance.approved_list_status = "done"
 
     @api.depends("check_out")
     def _compute_work_status(self):
@@ -377,8 +466,11 @@ class HrAttendance(models.Model):
                 vals["standard_hours"] = standard_default
                 standard = standard_default
             locked = bool(attendance.hour_decision_ids) and not force
+            waiting_correction = (
+                attendance.session_state == "modification_pending" and not force
+            )
             if not has_end:
-                if not locked and attendance.session_state != "modification_pending":
+                if not locked and not waiting_correction:
                     open_hours = self._session_elapsed(attendance.check_in, now)
                     threshold = company.attendance_missing_checkout_hours or 12.0
                     missing = bool(attendance.check_in and open_hours > threshold)
@@ -393,7 +485,7 @@ class HrAttendance(models.Model):
                     })
                 attendance._apply_session_vals(vals)
                 continue
-            if locked or attendance.session_state == "modification_pending":
+            if locked or waiting_correction:
                 attendance._apply_session_vals(vals)
                 continue
             if float_compare(duration, standard, precision_digits=4) <= 0:
@@ -416,6 +508,30 @@ class HrAttendance(models.Model):
                     })
                 continue
             candidate = duration - standard
+            policy_cap = company.attendance_overtime_cap_hours or 0.0
+            # Beyond standard + overtime cap: treat as forgotten checkout, not overtime.
+            if (
+                policy_cap
+                and float_compare(candidate, policy_cap, precision_digits=4) > 0
+            ):
+                vals.update({
+                    "session_state": "pending_review",
+                    "exception_code": "missing_checkout",
+                    "recognized_regular_hours": 0.0,
+                    "payroll_regular_hours": 0.0,
+                    "overtime_candidate_hours": 0.0,
+                    "payroll_overtime_hours": 0.0,
+                    "overtime_state": "not_required",
+                })
+                attendance._apply_session_vals(vals)
+                case = attendance.overtime_case_ids[:1]
+                if case and case.state not in ("hr_reviewed", "closed"):
+                    case.sudo().write({
+                        "candidate_hours": 0.0,
+                        "payroll_hours": 0.0,
+                        "state": "not_required",
+                    })
+                continue
             case = attendance.overtime_case_ids[:1]
             captain_decided = bool(case) and case.state not in ("pending_captain", "not_required")
             if captain_decided:
@@ -449,7 +565,25 @@ class HrAttendance(models.Model):
 
         Older approvals stored the overtime decision but left the session in
         Pending Review, so the shift stayed on Sessions To Review.
+        Also finalizes overtime and corrections that were still waiting for HR.
         """
+        self.env["hr.attendance.overtime.case"].sudo()._finalize_pending_hr_overtime()
+        self.env["hr.attendance.correction"].sudo()._finalize_pending_corrections()
+        stuck = self.sudo().search([
+            ("session_state", "=", "modification_pending"),
+            ("correction_ids.state", "=", "approved"),
+        ])
+        if stuck:
+            stuck._classify_session(force=True)
+        # Reclassify overtime queues that are longer than standard + OT cap.
+        oversized = self.sudo().search([
+            ("session_state", "=", "pending_review"),
+            ("exception_code", "=", "excessive_duration"),
+            ("overtime_state", "=", "pending_captain"),
+            ("check_out", "!=", False),
+        ])
+        if oversized:
+            oversized._classify_session(force=True)
         sessions = self.sudo().search([
             ("session_state", "=", "pending_review"),
             ("exception_code", "=", "excessive_duration"),
@@ -529,6 +663,12 @@ class HrAttendance(models.Model):
         return True
 
     def action_reduce_regular(self, hours, reason):
+        """Captain sets total recognized time; the shift leaves the review queue.
+
+        Hours may exceed the standard day (forgotten checkout punched next day).
+        Regular hours stay at the standard; the excess becomes overtime already
+        decided by the captain and counted for payroll.
+        """
         self.ensure_one()
         self._check_session_visible()
         self._ensure_session_open()
@@ -536,11 +676,19 @@ class HrAttendance(models.Model):
             raise UserError(self.env._("A denied session has no hours to reduce."))
         role = self._session_actor_role()
         reason = self._require_reason(reason)
-        before = self.recognized_regular_hours
+        _start, end = self._session_bounds()
+        if not end:
+            raise UserError(self.env._("Confirm checkout before reducing hours."))
+        duration = self._session_duration()
+        company = self.employee_id.company_id or self.env.company
+        standard = self.standard_hours or company.attendance_standard_hours or 8.0
         if float_compare(hours, 0.0, precision_digits=4) < 0:
             raise UserError(self.env._("Recognized hours cannot be negative."))
-        if float_compare(hours, before, precision_digits=4) > 0:
-            raise UserError(self.env._("Recognized hours cannot be increased."))
+        if float_compare(hours, duration, precision_digits=4) > 0:
+            raise UserError(self.env._(
+                "Recognized hours cannot exceed the elapsed time."
+            ))
+        before = self.recognized_regular_hours
         self.env["hr.attendance.hour.decision"].sudo().create({
             "attendance_id": self.id,
             "decision_type": "reduce_regular",
@@ -550,14 +698,56 @@ class HrAttendance(models.Model):
             "user_id": self.env.uid,
             "role": role,
         })
-        state = self.session_state
-        if state == "active":
-            state = "validated"
+        existing_case = self.overtime_case_ids[:1]
+        if existing_case and existing_case.state in ("hr_reviewed", "closed"):
+            raise UserError(self.env._("Overtime has already been reviewed by HR."))
+        corrected = bool(self.effective_check_in or self.effective_check_out)
+        session_state = "corrected" if corrected else "validated"
+        Case = self.env["hr.attendance.overtime.case"].sudo()
+        if float_compare(hours, standard, precision_digits=4) <= 0:
+            self._apply_session_vals({
+                "session_state": session_state,
+                "exception_code": "none",
+                "recognized_regular_hours": hours,
+                "payroll_regular_hours": hours,
+                "overtime_candidate_hours": 0.0,
+                "payroll_overtime_hours": 0.0,
+                "overtime_state": "not_required",
+            })
+            if existing_case:
+                existing_case.sudo().write({
+                    "candidate_hours": 0.0,
+                    "captain_hours": 0.0,
+                    "hr_hours": 0.0,
+                    "payroll_hours": 0.0,
+                    "state": "not_required",
+                    "captain_user_id": self.env.uid,
+                    "captain_at": fields.Datetime.now(),
+                    "captain_reason": reason,
+                })
+            return True
+        candidate = hours - standard
         self._apply_session_vals({
-            "recognized_regular_hours": hours,
-            "payroll_regular_hours": hours,
-            "session_state": state,
+            "session_state": session_state,
+            "exception_code": "none",
+            "recognized_regular_hours": standard,
+            "payroll_regular_hours": standard,
+            "overtime_candidate_hours": candidate,
+            "payroll_overtime_hours": 0.0,
         })
+        case = Case._ensure_case(self, candidate)
+        if case.state not in ("pending_captain", "not_required"):
+            case.sudo().write({
+                "candidate_hours": candidate,
+                "state": "pending_captain",
+                "payroll_hours": 0.0,
+            })
+        case.sudo().action_record_captain(
+            hours=case._cap_hours(),
+            reason=reason,
+            rejected=False,
+            actor_id=self.env.uid,
+        )
         return True
 
     def action_restore_session(self, hours, reason):
@@ -642,11 +832,44 @@ class HrAttendance(models.Model):
             raise AccessError(self.env._("Only HR can close a session."))
         if self.session_state == "closed":
             return True
-        self._apply_session_vals({"session_state": "closed"})
         case = self.overtime_case_ids[:1]
+        self._apply_session_vals({
+            "closed_from_session_state": self.session_state,
+            "closed_from_overtime_state": self.overtime_state,
+            "session_state": "closed",
+            "overtime_state": "closed" if case else self.overtime_state,
+        })
         if case:
-            case.sudo().write({"state": "closed"})
-            self._apply_session_vals({"overtime_state": "closed"})
+            case.sudo().write({
+                "closed_from_state": case.state,
+                "state": "closed",
+            })
+        return True
+
+    def action_reopen_session(self):
+        """Unlock a closed shift and put back the status it had before closing."""
+        self.ensure_one()
+        self._check_session_visible()
+        if self._session_actor_role() != "hr":
+            raise AccessError(self.env._("Only HR can reopen a closed session."))
+        if self.session_state != "closed":
+            return True
+        case = self.overtime_case_ids[:1]
+        session_state = self.closed_from_session_state or "validated"
+        overtime_state = self.closed_from_overtime_state or self.overtime_state
+        if overtime_state == "closed":
+            overtime_state = case.closed_from_state if case and case.closed_from_state else "not_required"
+        self._apply_session_vals({
+            "session_state": session_state,
+            "overtime_state": overtime_state,
+            "closed_from_session_state": False,
+            "closed_from_overtime_state": False,
+        })
+        if case:
+            case.sudo().write({
+                "state": case.closed_from_state or overtime_state,
+                "closed_from_state": False,
+            })
         return True
 
     def action_confirm_checkout(self, check_out, reason):
@@ -722,6 +945,9 @@ class HrAttendance(models.Model):
         self.ensure_one()
         self._check_session_visible()
         self._ensure_session_open()
+        default_hours = self.recognized_regular_hours
+        if decision_type == "reduce_regular" and self._session_bounds()[1]:
+            default_hours = self._session_duration()
         return {
             "type": "ir.actions.act_window",
             "name": self.env._("Session Decision"),
@@ -731,7 +957,36 @@ class HrAttendance(models.Model):
             "context": {
                 "default_attendance_id": self.id,
                 "default_decision_type": decision_type,
-                "default_hours": self.recognized_regular_hours,
+                "default_hours": default_hours,
+            },
+        }
+
+    def _overtime_waiting_for_hr(self):
+        return self.filtered(lambda attendance: (
+            attendance.session_state != "closed"
+            and attendance.overtime_state == "pending_hr_review"
+            and attendance.overtime_case_ids
+        ))
+
+    def action_open_bulk_hr_overtime_wizard(self):
+        """Approve every selected shift at the hours the captain already accepted."""
+        if self._session_actor_role() != "hr":
+            raise AccessError(self.env._("Only HR can review overtime."))
+        waiting = self._overtime_waiting_for_hr()
+        if not waiting:
+            raise UserError(self.env._(
+                "No selected shift is waiting for HR overtime review."
+            ))
+        for attendance in waiting:
+            attendance._check_session_visible()
+        return {
+            "type": "ir.actions.act_window",
+            "name": self.env._("Approve Selected Overtime"),
+            "res_model": "hr.attendance.overtime.hr.bulk.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {
+                "default_attendance_ids": [(6, 0, waiting.ids)],
             },
         }
 
@@ -829,6 +1084,34 @@ class HrAttendance(models.Model):
             "context": {
                 "default_line_ids": lines,
                 "default_correction_type": "check_out",
+            },
+        }
+
+    def _sessions_waiting_for_reduce(self):
+        return self.filtered(lambda attendance: (
+            attendance.session_state not in ("closed", "denied")
+            and bool(attendance._session_bounds()[1])
+        ))
+
+    def action_open_bulk_reduce_wizard(self):
+        """Reduce recognized hours for several selected shifts at once."""
+        waiting = self._sessions_waiting_for_reduce()
+        if not waiting:
+            raise UserError(self.env._("No selected shift can have hours reduced."))
+        for attendance in waiting:
+            attendance._check_session_visible()
+        first = waiting[:1]
+        company = first.employee_id.company_id or self.env.company
+        default_hours = first.standard_hours or company.attendance_standard_hours or 8.0
+        return {
+            "type": "ir.actions.act_window",
+            "name": self.env._("Reduce Selected Hours"),
+            "res_model": "hr.attendance.reduce.bulk.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {
+                "default_attendance_ids": [(6, 0, waiting.ids)],
+                "default_hours": default_hours,
             },
         }
 

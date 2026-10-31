@@ -131,6 +131,20 @@
             <field name="domain_force">[('company_id', 'in', company_ids)]</field>
         </record>
 
+        <record id="hr_attendance_location_vertex_company_rule" model="ir.rule">
+            <field name="name">Attendance location fence point: multi-company</field>
+            <field name="model_id" ref="model_hr_attendance_location_vertex"/>
+            <field name="global" eval="True"/>
+            <field name="domain_force">[('location_id.company_id', 'in', company_ids)]</field>
+        </record>
+
+        <record id="hr_attendance_location_zone_company_rule" model="ir.rule">
+            <field name="name">Attendance location polygon zone: multi-company</field>
+            <field name="model_id" ref="model_hr_attendance_location_zone"/>
+            <field name="global" eval="True"/>
+            <field name="domain_force">[('location_id.company_id', 'in', company_ids)]</field>
+        </record>
+
         <record id="hr_attendance_device_company_rule" model="ir.rule">
             <field name="name">Attendance device: multi-company</field>
             <field name="model_id" ref="model_hr_attendance_device"/>

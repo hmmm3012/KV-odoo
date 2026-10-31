@@ -88,6 +88,27 @@ class HrAttendanceOvertimeHrWizard(models.TransientModel):
         return {"type": "ir.actions.act_window_close"}
 
 
+class HrAttendanceOvertimeHrBulkWizard(models.TransientModel):
+    _name = "hr.attendance.overtime.hr.bulk.wizard"
+    _description = "Attendance Bulk HR Overtime Review Wizard"
+
+    attendance_ids = fields.Many2many("hr.attendance", string="Selected Shifts", required=True)
+    shift_count = fields.Integer(string="Shifts", compute="_compute_shift_count")
+    note = fields.Text(string="Review Note", required=True)
+
+    @api.depends("attendance_ids")
+    def _compute_shift_count(self):
+        for wizard in self:
+            wizard.shift_count = len(wizard.attendance_ids)
+
+    def action_apply(self):
+        self.ensure_one()
+        for attendance in self.attendance_ids:
+            case = attendance.overtime_case_ids[:1]
+            attendance.action_hr_overtime(case.captain_hours, self.note, discrepancy=False)
+        return {"type": "ir.actions.act_window_close"}
+
+
 class HrAttendanceCheckoutWizard(models.TransientModel):
     _name = "hr.attendance.checkout.wizard"
     _description = "Attendance Checkout Confirmation Wizard"
@@ -99,6 +120,29 @@ class HrAttendanceCheckoutWizard(models.TransientModel):
     def action_apply(self):
         self.ensure_one()
         self.attendance_id.action_confirm_checkout(self.check_out, self.reason)
+        return {"type": "ir.actions.act_window_close"}
+
+
+class HrAttendanceReduceBulkWizard(models.TransientModel):
+    _name = "hr.attendance.reduce.bulk.wizard"
+    _description = "Attendance Bulk Reduce Hours Wizard"
+
+    attendance_ids = fields.Many2many("hr.attendance", string="Selected Shifts", required=True)
+    shift_count = fields.Integer(string="Shifts", compute="_compute_shift_count")
+    hours = fields.Float(string="Recognized Hours", digits=(16, 4), required=True)
+    reason = fields.Text(string="Reason", required=True)
+
+    @api.depends("attendance_ids")
+    def _compute_shift_count(self):
+        for wizard in self:
+            wizard.shift_count = len(wizard.attendance_ids)
+
+    def action_apply(self):
+        self.ensure_one()
+        if not self.attendance_ids:
+            raise UserError(self.env._("No selected shift can have hours reduced."))
+        for attendance in self.attendance_ids:
+            attendance.action_reduce_regular(self.hours, self.reason)
         return {"type": "ir.actions.act_window_close"}
 
 

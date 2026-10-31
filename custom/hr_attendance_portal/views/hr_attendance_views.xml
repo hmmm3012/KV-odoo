@@ -62,6 +62,19 @@
                         <field name="portal_event_count" widget="statinfo" string="Events"/>
                     </button>
                 </div>
+                <!-- Odoo 18 hides form header buttons on phones (moved into the cog menu).
+                     Keep the same actions visible in the sheet on small screens. -->
+                <div class="kv_session_actions" name="session_actions">
+                    <button name="action_open_confirm_checkout_wizard" type="object" string="Confirm Checkout" class="btn btn-secondary" invisible="check_out or session_state == 'closed'" groups="hr_attendance_portal.group_hr_attendance_site_captain,hr_attendance.group_hr_attendance_officer"/>
+                    <button name="action_deny_session" type="object" string="Deny Session" class="btn btn-secondary" confirm="Deny this shift?" invisible="not can_decide_session or session_state == 'denied'"/>
+                    <button name="action_open_reduce_wizard" type="object" string="Reduce Hours" class="btn btn-secondary" invisible="not can_decide_session or session_state == 'denied'"/>
+                    <button name="action_open_overtime_wizard" type="object" string="Review Overtime" class="btn btn-primary" invisible="not can_review_overtime"/>
+                    <button name="action_open_correction_wizard" type="object" string="Request Time Correction" class="btn btn-secondary" invisible="not can_decide_session"/>
+                    <button name="action_open_hr_overtime_wizard" type="object" string="HR Overtime Review" class="btn btn-primary" invisible="not can_hr_review"/>
+                    <button name="action_open_restore_wizard" type="object" string="Restore Session" class="btn btn-secondary" invisible="session_state != 'denied'" groups="hr_attendance.group_hr_attendance_officer"/>
+                    <button name="action_close_session" type="object" string="Close Session" class="btn btn-secondary" invisible="session_state == 'closed'" groups="hr_attendance.group_hr_attendance_officer"/>
+                    <button name="action_reopen_session" type="object" string="Reopen Session" class="btn btn-secondary" confirm="Reopen this shift?" invisible="session_state != 'closed'" groups="hr_attendance.group_hr_attendance_officer"/>
+                </div>
             </xpath>
             <xpath expr="//form/header" position="inside">
                 <field name="can_decide_session" invisible="1"/>
@@ -75,6 +88,7 @@
                 <button name="action_open_hr_overtime_wizard" type="object" string="HR Overtime Review" invisible="not can_hr_review"/>
                 <button name="action_open_restore_wizard" type="object" string="Restore Session" invisible="session_state != 'denied'" groups="hr_attendance.group_hr_attendance_officer"/>
                 <button name="action_close_session" type="object" string="Close Session" invisible="session_state == 'closed'" groups="hr_attendance.group_hr_attendance_officer"/>
+                <button name="action_reopen_session" type="object" string="Reopen Session" confirm="Reopen this shift?" invisible="session_state != 'closed'" groups="hr_attendance.group_hr_attendance_officer"/>
             </xpath>
             <xpath expr="//field[@name='check_in']" position="attributes">
                 <attribute name="readonly">1</attribute>
@@ -191,6 +205,8 @@
                 <filter string="Pending Review" name="pending_review" domain="[('session_state', '=', 'pending_review')]"/>
                 <filter string="Missing Checkout" name="missing_checkout" domain="[('exception_code', '=', 'missing_checkout')]"/>
                 <filter string="Overtime To Review" name="overtime_waiting" domain="[('overtime_state', 'in', ['pending_captain', 'pending_hr_review'])]"/>
+                <filter string="Overtime From 1 Hour" name="overtime_from_one_hour" domain="['|', ('exception_code', '!=', 'excessive_duration'), ('overtime_candidate_hours', '&gt;=', 1)]"/>
+                <filter string="Overtime Under 1 Hour" name="overtime_under_one_hour" domain="[('exception_code', '=', 'excessive_duration'), ('overtime_candidate_hours', '&gt;', 0), ('overtime_candidate_hours', '&lt;', 1)]"/>
             </xpath>
             <xpath expr="//filter[@name='groupby_mode_in']" position="replace"/>
             <xpath expr="//filter[@name='groupby_name']" position="after">

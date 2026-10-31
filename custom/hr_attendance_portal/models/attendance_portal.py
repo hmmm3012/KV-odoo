@@ -265,6 +265,7 @@ class HrAttendancePortal(models.AbstractModel):
         ], order="check_in desc, id desc")
         rows = [self._sheet_row(attendance) for attendance in attendances]
         total = sum(row.pop("hours_value") for row in rows)
+        total_overtime = sum(row.pop("overtime_value") for row in rows)
         return {
             "ok": True,
             "year": year,
@@ -273,6 +274,7 @@ class HrAttendancePortal(models.AbstractModel):
             "rows": rows,
             "shift_count": len(rows),
             "total_hours": self._format_sheet_hours(total),
+            "total_overtime_hours": self._format_sheet_hours(total_overtime),
             "server_time": fields.Datetime.now(),
         }
 
@@ -307,12 +309,15 @@ class HrAttendancePortal(models.AbstractModel):
         check_in = self._sheet_local(attendance.check_in)
         check_out = self._sheet_local(attendance.check_out)
         hours = attendance.recognized_regular_hours or 0.0
+        overtime = self._sheet_approved_overtime(attendance)
         return {
             "date": check_in.strftime("%d/%m/%Y") if check_in else "",
             "check_in": check_in.strftime("%H:%M") if check_in else "",
             "check_out": check_out.strftime("%H:%M") if check_out else "",
             "hours": self._format_sheet_hours(hours),
             "hours_value": hours,
+            "overtime_hours": self._format_sheet_hours(overtime),
+            "overtime_value": overtime,
             "note": self._sheet_note(attendance),
         }
 
@@ -321,6 +326,13 @@ class HrAttendancePortal(models.AbstractModel):
         if not value:
             return False
         return pytz.UTC.localize(value).astimezone(PORTAL_TZ)
+
+    @api.model
+    def _sheet_approved_overtime(self, attendance):
+        """Overtime the employee can see only after HR has confirmed it."""
+        if attendance.overtime_state not in ("hr_reviewed", "closed"):
+            return 0.0
+        return attendance.payroll_overtime_hours or 0.0
 
     @api.model
     def _sheet_note(self, attendance):

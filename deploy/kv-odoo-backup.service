@@ -1,0 +1,25 @@
+[Unit]
+Description=KV Odoo daily backup (DB + filestore)
+Documentation=file:///home/debian1/KV-odoo/deploy/README.md
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=debian1
+Group=debian1
+WorkingDirectory=/home/debian1/KV-odoo/deploy
+# Full backup (DB + filestore). Keep last 7 days by default.
+Environment=KEEP_DAYS=7
+# Match the compose project used by kv-odoo-docker.service if needed:
+# Environment=COMPOSE_FILES=-f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.tls.yml
+ExecStart=/home/debian1/KV-odoo/deploy/scripts/backup-docker.sh --with-filestore
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+TimeoutStartSec=2h
+
+# Logs: journalctl -u kv-odoo-backup.service
+StandardOutput=journal
+StandardError=journal

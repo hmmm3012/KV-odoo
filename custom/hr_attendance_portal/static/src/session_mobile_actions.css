@@ -1,0 +1,23 @@
+/* Odoo 18 moves form header buttons into the cog menu below 768px.
+   Session actions are duplicated in the sheet for phones; hide that strip on desktop. */
+.o_form_view .kv_session_actions {
+    display: none;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0 0 1rem;
+}
+
+.o_form_view .kv_session_actions:empty {
+    display: none !important;
+}
+
+@media (max-width: 767.98px) {
+    .o_form_view .kv_session_actions:not(:empty) {
+        display: flex;
+    }
+
+    .o_form_view .kv_session_actions > .btn {
+        flex: 1 1 calc(50% - 0.5rem);
+        min-height: 2.75rem;
+    }
+}

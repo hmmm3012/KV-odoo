@@ -125,6 +125,18 @@ class ResUsers(models.Model):
             context["captain_department_ids"] = user._hr_site_captain_department_ids()
         return frozendict(context)
 
+    def _is_attendance_hr_menu(self):
+        """An attendance officer who is not a Settings administrator.
+
+        Settings keeps the full attendance menu. HR accounts only see Overview,
+        shifts waiting for HR, verification, and Reporting.
+        """
+        self.ensure_one()
+        return (
+            self.has_group("hr_attendance.group_hr_attendance_officer")
+            and not self.has_group("base.group_system")
+        )
+
     def _is_attendance_captain_only(self):
         """A department captain who is not also HR, attendance officer, or Settings."""
         self.ensure_one()

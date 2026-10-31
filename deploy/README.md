@@ -106,11 +106,34 @@ dbfilter = ^odoo$
 | **Expose container Postgres** | Rare; add `ports: ["5432:5432"]` on `db` only for debugging |
 | **Odoo → host Postgres** | `db` service removed; `db_host` = host IP + `extra_hosts` — couples container to host DB |
 
-Backups after migration:
+Backups after migration (Docker stack):
 
 ```bash
-docker compose exec -T db pg_dump -U odoo -Fc odoo > deploy/backup/odoo-$(date +%F).dump
+# DB + filestore (default)
+./deploy/scripts/backup-docker.sh
+
+# DB only (faster)
+./deploy/scripts/backup-docker.sh --no-filestore
+# or: SKIP_FILESTORE=1 ./deploy/scripts/backup-docker.sh
 ```
+
+Output under `deploy/backup/docker-YYYY-MM-DD_HHMMSS/` (`odoo.dump`, optional `filestore.tar.gz`, `MANIFEST.txt`), plus `docker-latest.dump` / `docker-latest-filestore.tar.gz`. Old `docker-*` dirs older than `KEEP_DAYS` (default **7**) are pruned.
+
+### Daily backup at 02:00 (systemd timer)
+
+```bash
+sudo cp deploy/kv-odoo-backup.service deploy/kv-odoo-backup.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now kv-odoo-backup.timer
+```
+
+| Check | Command |
+|-------|---------|
+| Next run | `systemctl list-timers kv-odoo-backup.timer` |
+| Run now | `sudo systemctl start kv-odoo-backup.service` |
+| Logs | `journalctl -u kv-odoo-backup.service -n 50` |
+
+Edit `KEEP_DAYS` in the service unit (or `Environment=KEEP_DAYS=14`) if you need longer retention. ~2.4 GB/day × 7 ≈ **~17 GB**.
 
 ## Prerequisites
 

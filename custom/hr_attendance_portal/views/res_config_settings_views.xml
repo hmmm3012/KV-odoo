@@ -46,8 +46,11 @@
                     <setting string="Inaccurate GPS">
                         <field name="attendance_portal_gps_inaccurate_policy"/>
                     </setting>
-                    <setting string="Outside workplace radius">
+                    <setting string="Outside workplace fence">
                         <field name="attendance_portal_outside_geofence_policy"/>
+                    </setting>
+                    <setting string="Google Maps API key" help="Used on the workplace form to click 4 or 5 fence points. Restrict the key to this site.">
+                        <field name="attendance_google_maps_api_key" placeholder="AIza..."/>
                     </setting>
                     <setting string="No workplace configured">
                         <field name="attendance_portal_no_location_policy"/>

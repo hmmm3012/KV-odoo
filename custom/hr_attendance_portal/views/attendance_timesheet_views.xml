@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hr_attendance_timesheet_wizard_form" model="ir.ui.view">
+        <field name="name">hr.attendance.timesheet.wizard.form</field>
+        <field name="model">hr.attendance.timesheet.wizard</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_export" type="object" string="Export Timesheet" class="btn-primary"/>
+                </header>
+                <sheet>
+                    <group>
+                        <field name="department_id"/>
+                        <field name="date_from"/>
+                        <field name="date_to"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_hr_attendance_timesheet" model="ir.actions.act_window">
+        <field name="name">Timesheet</field>
+        <field name="res_model">hr.attendance.timesheet.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">current</field>
+    </record>
+
+    <menuitem
+        id="menu_hr_attendance_timesheet"
+        name="Timesheet"
+        parent="hr_attendance.menu_hr_attendance_root"
+        action="action_hr_attendance_timesheet"
+        sequence="7"
+        groups="group_hr_attendance_site_captain,hr_attendance.group_hr_attendance_officer"/>
+</odoo>

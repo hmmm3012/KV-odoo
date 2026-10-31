@@ -1,0 +1,11 @@
+.o_attendance_fence_map {
+    height: 400px;
+    width: 100%;
+    margin-bottom: 8px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+}
+
+.o_attendance_fence_points input {
+    max-width: 12rem;
+}

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="hr_attendance_portal.AttendanceFenceMapField">
+        <div class="o_attendance_fence">
+            <div t-if="apiKey and !state.mapError" class="o_attendance_fence_map" t-ref="map"/>
+            <p t-if="!apiKey" class="text-muted mb-2">
+                Chưa có Google Maps API key. Vào Settings, mục Attendance Portal, để dán key. Có thể nhập toạ độ bên dưới.
+            </p>
+            <p t-if="state.mapError" class="text-danger mb-2" t-esc="state.mapError"/>
+            <p class="text-muted mb-2">
+                Bấm lần lượt quanh ranh giới, theo một chiều. Lưu khi có ít nhất 4 điểm. Xóa hết để dùng lại tâm và bán kính. Hoặc import CSV từ menu Workplaces.
+            </p>
+            <div class="o_attendance_fence_toolbar mb-2" t-if="!props.readonly">
+                <button type="button" class="btn btn-secondary btn-sm me-1" t-on-click="addManualPoint" t-att-disabled="points.length >= 5">Thêm điểm</button>
+                <button type="button" class="btn btn-secondary btn-sm me-1" t-on-click="undoPoint" t-att-disabled="!points.length">Xóa điểm cuối</button>
+                <button type="button" class="btn btn-secondary btn-sm" t-on-click="clearPoints" t-att-disabled="!points.length">Xóa hết</button>
+                <span class="text-muted ms-2" t-esc="statusText"/>
+            </div>
+            <p t-else="" class="text-muted" t-esc="statusText"/>
+            <table class="table table-sm o_attendance_fence_points mb-0" t-if="points.length">
+                <thead>
+                    <tr>
+                        <th>Điểm</th>
+                        <th>Vĩ độ</th>
+                        <th>Kinh độ</th>
+                        <th t-if="!props.readonly"/>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr t-foreach="points" t-as="point" t-key="point_index">
+                        <td t-esc="point_index + 1"/>
+                        <td>
+                            <input class="form-control form-control-sm" t-att-value="point.latitude" t-att-readonly="props.readonly" t-on-change="(event) => this.updatePoint(point_index, 'latitude', event.target.value)"/>
+                        </td>
+                        <td>
+                            <input class="form-control form-control-sm" t-att-value="point.longitude" t-att-readonly="props.readonly" t-on-change="(event) => this.updatePoint(point_index, 'longitude', event.target.value)"/>
+                        </td>
+                        <td t-if="!props.readonly">
+                            <button type="button" class="btn btn-link btn-sm" t-on-click="() => this.removePoint(point_index)">Xóa</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </t>
+</templates>

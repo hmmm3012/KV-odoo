@@ -5,7 +5,7 @@ import hmac
 import logging
 
 from odoo import api, fields, models
-from odoo.exceptions import ValidationError
+from odoo.exceptions import AccessError, ValidationError
 from passlib.context import CryptContext
 
 _logger = logging.getLogger(__name__)
@@ -32,12 +32,31 @@ class HrEmployee(models.Model):
             user = self.env["res.users"].browse(access_uid).sudo()
         return user.has_group("hr_attendance_portal.group_hr_attendance_site_captain")
 
+    def _attendance_captain_blocks_employee_form(self, access_uid=None):
+        user = self.env.user
+        if access_uid:
+            user = self.env["res.users"].browse(access_uid).sudo()
+        return user._is_attendance_captain_only()
+
+    @api.model
+    def _attendance_captain_disable_open(self, arch):
+        """Keep the employee name visible, but do not open the employee form."""
+        if not arch or not self.env.user._is_attendance_captain_only():
+            return arch
+        from lxml import etree
+        tree = etree.fromstring(arch.encode() if isinstance(arch, str) else arch)
+        for node in tree.xpath("//field[@name='employee_id']"):
+            node.set("options", "{'no_open': True}")
+        return etree.tostring(tree, encoding="unicode")
+
     def get_formview_id(self, access_uid=None):
         if self._attendance_captain_keeps_private_profile(access_uid):
             return False
         return super().get_formview_id(access_uid=access_uid)
 
     def get_formview_action(self, access_uid=None):
+        if self._attendance_captain_blocks_employee_form(access_uid):
+            raise AccessError(self.env._("You cannot open employee records."))
         action = super().get_formview_action(access_uid=access_uid)
         if self._attendance_captain_keeps_private_profile(access_uid):
             action["res_model"] = "hr.employee"

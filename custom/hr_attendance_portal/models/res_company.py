@@ -71,6 +71,10 @@ class ResCompany(models.Model):
         default=12.0,
         help="Flag a session that is still open after this many hours. No checkout is invented.",
     )
+    attendance_google_maps_api_key = fields.Char(
+        string="Google Maps API key",
+        help="Maps JavaScript API key used to draw a workplace fence. Restrict the key to this Odoo site.",
+    )
     attendance_portal_face_not_enrolled_policy = fields.Selection(
         [("reject", "Reject"), ("needs_review", "Needs Review")],
         default="needs_review",

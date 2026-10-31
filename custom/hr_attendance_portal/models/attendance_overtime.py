@@ -57,6 +57,7 @@ class HrAttendanceOvertimeCase(models.Model):
     hr_user_id = fields.Many2one("res.users", string="HR Reviewer", readonly=True)
     hr_at = fields.Datetime(string="HR Review At", readonly=True)
     hr_note = fields.Text(string="HR Note", readonly=True)
+    closed_from_state = fields.Char(copy=False)
     decision_ids = fields.One2many(
         "hr.attendance.overtime.decision",
         "case_id",
@@ -141,20 +142,29 @@ class HrAttendanceOvertimeCase(models.Model):
         actor_id = actor_id or self.env.uid
         before = self.captain_hours
         self._log(decision_type, before, hours, reason, actor_id)
-        state = "captain_rejected" if from_session_deny else "pending_hr_review"
+        # Captain decision is final: no separate HR overtime step.
+        if from_session_deny:
+            state = "captain_rejected"
+            payroll = 0.0
+        else:
+            state = "hr_reviewed"
+            payroll = hours
         self.write({
             "captain_hours": hours,
             "captain_user_id": actor_id,
             "captain_at": fields.Datetime.now(),
             "captain_reason": reason,
-            "payroll_hours": 0.0,
-            "hr_hours": 0.0,
+            "payroll_hours": payroll,
+            "hr_hours": payroll,
+            "hr_user_id": False if from_session_deny else actor_id,
+            "hr_at": False if from_session_deny else fields.Datetime.now(),
+            "hr_note": False if from_session_deny else reason,
             "state": state,
         })
         attendance = self.attendance_id
         session_vals = {
             "overtime_state": state,
-            "payroll_overtime_hours": 0.0,
+            "payroll_overtime_hours": payroll,
         }
         if (
             not from_session_deny
@@ -167,6 +177,26 @@ class HrAttendanceOvertimeCase(models.Model):
                 "exception_code": "none",
             })
         attendance._apply_session_vals(session_vals)
+
+    @api.model
+    def _finalize_pending_hr_overtime(self):
+        """Apply captain-approved overtime that was still waiting for HR."""
+        cases = self.search([("state", "=", "pending_hr_review")])
+        for case in cases:
+            hours = case.captain_hours or 0.0
+            case.write({
+                "payroll_hours": hours,
+                "hr_hours": hours,
+                "hr_user_id": case.captain_user_id.id or False,
+                "hr_at": case.captain_at or fields.Datetime.now(),
+                "hr_note": case.captain_reason or self.env._("Captain decision"),
+                "state": "hr_reviewed",
+            })
+            case.attendance_id._apply_session_vals({
+                "overtime_state": "hr_reviewed",
+                "payroll_overtime_hours": hours,
+            })
+        return True
 
     def action_record_hr(self, hours, note, discrepancy=False, actor_id=None):
         self.ensure_one()

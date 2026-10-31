@@ -161,14 +161,14 @@
         name="Exceptions"
         parent="hr_attendance.menu_hr_attendance_root"
         action="action_site_captain_exception"
-        sequence="7"
+        sequence="8"
         groups="group_hr_attendance_site_captain"/>
 
     <delete model="ir.ui.menu" id="menu_site_captain_employee"/>
     <delete model="ir.actions.act_window" id="action_site_captain_employee"/>
 
     <record id="hr.menu_hr_employee_payroll" model="ir.ui.menu">
-        <field name="groups_id" eval="[(4, ref('group_hr_attendance_site_captain'))]"/>
+        <field name="groups_id" eval="[(3, ref('group_hr_attendance_site_captain'))]"/>
     </record>
 
     <menuitem
@@ -176,7 +176,7 @@
         name="All Attendance Records"
         parent="hr_attendance.menu_hr_attendance_root"
         action="action_site_captain_event"
-        sequence="8"
+        sequence="9"
         groups="group_hr_attendance_site_captain"/>
 
     <function model="res.users" name="_assign_attendance_captain_home_action"/>

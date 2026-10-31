@@ -994,8 +994,21 @@ msgstr "Giờ được công nhận không được âm."
 #. module: hr_attendance_portal
 #. odoo-python
 #: code:addons/hr_attendance_portal/models/hr_attendance.py:0
-msgid "Recognized hours cannot be increased."
-msgstr "Không được tăng giờ được công nhận."
+msgid "Recognized hours cannot exceed the elapsed time."
+msgstr "Giờ được công nhận không được vượt quá thời gian thực tế của ca."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/hr_attendance.py:0
+msgid "Confirm checkout before reducing hours."
+msgstr "Hãy xác nhận giờ ra trước khi giảm giờ."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/attendance_overtime.py:0
+#: code:addons/hr_attendance_portal/models/attendance_correction.py:0
+msgid "Captain decision"
+msgstr "Quyết định đội trưởng"
 
 #. module: hr_attendance_portal
 #. odoo-python
@@ -1026,6 +1039,19 @@ msgstr "Giờ khôi phục không được vượt giờ chuẩn hoặc thời g
 #: code:addons/hr_attendance_portal/models/hr_attendance.py:0
 msgid "Only HR can restore a denied session."
 msgstr "Chỉ nhân sự được khôi phục ca đã từ chối."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/hr_attendance.py:0
+msgid "Reduce Selected Hours"
+msgstr "Giảm giờ đã chọn"
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/hr_attendance.py:0
+#: code:addons/hr_attendance_portal/models/attendance_session_wizard.py:0
+msgid "No selected shift can have hours reduced."
+msgstr "Không có ca nào trong các dòng đã chọn có thể giảm giờ."
 
 #. module: hr_attendance_portal
 #. odoo-python
@@ -1144,6 +1170,24 @@ msgstr "Không có ca làm thêm nào đang chờ duyệt trong các dòng đã 
 #. module: hr_attendance_portal
 #. odoo-python
 #: code:addons/hr_attendance_portal/models/hr_attendance.py:0
+msgid "No selected shift is waiting for HR overtime review."
+msgstr "Không có ca nào đang chờ nhân sự duyệt trong các dòng đã chọn."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/hr_attendance.py:0
+msgid "Only HR can reopen a closed session."
+msgstr "Chỉ nhân sự mới bỏ chốt ca được."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/hr_employee.py:0
+msgid "You cannot open employee records."
+msgstr "Bạn không được xem hồ sơ nhân viên."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/hr_attendance.py:0
 msgid "Approve Selected Overtime"
 msgstr "Duyệt làm thêm đã chọn"
 
@@ -1152,3 +1196,59 @@ msgstr "Duyệt làm thêm đã chọn"
 #: code:addons/hr_attendance_portal/models/hr_attendance.py:0
 msgid "Reject Selected Overtime"
 msgstr "Từ chối làm thêm đã chọn"
+
+#. module: hr_attendance_portal
+#: model:ir.ui.menu,name:hr_attendance_portal.menu_hr_attendance_timesheet
+#: model:ir.actions.act_window,name:hr_attendance_portal.action_hr_attendance_timesheet
+msgid "Timesheet"
+msgstr "Bảng công"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance_timesheet_wizard__department_id
+msgid "Parking Lot"
+msgstr "Bãi xe"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance_timesheet_wizard__date_from
+msgid "Date From"
+msgstr "Từ ngày"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance_timesheet_wizard__date_to
+msgid "Date To"
+msgstr "Đến ngày"
+
+#. module: hr_attendance_portal
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.view_hr_attendance_timesheet_wizard_form
+msgid "Export Timesheet"
+msgstr "Xuất bảng công"
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/attendance_timesheet.py:0
+msgid "Choose the dates to export."
+msgstr "Hãy chọn ngày cần xuất."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/attendance_timesheet.py:0
+msgid "Choose the parking lot to export."
+msgstr "Hãy chọn bãi xe cần xuất."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/attendance_timesheet.py:0
+msgid "The start date must be on or before the end date."
+msgstr "Ngày bắt đầu phải trước hoặc trùng ngày kết thúc."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/attendance_timesheet.py:0
+msgid "Export at most %s days at a time."
+msgstr "Mỗi lần xuất nhiều nhất %s ngày."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/attendance_timesheet.py:0
+msgid "Excel export is not available."
+msgstr "Không xuất được file Excel."

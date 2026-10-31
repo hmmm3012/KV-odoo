@@ -8,7 +8,7 @@
                 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
                 <meta name="theme-color" content="#0f172a"/>
                 <link rel="stylesheet" href="/hr_attendance_portal/static/src/attendance_portal.css?v=20261023d"/>
-                <script src="/hr_attendance_portal/static/src/attendance_portal.js?v=20261023d" defer="defer"></script>
+                <script src="/hr_attendance_portal/static/src/attendance_portal.js?v=20261031c" defer="defer"></script>
             </t>
             <t t-set="body_classname">kv-attendance-body</t>
             <main class="kv-shell" id="kv-attendance-app">
