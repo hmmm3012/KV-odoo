@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Remove QWeb report leftovers if upgrading from an earlier attempt that used wkhtmltopdf. -->
+    <delete model="ir.actions.report" search="[('report_name', '=', 'hr_employee_kv.report_employee_intro_letter')]"/>
+    <delete model="ir.ui.view" search="[('key', '=', 'hr_employee_kv.report_employee_intro_letter')]"/>
+    <delete model="report.paperformat" search="[('name', '=', 'Giấy giới thiệu nhân sự')]"/>
+</odoo>

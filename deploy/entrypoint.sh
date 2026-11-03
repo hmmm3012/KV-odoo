@@ -25,6 +25,15 @@ export ODOO_LIMIT_REQUEST="${ODOO_LIMIT_REQUEST:-8192}"
 mkdir -p "${CONF_DIR}" /var/lib/odoo
 chown -R odoo:odoo /var/lib/odoo 2>/dev/null || true
 
+# Ensure Times New Roman (Vietnamese-capable) is available for LibreOffice exports.
+TNR_SRC="/opt/odoo/utils/font/times-new-roman-pdf"
+TNR_DST="/usr/local/share/fonts/truetype/times-new-roman"
+if [[ -d "${TNR_SRC}" ]]; then
+  mkdir -p "${TNR_DST}"
+  cp -f "${TNR_SRC}"/TimesNewRoman-*.ttf "${TNR_DST}/" 2>/dev/null || true
+  fc-cache -f "${TNR_DST}" >/dev/null 2>&1 || true
+fi
+
 export POSTGRES_USER POSTGRES_PASSWORD ODOO_ADMIN_PASSWD
 envsubst '${POSTGRES_USER} ${POSTGRES_PASSWORD} ${ODOO_ADMIN_PASSWD} ${ODOO_WORKERS} ${ODOO_MAX_CRON_THREADS} ${ODOO_PROXY_MODE} ${ODOO_GEVENT_PORT} ${ODOO_LIMIT_MEMORY_SOFT} ${ODOO_LIMIT_MEMORY_HARD} ${ODOO_LIMIT_MEMORY_SOFT_GEVENT} ${ODOO_LIMIT_MEMORY_HARD_GEVENT} ${ODOO_LIMIT_TIME_REAL} ${ODOO_LIMIT_TIME_CPU} ${ODOO_LIMIT_REQUEST}' < "${TEMPLATE}" > "${CONF_FILE}"
 chmod 640 "${CONF_FILE}"

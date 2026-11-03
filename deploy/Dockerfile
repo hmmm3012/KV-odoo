@@ -27,10 +27,13 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
     libtiff-dev \
     libopenjp2-7-dev \
     fonts-dejavu-core \
+    fonts-liberation \
+    fonts-liberation2 \
     postgresql-client \
     tesseract-ocr \
     tesseract-ocr-eng \
     tesseract-ocr-vie \
+    libreoffice-writer-nogui \
     && rm -rf /var/lib/apt/lists/*
 
 RUN useradd -ms /bin/bash odoo
@@ -50,6 +53,12 @@ RUN pip install --no-cache-dir -r /tmp/hr_attendance_portal-requirements.txt \
     && pip install --no-cache-dir -r /tmp/hr_employee_kv-requirements.txt
 
 COPY --chown=odoo:odoo . /opt/odoo
+
+# Times New Roman with Vietnamese glyphs for LibreOffice PDF export of HR letters.
+RUN mkdir -p /usr/local/share/fonts/truetype/times-new-roman \
+    && cp /opt/odoo/utils/font/times-new-roman-pdf/TimesNewRoman-*.ttf \
+        /usr/local/share/fonts/truetype/times-new-roman/ \
+    && fc-cache -f /usr/local/share/fonts/truetype/times-new-roman
 
 RUN chmod +x /opt/odoo/deploy/entrypoint.sh
 

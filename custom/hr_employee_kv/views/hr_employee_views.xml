@@ -6,6 +6,16 @@
     <field name="model">hr.employee</field>
     <field name="inherit_id" ref="hr.view_employee_form"/>
     <field name="arch" type="xml">
+
+      <!-- Print introduction letter from employee form -->
+      <xpath expr="//form/header" position="inside">
+        <button name="%(action_hr_employee_intro_letter_wizard)d"
+                string="In giấy giới thiệu"
+                type="action"
+                class="btn-secondary"
+                groups="hr.group_hr_user"
+                invisible="not id"/>
+      </xpath>
       
       <!-- Replace the private address div with custom address fields -->
       <xpath expr="//label[@for='private_street']" position="replace">
