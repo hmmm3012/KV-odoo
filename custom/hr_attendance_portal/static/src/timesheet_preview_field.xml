@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="hr_attendance_portal.TimesheetPreviewField">
+        <div t-ref="root" class="kv-timesheet-preview-field w-100">
+            <t t-if="hasPreview" t-out="html"/>
+            <div t-else="" class="kv-timesheet-empty alert alert-info mb-0">
+                Chọn bãi xe và khoảng ngày, rồi bấm <strong>Xem bảng công</strong>.
+            </div>
+        </div>
+    </t>
+</templates>

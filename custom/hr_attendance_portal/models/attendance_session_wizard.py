@@ -44,7 +44,7 @@ class HrAttendanceOvertimeWizard(models.TransientModel):
     def action_apply(self):
         self.ensure_one()
         self.attendance_id.action_captain_overtime(
-            self.hours, self.reason, rejected=False
+            self.hours, self.reason, rejected=bool(self.rejected)
         )
         return {"type": "ir.actions.act_window_close"}
 
@@ -67,7 +67,11 @@ class HrAttendanceOvertimeBulkWizard(models.TransientModel):
         self.ensure_one()
         for attendance in self.attendance_ids:
             case = attendance.overtime_case_ids[:1]
-            attendance.action_captain_overtime(case._cap_hours(), self.reason, rejected=False)
+            attendance.action_captain_overtime(
+                case._cap_hours(),
+                self.reason,
+                rejected=bool(self.rejected),
+            )
         return {"type": "ir.actions.act_window_close"}
 
 
@@ -118,8 +122,11 @@ class HrAttendanceCheckoutWizard(models.TransientModel):
     reason = fields.Text(string="Reason", required=True)
 
     def action_apply(self):
+        """Deprecated path: close forgotten checkout via time correction."""
         self.ensure_one()
-        self.attendance_id.action_confirm_checkout(self.check_out, self.reason)
+        self.attendance_id.action_request_correction(
+            "check_out", self.check_out, self.reason
+        )
         return {"type": "ir.actions.act_window_close"}
 
 
@@ -170,7 +177,11 @@ class HrAttendanceCorrectionBulkWizard(models.TransientModel):
             if self.correction_type == "check_in":
                 line.proposed_value = attendance.check_in
             else:
-                line.proposed_value = attendance.check_out
+                line.proposed_value = (
+                    attendance.check_out
+                    or attendance.effective_check_out
+                    or attendance._suggested_checkout()
+                )
 
     def action_apply(self):
         self.ensure_one()

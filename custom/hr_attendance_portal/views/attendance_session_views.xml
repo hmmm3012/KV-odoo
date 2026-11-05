@@ -116,22 +116,23 @@
         <field name="name">hr.attendance.correction.bulk.wizard.form</field>
         <field name="model">hr.attendance.correction.bulk.wizard</field>
         <field name="arch" type="xml">
-            <form>
+            <form class="kv_attendance_wizard">
                 <group>
                     <field name="correction_type"/>
-                    <field name="reason"/>
+                    <field name="reason" placeholder="Reason for all selected shifts"/>
                 </group>
-                <field name="line_ids">
+                <separator string="Proposed times"/>
+                <field name="line_ids" class="kv_correction_lines">
                     <list editable="bottom" create="false" delete="false">
                         <field name="attendance_id" column_invisible="1"/>
                         <field name="employee_id" readonly="1"/>
-                        <field name="check_in" string="Time In" readonly="1"/>
-                        <field name="check_out" string="Time Out" readonly="1"/>
-                        <field name="proposed_value"/>
+                        <field name="check_in" string="Time In" readonly="1" optional="hide"/>
+                        <field name="check_out" string="Time Out" readonly="1" optional="hide"/>
+                        <field name="proposed_value" string="Proposed Time"/>
                     </list>
                 </field>
                 <footer>
-                    <button name="action_apply" type="object" string="Send to HR" class="btn-primary"/>
+                    <button name="action_apply" type="object" string="Confirm" class="btn-primary"/>
                     <button string="Cancel" special="cancel"/>
                 </footer>
             </form>
@@ -142,15 +143,15 @@
         <field name="name">hr.attendance.correction.wizard.form</field>
         <field name="model">hr.attendance.correction.wizard</field>
         <field name="arch" type="xml">
-            <form>
+            <form class="kv_attendance_wizard">
                 <group>
                     <field name="attendance_id" invisible="1"/>
                     <field name="correction_type"/>
                     <field name="proposed_value"/>
-                    <field name="reason"/>
+                    <field name="reason" placeholder="Reason"/>
                 </group>
                 <footer>
-                    <button name="action_apply" type="object" string="Send to HR" class="btn-primary"/>
+                    <button name="action_apply" type="object" string="Confirm" class="btn-primary"/>
                     <button string="Cancel" special="cancel"/>
                 </footer>
             </form>
@@ -330,7 +331,8 @@
         <field name="name">hr.attendance.list.captain.session</field>
         <field name="model">hr.attendance</field>
         <field name="arch" type="xml">
-            <list string="Sessions To Review" create="false" edit="false" delete="false" duplicate="false">
+            <list string="Sessions To Review" create="false" edit="false" delete="false" duplicate="false"
+                  decoration-danger="exception_code == 'missing_checkout' and session_state != 'validated'">
                 <header>
                     <button name="action_open_bulk_overtime_wizard" type="object" string="Review Overtime" groups="hr_attendance_portal.group_hr_attendance_site_captain,hr_attendance.group_hr_attendance_officer"/>
                     <button name="action_open_bulk_reduce_wizard" type="object" string="Reduce Hours" groups="hr_attendance_portal.group_hr_attendance_site_captain,hr_attendance.group_hr_attendance_officer"/>
@@ -341,6 +343,7 @@
                 <field name="check_in" string="Time In"/>
                 <field name="check_out" string="Time Out"/>
                 <field name="recognized_regular_hours" widget="float_time"/>
+                <field name="session_state" column_invisible="1"/>
                 <field name="exception_code" string="Reason"/>
                 <field name="overtime_candidate_hours" string="Overtime Hours" widget="float_time"/>
                 <field name="overtime_state" widget="badge"/>
@@ -402,6 +405,7 @@
                 <field name="check_in" string="Time In"/>
                 <field name="check_out" string="Time Out"/>
                 <field name="recognized_regular_hours" widget="float_time"/>
+                <field name="payroll_regular_hours" string="Payroll Regular" widget="float_time"/>
                 <field name="overtime_candidate_hours" string="Overtime Hours" widget="float_time"/>
                 <field name="captain_approved_hours" string="Captain Hours" widget="float_time"/>
                 <field name="captain_approved_at"/>

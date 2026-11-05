@@ -16,6 +16,7 @@
         invalid_event_type: "Loại chấm công không hợp lệ.",
         geolocation_denied: "Trình duyệt đã từ chối quyền vị trí. Mở cài đặt trang → Quyền → Vị trí → Cho phép, rồi nhấn Chấm công lại.",
         geolocation_insecure: "Trình duyệt chỉ cho phép GPS trên HTTPS. Hãy mở trang bằng https://.",
+        geolocation_timeout: "Chưa lấy được vị trí. Hãy tải lại trang hoặc mở bằng trình duyệt khác.",
         missing_photo: "Không chụp được ảnh. Hãy cho phép camera và thử lại.",
         no_face: "Không thấy khuôn mặt trong ảnh. Hãy nhìn thẳng vào camera và chấm công lại.",
         multiple_faces: "Có nhiều khuôn mặt trong ảnh. Hãy để một mình trong khung hình và chụp lại.",
@@ -141,7 +142,7 @@
             cameraHintEl = document.createElement("p");
             cameraHintEl.id = "kv-camera-hint";
             cameraHintEl.className = "kv-location-hint";
-            cameraHintEl.textContent = "Nhìn thẳng vào camera. Ảnh sẽ được kiểm tra trước khi chấm công.";
+            cameraHintEl.textContent = "Hãy nhìn vào camera và nhấn chấm công.";
             (canvasEl || wrap).insertAdjacentElement("afterend", cameraHintEl);
         }
     }
@@ -166,6 +167,17 @@
     function formatTime(value) {
         const date = value ? parseOdooDatetime(value) : new Date();
         return date.toLocaleString("vi-VN", { hour12: false, timeZone: DISPLAY_TZ });
+    }
+
+    function formatPunchTime(value) {
+        return parseOdooDatetime(value).toLocaleString("vi-VN", {
+            hour12: false,
+            timeZone: DISPLAY_TZ,
+            hour: "2-digit",
+            minute: "2-digit",
+            day: "numeric",
+            month: "numeric",
+        });
     }
 
     function showMessage(code, kind) {
@@ -259,17 +271,14 @@
         if (!start || Number.isNaN(start.getTime())) {
             return "";
         }
-        let seconds = Math.max(0, Math.floor((Date.now() - start.getTime()) / 1000));
-        const hours = Math.floor(seconds / 3600);
-        seconds -= hours * 3600;
-        const minutes = Math.floor(seconds / 60);
-        seconds -= minutes * 60;
+        const totalMinutes = Math.max(0, Math.floor((Date.now() - start.getTime()) / 60000));
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes - hours * 60;
         const parts = [];
         if (hours) {
             parts.push(hours + " giờ");
         }
         parts.push(minutes + " phút");
-        parts.push(seconds + " giây");
         return "Đã làm " + parts.join(" ");
     }
 
@@ -277,7 +286,7 @@
         if (!statusSnapshot || statusSnapshot.attendance_state !== "checked_in" || !statusSnapshot.check_in) {
             return;
         }
-        lastPunchEl.textContent = "Vào lúc " + formatTime(statusSnapshot.check_in) + ". " + formatWorkedDuration(statusSnapshot.check_in) + ".";
+        lastPunchEl.textContent = "Vào lúc " + formatPunchTime(statusSnapshot.check_in) + ". " + formatWorkedDuration(statusSnapshot.check_in) + ".";
     }
 
     function renderStatus(result) {
@@ -294,15 +303,17 @@
             renderWorkedTime();
         } else {
             lastPunchEl.textContent = result.check_out
-                ? "Ra lúc " + formatTime(result.check_out)
+                ? "Ra lúc " + formatPunchTime(result.check_out)
                 : "";
         }
         checkBtn.textContent = checkedIn ? "Chấm công ra" : "Chấm công vào";
         checkBtn.dataset.eventType = checkedIn ? "check_out" : "check_in";
         ensureCameraUi();
+        startLocationPolling();
     }
 
     function renderLogin() {
+        stopLocationPolling();
         statusPanel.classList.add("kv-hidden");
         if (sheetPanel) {
             sheetPanel.classList.add("kv-hidden");
@@ -329,6 +340,28 @@
         locationHintEl.textContent = text;
     }
 
+    const USER_AGENT = navigator.userAgent || "";
+    const IN_APP_BROWSER = /Zalo|FBAN|FBAV|FB_IAB|FBIOS|Messenger|Instagram|Line\/|MicroMessenger|TikTok|musical_ly|BytedanceWebview|; wv\)/i.test(USER_AGENT)
+        || (/iPhone|iPad|iPod/i.test(USER_AGENT) && !/Safari\//i.test(USER_AGENT));
+
+    function showLocationError(code) {
+        const permissionIssue = code === "geolocation_timeout" || code === "geolocation_denied";
+        if (IN_APP_BROWSER && permissionIssue) {
+            setLocationHint("Chưa lấy được vị trí. Hãy tải lại trang hoặc mở bằng trình duyệt.", "error");
+            return;
+        }
+        setLocationHint(MESSAGES[code] || MESSAGES.missing_gps, "error");
+    }
+
+    const REPORTED_LOCATION_ISSUES = ["geolocation_timeout", "geolocation_denied", "missing_gps", "geolocation_insecure"];
+
+    function reportLocationIssue(code) {
+        if (!REPORTED_LOCATION_ISSUES.includes(code)) {
+            return;
+        }
+        rpc("/attendance/api/client_issue", { issue_code: code }).catch(() => {});
+    }
+
     function locationErrorCode(error) {
         if (!window.isSecureContext) {
             return "geolocation_insecure";
@@ -339,7 +372,37 @@
         return "missing_gps";
     }
 
-    function getPosition() {
+    /* getCurrentPosition's own timeout ignores the time spent on the permission prompt,
+       and some in-app WebViews never answer it, so the wait is capped here. */
+    const LOCATION_TIMEOUT_MS = 10000;
+    const POLL_LOCATION_MAX_AGE_MS = 15000;
+    let nativeLocation = null;
+    let nativeLocationStartedAt = 0;
+
+    function requestNativePosition(allowRestart, maximumAge) {
+        const stale = Date.now() - nativeLocationStartedAt >= LOCATION_TIMEOUT_MS;
+        if (nativeLocation && !(allowRestart && stale)) {
+            return nativeLocation;
+        }
+        const request = new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => resolve(pos),
+                (error) => reject(new Error(locationErrorCode(error))),
+                { enableHighAccuracy: true, timeout: LOCATION_TIMEOUT_MS, maximumAge: maximumAge || 0 }
+            );
+        });
+        nativeLocation = request;
+        nativeLocationStartedAt = Date.now();
+        const clear = () => {
+            if (nativeLocation === request) {
+                nativeLocation = null;
+            }
+        };
+        request.then(clear, clear);
+        return request;
+    }
+
+    function getPosition(allowRestart, maximumAge) {
         return new Promise((resolve, reject) => {
             if (!navigator.geolocation) {
                 reject(new Error("missing_gps"));
@@ -349,11 +412,10 @@
                 reject(new Error("geolocation_insecure"));
                 return;
             }
-            navigator.geolocation.getCurrentPosition(
-                (pos) => resolve(pos),
-                (error) => reject(new Error(locationErrorCode(error))),
-                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-            );
+            const timer = window.setTimeout(() => reject(new Error("geolocation_timeout")), LOCATION_TIMEOUT_MS);
+            requestNativePosition(allowRestart, maximumAge)
+                .then(resolve, reject)
+                .finally(() => window.clearTimeout(timer));
         });
     }
 
@@ -372,11 +434,14 @@
         return { text: "Đang nằm ngoài phạm vi đơn vị", kind: "warn" };
     }
 
-    async function applyWorkplaceHint(position) {
+    async function applyWorkplaceHint(position, options) {
         if (!position || !position.coords) {
             return;
         }
-        setLocationHint("Đang xác định vị trí…");
+        const quiet = options && options.quiet;
+        if (!quiet) {
+            setLocationHint("Đang xác định vị trí…");
+        }
         const result = await rpc("/attendance/api/location", {
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
@@ -387,9 +452,54 @@
         return result;
     }
 
-    async function requestClientLocation() {
-        setLocationHint("Đang xin quyền vị trí từ trình duyệt…");
-        return getPosition();
+    async function requestClientLocation(options) {
+        const quiet = options && options.quiet;
+        if (!quiet) {
+            setLocationHint("Đang xin quyền vị trí…");
+        }
+        return getPosition(!quiet, quiet ? POLL_LOCATION_MAX_AGE_MS : 0);
+    }
+
+    const LOCATION_POLL_MS = 30000;
+    let locationPollTimer = null;
+    let locationPollInFlight = false;
+
+    function isStatusPanelVisible() {
+        return Boolean(statusPanel && !statusPanel.classList.contains("kv-hidden"));
+    }
+
+    async function pollWorkplaceLocation() {
+        if (locationPollInFlight || document.hidden || !isStatusPanelVisible() || checkBtn.disabled) {
+            return;
+        }
+        locationPollInFlight = true;
+        try {
+            const position = await requestClientLocation({ quiet: true });
+            await applyWorkplaceHint(position, { quiet: true });
+        } catch (error) {
+            if (isStatusPanelVisible()) {
+                showLocationError(error && error.message);
+            }
+        } finally {
+            locationPollInFlight = false;
+        }
+    }
+
+    function stopLocationPolling() {
+        if (locationPollTimer) {
+            window.clearInterval(locationPollTimer);
+            locationPollTimer = null;
+        }
+    }
+
+    function startLocationPolling() {
+        stopLocationPolling();
+        if (!isStatusPanelVisible() || document.hidden) {
+            return;
+        }
+        locationPollTimer = window.setInterval(() => {
+            pollWorkplaceLocation();
+        }, LOCATION_POLL_MS);
     }
 
     function previewHasFrame() {
@@ -449,6 +559,10 @@
         if (previewEl.width !== videoEl.videoWidth || previewEl.height !== videoEl.videoHeight) {
             previewEl.width = videoEl.videoWidth;
             previewEl.height = videoEl.videoHeight;
+            if (cameraWrapEl) {
+                const ratio = Math.min(1.34, Math.max(0.56, videoEl.videoWidth / videoEl.videoHeight));
+                cameraWrapEl.style.setProperty("--kv-cam-ratio", ratio.toFixed(3));
+            }
         }
         const context = previewEl.getContext("2d");
         if (!context) {
@@ -529,7 +643,7 @@
         cameraAcquirePending = true;
         cameraFailed = false;
         syncCameraTap();
-        setCameraHint("Đang xin quyền camera từ trình duyệt…");
+        setCameraHint("Đang xin quyền camera…");
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
                 audio: false,
@@ -596,7 +710,7 @@
         await waitForVideoFrame();
         syncCameraTap();
         if (previewHasFrame()) {
-            setCameraHint("Camera đã sẵn sàng. Hãy nhìn thẳng, rồi nhấn chấm công.", "ok");
+            setCameraHint("Hãy nhìn vào camera và nhấn chấm công.", "ok");
         } else {
             setCameraHint("Nhấn vào khung hình để mở camera.", "warn");
         }
@@ -637,12 +751,13 @@
             return result;
         }
         renderStatus(result);
-        startCamera().catch(() => {});
         requestClientLocation()
             .then((position) => applyWorkplaceHint(position))
             .catch((error) => {
-                setLocationHint(MESSAGES[(error && error.message)] || MESSAGES.missing_gps, "error");
-            });
+                showLocationError(error && error.message);
+                reportLocationIssue(error && error.message);
+            })
+            .finally(() => startCamera().catch(() => {}));
         return result;
     }
 
@@ -652,7 +767,7 @@
         showMessage(false);
         ensureCameraUi();
         const locationPromise = requestClientLocation().catch((error) => error);
-        const cameraPromise = acquireCameraStream().catch((error) => error);
+        const cameraPromise = locationPromise.then(() => acquireCameraStream().catch((error) => error));
         try {
             const result = await rpc("/attendance/api/login", {
                 employee_code: document.getElementById("employee_code").value,
@@ -668,12 +783,14 @@
             const location = await locationPromise;
             const camera = await cameraPromise;
             if (location && location.message) {
-                showMessage(location.message, "error");
+                showLocationError(location.message);
+                reportLocationIssue(location.message);
             } else if (location && location.coords) {
                 await applyWorkplaceHint(location).catch(() => {
                     setLocationHint(MESSAGES.network, "error");
                 });
             }
+            startLocationPolling();
             if (camera && camera.message) {
                 showMessage(camera.message, "error");
             } else {
@@ -688,16 +805,70 @@
         }
     });
 
+    const confirmEl = document.getElementById("kv-confirm");
+    const confirmTextEl = document.getElementById("kv-confirm-text");
+    const confirmOkBtn = document.getElementById("kv-confirm-ok");
+    const confirmCancelBtn = document.getElementById("kv-confirm-cancel");
+
+    function askConfirm(message) {
+        if (!confirmEl || !confirmTextEl || !confirmOkBtn || !confirmCancelBtn) {
+            return Promise.resolve(window.confirm(message));
+        }
+        return new Promise((resolve) => {
+            confirmTextEl.textContent = message;
+            confirmEl.hidden = false;
+            const finish = (value) => {
+                confirmEl.hidden = true;
+                confirmOkBtn.removeEventListener("click", onOk);
+                confirmCancelBtn.removeEventListener("click", onCancel);
+                confirmEl.removeEventListener("click", onBackdrop);
+                resolve(value);
+            };
+            const onOk = () => finish(true);
+            const onCancel = () => finish(false);
+            const onBackdrop = (event) => {
+                if (event.target === confirmEl) {
+                    finish(false);
+                }
+            };
+            confirmOkBtn.addEventListener("click", onOk);
+            confirmCancelBtn.addEventListener("click", onCancel);
+            confirmEl.addEventListener("click", onBackdrop);
+        });
+    }
+
     checkBtn.addEventListener("click", async () => {
+        if (checkBtn.disabled) {
+            return;
+        }
+        const eventType = checkBtn.dataset.eventType || "check_in";
+        let confirmMessage = "Xác nhận chấm công vào?";
+        if (eventType === "check_out") {
+            const worked = statusSnapshot && statusSnapshot.check_in
+                ? formatWorkedDuration(statusSnapshot.check_in)
+                : "";
+            confirmMessage = worked
+                ? "Xác nhận chấm công ra?\n" + worked + "."
+                : "Xác nhận chấm công ra?";
+        }
+        const confirmed = await askConfirm(confirmMessage);
+        if (!confirmed) {
+            return;
+        }
         checkBtn.disabled = true;
         showMessage(false);
         try {
-            const [position, faceImage] = await Promise.all([
-                requestClientLocation(),
-                requestClientPhoto(),
-            ]);
+            let position;
+            try {
+                position = await requestClientLocation();
+            } catch (error) {
+                showLocationError(error && error.message);
+                reportLocationIssue(error && error.message);
+                return;
+            }
+            const faceImage = await requestClientPhoto();
             const result = await punchWithRetry({
-                event_type: checkBtn.dataset.eventType,
+                event_type: eventType,
                 latitude: position.coords.latitude,
                 longitude: position.coords.longitude,
                 gps_accuracy: position.coords.accuracy,
@@ -754,6 +925,15 @@
         return { year: sheetYear, month: sheetMonth - 1 };
     }
 
+    function nextSheetMonth() {
+        if (sheetMonth >= 12) {
+            return { year: sheetYear + 1, month: 1 };
+        }
+        return { year: sheetYear, month: sheetMonth + 1 };
+    }
+
+    const sheetNextBtn = document.getElementById("kv-sheet-next");
+
     function renderSheet(result) {
         const title = document.getElementById("kv-sheet-title");
         const rowsEl = document.getElementById("kv-sheet-rows");
@@ -763,6 +943,10 @@
         }
         sheetYear = result.year;
         sheetMonth = result.month;
+        if (sheetNextBtn) {
+            const current = currentSheetMonth();
+            sheetNextBtn.disabled = sheetYear * 12 + sheetMonth >= current.year * 12 + current.month;
+        }
         title.textContent = result.month_label || "Bảng công";
         rowsEl.textContent = "";
         const rows = result.rows || [];
@@ -810,6 +994,7 @@
             showMessage(result.error || "network", "error");
             return;
         }
+        stopLocationPolling();
         renderSheet(result);
         loginPanel.classList.add("kv-hidden");
         statusPanel.classList.add("kv-hidden");
@@ -835,19 +1020,47 @@
                 showMessage("network", "error");
             }
         });
+        if (sheetNextBtn) {
+            sheetNextBtn.addEventListener("click", async () => {
+                if (sheetNextBtn.disabled) {
+                    return;
+                }
+                const target = nextSheetMonth();
+                try {
+                    await loadSheet(target.year, target.month);
+                } catch (_error) {
+                    showMessage("network", "error");
+                }
+            });
+        }
         document.getElementById("kv-sheet-back").addEventListener("click", () => {
             sheetPanel.classList.add("kv-hidden");
             statusPanel.classList.remove("kv-hidden");
             showMessage(false);
             startCamera().catch(() => {});
+            startLocationPolling();
+            pollWorkplaceLocation();
         });
     }
 
     logoutBtn.addEventListener("click", async () => {
+        stopLocationPolling();
         stopCamera();
         await rpc("/attendance/api/logout", {});
         renderLogin();
         showMessage(false);
+    });
+
+    document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+            stopLocationPolling();
+            return;
+        }
+        if (!isStatusPanelVisible()) {
+            return;
+        }
+        startLocationPolling();
+        pollWorkplaceLocation();
     });
 
     setInterval(() => {

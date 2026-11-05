@@ -42,7 +42,7 @@ class HrAttendanceOvertimeCase(models.Model):
             ("pending_captain", "Pending Captain"),
             ("pending_hr_review", "Pending HR Review"),
             ("captain_rejected", "Captain Rejected"),
-            ("hr_reviewed", "HR Reviewed"),
+            ("captain_reviewed", "Captain Reviewed"),
             ("hr_discrepancy", "HR Discrepancy"),
             ("closed", "Closed"),
         ],
@@ -123,21 +123,37 @@ class HrAttendanceOvertimeCase(models.Model):
             "user_id": actor_id,
         })
 
-    def action_record_captain(self, hours, reason, rejected=False, from_session_deny=False, actor_id=None):
+    def action_record_captain(
+        self,
+        hours,
+        reason,
+        rejected=False,
+        from_session_deny=False,
+        actor_id=None,
+        skip_cap=False,
+    ):
         self.ensure_one()
-        if self.state in ("hr_reviewed", "closed"):
-            raise UserError(self.env._("Overtime has already been reviewed by HR."))
-        if self.attendance_id.session_state == "closed":
+        # Captain decisions stay editable until HR closes the session.
+        # captain_reviewed means the captain decision is final for payroll, not locked.
+        if self.state == "closed" or self.attendance_id.session_state == "closed":
             raise UserError(self.env._("A closed session cannot be changed."))
         if rejected:
             hours = 0.0
             decision_type = "captain_reject"
         else:
-            cap = self._cap_hours()
-            if float_compare(hours, 0.0, precision_digits=4) < 0 or float_compare(hours, cap, precision_digits=4) > 0:
+            if float_compare(hours, 0.0, precision_digits=4) < 0:
                 raise UserError(self.env._(
                     "Approved overtime cannot exceed the candidate hours or the policy cap."
                 ))
+            if not skip_cap:
+                cap = self._cap_hours()
+                if float_compare(hours, cap, precision_digits=4) > 0:
+                    raise UserError(self.env._(
+                        "Approved overtime cannot exceed the candidate hours or the policy cap."
+                    ))
+            elif float_compare(hours, self.candidate_hours or 0.0, precision_digits=4) > 0:
+                # Explicit reduce/edit may raise the candidate to the hours the captain set.
+                self.write({"candidate_hours": hours})
             decision_type = "captain_approve"
         actor_id = actor_id or self.env.uid
         before = self.captain_hours
@@ -147,7 +163,7 @@ class HrAttendanceOvertimeCase(models.Model):
             state = "captain_rejected"
             payroll = 0.0
         else:
-            state = "hr_reviewed"
+            state = "captain_reviewed"
             payroll = hours
         self.write({
             "captain_hours": hours,
@@ -166,10 +182,22 @@ class HrAttendanceOvertimeCase(models.Model):
             "overtime_state": state,
             "payroll_overtime_hours": payroll,
         }
+        # Keep payroll regular in sync when overtime is finalized (e.g. after a
+        # forgotten-checkout confirm left regular hours at zero).
+        if not from_session_deny and float_compare(
+            attendance.payroll_regular_hours or 0.0, 0.0, precision_digits=4
+        ) <= 0:
+            company = attendance.employee_id.company_id or self.env.company
+            standard = attendance.standard_hours or company.attendance_standard_hours or 8.0
+            session_vals.update({
+                "recognized_regular_hours": standard,
+                "payroll_regular_hours": standard,
+                "standard_hours": attendance.standard_hours or standard,
+            })
         if (
             not from_session_deny
             and attendance.session_state == "pending_review"
-            and attendance.exception_code in ("excessive_duration", "none")
+            and attendance.exception_code in ("excessive_duration", "none", "missing_checkout")
         ):
             corrected = bool(attendance.effective_check_in or attendance.effective_check_out)
             session_vals.update({
@@ -190,10 +218,10 @@ class HrAttendanceOvertimeCase(models.Model):
                 "hr_user_id": case.captain_user_id.id or False,
                 "hr_at": case.captain_at or fields.Datetime.now(),
                 "hr_note": case.captain_reason or self.env._("Captain decision"),
-                "state": "hr_reviewed",
+                "state": "captain_reviewed",
             })
             case.attendance_id._apply_session_vals({
-                "overtime_state": "hr_reviewed",
+                "overtime_state": "captain_reviewed",
                 "payroll_overtime_hours": hours,
             })
         return True
@@ -213,7 +241,7 @@ class HrAttendanceOvertimeCase(models.Model):
         actor_id = actor_id or self.env.uid
         before = self.hr_hours
         self._log(decision_type, before, hours, note, actor_id)
-        state = "hr_discrepancy" if discrepancy else "hr_reviewed"
+        state = "hr_discrepancy" if discrepancy else "captain_reviewed"
         payroll = 0.0 if discrepancy else hours
         self.write({
             "hr_hours": hours,

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     "name": "HR Attendance Portal",
-    "version": "18.0.1.13.0",
+    "version": "18.0.1.17.2",
     "category": "Human Resources/Attendances",
     "summary": "PIN-based attendance portal for employees without Odoo user accounts",
     "description": """
@@ -28,6 +28,7 @@ routed through the same business logic.
         "views/attendance_location_views.xml",
         "views/attendance_device_views.xml",
         "views/attendance_event_views.xml",
+        "views/attendance_client_issue_views.xml",
         "views/hr_attendance_views.xml",
         "views/attendance_session_views.xml",
         "views/attendance_timesheet_views.xml",
@@ -46,6 +47,9 @@ routed through the same business logic.
             "hr_attendance_portal/static/src/attendance_fence_map.css",
             "hr_attendance_portal/static/src/session_mobile_actions.css",
             "hr_attendance_portal/static/src/list_mobile_selectors.js",
+            "hr_attendance_portal/static/src/timesheet_preview_field.js",
+            "hr_attendance_portal/static/src/timesheet_preview_field.xml",
+            "hr_attendance_portal/static/src/timesheet_preview_field.css",
         ],
     },
     "installable": True,

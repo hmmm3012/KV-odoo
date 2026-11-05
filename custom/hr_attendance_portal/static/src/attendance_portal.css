@@ -2,7 +2,7 @@
     --kv-bg: #0f172a;
     --kv-card: #1e293b;
     --kv-text: #f8fafc;
-    --kv-muted: #94a3b8;
+    --kv-muted: #cbd5e1;
     --kv-accent: #38bdf8;
     --kv-danger: #fb7185;
     --kv-ok: #34d399;
@@ -13,45 +13,78 @@
 
 html, body.kv-attendance-body {
     margin: 0;
-    min-height: 100%;
+    height: 100%;
     background: radial-gradient(1200px 600px at 10% -10%, #1e3a5f, var(--kv-bg));
     color: var(--kv-text);
     font-family: "Segoe UI", system-ui, sans-serif;
 }
 
 .kv-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
     max-width: 28rem;
+    height: 100vh;
+    height: 100dvh;
     margin: 0 auto;
-    padding: 1.5rem 1.25rem 2.5rem;
+    padding:
+        max(0.6rem, env(safe-area-inset-top))
+        max(0.75rem, env(safe-area-inset-right))
+        max(0.6rem, env(safe-area-inset-bottom))
+        max(0.75rem, env(safe-area-inset-left));
 }
 
-.kv-header { margin-bottom: 1.5rem; }
+.kv-header {
+    flex: 0 0 auto;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    column-gap: 0.75rem;
+    align-items: end;
+    padding: 0 0.25rem;
+}
 .kv-kicker {
+    grid-column: 1;
+    grid-row: 1;
     letter-spacing: 0.18em;
     text-transform: uppercase;
     color: var(--kv-accent);
-    font-size: 0.75rem;
-    margin: 0 0 0.35rem;
+    font-size: 0.78rem;
+    margin: 0;
 }
-.kv-header h1 { margin: 0; font-size: 2rem; }
-.kv-sub { color: var(--kv-muted); margin: 0.35rem 0 0; }
+.kv-header h1 { grid-column: 1; grid-row: 2; margin: 0; font-size: 1.65rem; line-height: 1.2; }
+.kv-sub {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    color: var(--kv-muted);
+    margin: 0;
+    font-size: 1rem;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    white-space: nowrap;
+}
 
 .kv-card {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
     background: color-mix(in srgb, var(--kv-card) 92%, white 8%);
     border: 1px solid rgba(148, 163, 184, 0.2);
-    border-radius: 1.25rem;
-    padding: 1.25rem;
+    border-radius: 1.1rem;
+    padding: 0.85rem;
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
 }
+.kv-card[data-panel="status"],
+.kv-card[data-panel="sheet"] { flex: 1 1 auto; }
 
 .kv-hidden { display: none; }
 
 label {
     display: block;
-    font-size: 0.85rem;
+    font-size: 1.05rem;
     color: var(--kv-muted);
-    margin: 0.75rem 0 0.35rem;
+    margin: 0.7rem 0 0.35rem;
 }
+form > label:first-child { margin-top: 0; }
 
 input {
     width: 100%;
@@ -59,47 +92,82 @@ input {
     background: #0b1220;
     color: var(--kv-text);
     border-radius: 0.85rem;
-    padding: 0.85rem 0.9rem;
-    font-size: 1.05rem;
+    padding: 0.85rem 0.95rem;
+    font-size: 1.2rem;
 }
 
 .kv-btn {
     width: 100%;
     border: 0;
     border-radius: 0.9rem;
-    padding: 0.95rem 1rem;
-    margin-top: 1rem;
-    font-size: 1rem;
+    padding: 0.85rem 1rem;
+    margin-top: 0.85rem;
+    font-size: 1.15rem;
     font-weight: 600;
     cursor: pointer;
 }
 
 .kv-btn:disabled { opacity: 0.6; cursor: wait; }
 .kv-btn-primary { background: var(--kv-accent); color: #082f49; }
-.kv-btn-lg { min-height: 3.5rem; font-size: 1.15rem; }
+.kv-btn-lg { flex: 0 0 auto; min-height: 3.6rem; margin-top: 0.6rem; font-size: 1.35rem; }
 .kv-btn-ghost { background: transparent; color: var(--kv-muted); }
 
-.kv-employee { margin: 0; font-size: 1.35rem; font-weight: 700; }
-.kv-state { margin: 0.4rem 0 0; color: var(--kv-accent); font-weight: 600; }
-.kv-meta { color: var(--kv-muted); min-height: 1.4rem; }
+.kv-actions {
+    flex: 0 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+.kv-actions .kv-btn {
+    margin-top: 0;
+    padding: 0.65rem 0.75rem;
+    font-size: 1.1rem;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.kv-employee { margin: 0; font-size: 1.45rem; font-weight: 700; line-height: 1.3; }
+.kv-state { margin: 0.2rem 0 0; color: var(--kv-accent); font-weight: 600; font-size: 1.2rem; }
+.kv-meta { margin: 0.2rem 0 0; color: var(--kv-muted); font-size: 1.08rem; line-height: 1.4; }
+.kv-meta:empty { display: none; }
 .kv-location-hint {
-    margin: 0.55rem 0 0;
+    margin: 0.35rem 0 0;
     color: var(--kv-muted);
-    font-size: 0.9rem;
+    font-size: 1.08rem;
+    line-height: 1.4;
 }
 .kv-location-hint.is-ok { color: var(--kv-ok); }
 .kv-location-hint.is-warn { color: var(--kv-warn); }
 .kv-location-hint.is-error { color: var(--kv-danger); }
 
+.kv-camera-slot {
+    flex: 1 1 auto;
+    min-height: 7rem;
+    margin-top: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    container-type: size;
+}
 .kv-camera-wrap {
+    --kv-cam-ratio: 0.75;
     position: relative;
-    margin-top: 0.85rem;
+    width: 100%;
+    height: 100%;
     border-radius: 1rem;
     overflow: hidden;
     background: #0b1220;
-    aspect-ratio: 4 / 3;
-    min-height: 220px;
     border: 1px solid rgba(148, 163, 184, 0.25);
+}
+@supports (width: 1cqw) {
+    .kv-camera-wrap {
+        width: min(100cqw, 100cqh * var(--kv-cam-ratio));
+        height: min(100cqh, 100cqw / var(--kv-cam-ratio));
+    }
+}
+@media (max-height: 540px) {
+    .kv-kicker { display: none; }
+    .kv-camera-slot { min-height: 5rem; }
 }
 .kv-camera-wrap video {
     position: absolute;
@@ -111,7 +179,8 @@ input {
     object-fit: cover;
 }
 .kv-camera-preview {
-    position: relative;
+    position: absolute;
+    inset: 0;
     z-index: 1;
     display: block;
     width: 100%;
@@ -133,7 +202,7 @@ input {
     margin: 0;
     padding: 1rem;
     color: #fff;
-    font-size: 1.05rem;
+    font-size: 1.2rem;
     font-weight: 700;
     line-height: 1.35;
     text-align: center;
@@ -150,7 +219,7 @@ input {
     right: 0;
     z-index: 40;
     margin: 0;
-    padding: 0.95rem 2.75rem;
+    padding: calc(0.8rem + env(safe-area-inset-top)) 2.75rem 0.8rem;
     border-radius: 0;
     background: #9f1239;
     color: #fff;
@@ -163,7 +232,7 @@ input {
 .kv-message p { margin: 0; }
 .kv-message button {
     position: absolute;
-    top: 0.35rem;
+    top: calc(0.35rem + env(safe-area-inset-top));
     right: 0.45rem;
     width: 2rem;
     height: 2rem;
@@ -178,6 +247,7 @@ input {
     cursor: pointer;
 }
 .kv-sheet-nav {
+    flex: 0 0 auto;
     display: flex;
     justify-content: space-between;
     gap: 0.5rem;
@@ -193,21 +263,71 @@ input {
     background: transparent;
     color: var(--kv-accent);
     font: inherit;
-    font-size: 0.85rem;
+    font-size: 1.05rem;
     padding: 0.35rem 0;
     cursor: pointer;
 }
-.kv-sheet-row {
-    margin-top: 0.85rem;
-    padding-top: 0.85rem;
+.kv-sheet-step:disabled { opacity: 0.35; cursor: default; }
+#kv-sheet-rows {
+    flex: 1 1 auto;
+    min-height: 0;
+    margin-top: 0.5rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
     border-top: 1px solid rgba(148, 163, 184, 0.2);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.2);
 }
-.kv-sheet-row p { margin: 0.15rem 0; }
+.kv-sheet-row {
+    padding: 0.65rem 0;
+    font-size: 1.1rem;
+}
+.kv-sheet-row + .kv-sheet-row { border-top: 1px solid rgba(148, 163, 184, 0.2); }
+.kv-sheet-row p { margin: 0.1rem 0; }
 .kv-sheet-date { font-weight: 700; }
 .kv-sheet-note { color: var(--kv-warn); }
 .kv-sheet-empty, .kv-sheet-total { color: var(--kv-muted); }
-.kv-sheet-total { margin: 1rem 0 0; font-weight: 600; }
+.kv-sheet-empty { margin: 0.75rem 0; }
+.kv-sheet-total { flex: 0 0 auto; margin: 0.6rem 0 0; font-size: 1.08rem; font-weight: 600; }
+#kv-sheet-back { flex: 0 0 auto; margin-top: 0.6rem; border: 1px solid rgba(148, 163, 184, 0.3); }
 
 .kv-message.is-error { background: #9f1239; color: #fff; }
 .kv-message.is-ok { background: #065f46; color: #fff; }
 .kv-message.is-warn { background: #92400e; color: #fff; }
+
+.kv-confirm {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+    background: rgba(2, 6, 23, 0.72);
+}
+.kv-confirm[hidden] { display: none; }
+.kv-confirm-card {
+    width: min(100%, 22rem);
+    background: color-mix(in srgb, var(--kv-card) 94%, white 6%);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    border-radius: 1.15rem;
+    padding: 1.25rem;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+}
+.kv-confirm-card p {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    line-height: 1.45;
+    text-align: center;
+    white-space: pre-line;
+}
+.kv-confirm-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-top: 1.15rem;
+}
+.kv-confirm-actions .kv-btn {
+    margin-top: 0;
+}

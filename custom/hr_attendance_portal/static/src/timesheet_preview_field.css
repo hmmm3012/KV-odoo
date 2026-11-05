@@ -1,0 +1,348 @@
+/* Timesheet preview: wide grid with sticky identity columns and drag-scroll. */
+
+/* Wizard chrome: Save / Discard are meaningless for this transient timesheet. */
+.o_hr_attendance_timesheet_form .o_form_status_indicator,
+.o_hr_attendance_timesheet_form .o_form_button_create,
+.o_hr_attendance_timesheet_form .o_form_button_save,
+.o_hr_attendance_timesheet_form .o_form_button_cancel,
+.o_hr_attendance_timesheet_form .o_form_button_remove {
+    display: none !important;
+}
+
+.o_hr_attendance_timesheet_form .o_form_sheet_bg,
+.o_hr_attendance_timesheet_form .o_form_sheet,
+.o_hr_attendance_timesheet_form .o_group,
+.o_hr_attendance_timesheet_form .o_field_widget,
+.o_hr_attendance_timesheet_form .o_field_html {
+    max-width: 100%;
+    min-width: 0;
+}
+
+.o_hr_attendance_timesheet_form .o_form_sheet {
+    overflow-x: clip;
+}
+
+.o_hr_attendance_timesheet_form .o_form_sheet_bg {
+    padding-bottom: 0.5rem;
+}
+
+.kv-timesheet-preview-field {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+}
+
+.kv-timesheet-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+}
+
+.kv-timesheet-meta h2 {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 700;
+    text-align: center;
+    letter-spacing: 0.02em;
+}
+
+.kv-timesheet-meta .kv-timesheet-period {
+    margin: 0.15rem 0 0;
+    text-align: center;
+    color: #0b6bcb;
+    font-weight: 600;
+}
+
+.kv-timesheet-meta .kv-timesheet-lot {
+    margin: 0.15rem 0 0;
+    color: #0b6bcb;
+    font-weight: 700;
+}
+
+.kv-timesheet-meta .kv-timesheet-hint {
+    margin: 0.35rem 0 0;
+    color: #667085;
+    font-size: 0.8125rem;
+}
+
+.kv-timesheet-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+.kv-timesheet-order-status {
+    color: #067647;
+    font-size: 0.8125rem;
+}
+
+.kv-timesheet-order-status.is-error {
+    color: #b42318;
+}
+
+.kv-timesheet .kv-person .kv-drag-handle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.1rem;
+    margin-right: 0.25rem;
+    color: #98a2b3;
+    cursor: grab;
+    user-select: none;
+    touch-action: none;
+    letter-spacing: -0.12em;
+    font-size: 0.75rem;
+    line-height: 1;
+}
+
+.kv-timesheet .kv-person .kv-drag-handle:active {
+    cursor: grabbing;
+}
+
+.kv-timesheet .kv-person.is-row-dragging {
+    opacity: 0.55;
+}
+
+.kv-timesheet .kv-person.is-drop-target {
+    outline: 2px solid #84caff;
+    outline-offset: -2px;
+}
+
+.kv-timesheet-scroll {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow: auto;
+    max-height: min(70vh, 720px);
+    border: 1px solid #d0d5dd;
+    border-radius: 0.5rem;
+    background: #fff;
+    cursor: grab;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-gutter: stable;
+}
+
+.kv-timesheet-scroll.is-dragging {
+    cursor: grabbing;
+    user-select: none;
+}
+
+.kv-timesheet {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: max-content;
+    min-width: 100%;
+    font-size: 0.8125rem;
+    line-height: 1.25;
+    table-layout: fixed;
+}
+
+.kv-timesheet th,
+.kv-timesheet td {
+    border-right: 1px solid #e4e7ec;
+    border-bottom: 1px solid #e4e7ec;
+    padding: 0.35rem 0.45rem;
+    white-space: nowrap;
+    background-clip: padding-box;
+    vertical-align: middle;
+}
+
+.kv-timesheet thead th {
+    position: sticky;
+    top: 0;
+    z-index: 4;
+    background: #92d050;
+    color: #101828;
+    font-weight: 700;
+    text-align: center;
+    box-shadow: inset 0 -1px 0 #7bb83d;
+}
+
+.kv-timesheet thead tr:nth-child(2) th {
+    top: 1.9rem;
+}
+
+.kv-timesheet .kv-day {
+    min-width: 2.35rem;
+    width: 2.35rem;
+    text-align: center;
+    background: #fff;
+}
+
+.kv-timesheet thead .kv-day {
+    background: #92d050;
+}
+
+.kv-timesheet .kv-summary {
+    min-width: 5.5rem;
+    width: 5.5rem;
+    text-align: center;
+    background: #fff;
+}
+
+.kv-timesheet thead .kv-summary {
+    background: #92d050;
+}
+
+/* Freeze STT + Name (+ MSNV) while scrolling horizontally. */
+.kv-timesheet .kv-sticky {
+    position: sticky !important;
+    z-index: 5;
+    background: #fff;
+}
+
+.kv-timesheet thead .kv-sticky {
+    z-index: 8;
+    background: #92d050;
+}
+
+.kv-timesheet .kv-sticky-0 {
+    left: 0 !important;
+    min-width: 2.75rem;
+    width: 2.75rem;
+    max-width: 2.75rem;
+    text-align: center;
+    box-shadow: 1px 0 0 #e4e7ec;
+}
+
+.kv-timesheet .kv-sticky-1 {
+    left: 2.75rem !important;
+    width: 12rem;
+    min-width: 12rem;
+    max-width: 12rem;
+    text-align: left;
+    white-space: normal;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-shadow: 1px 0 0 #e4e7ec;
+}
+
+.kv-timesheet .kv-sticky-2 {
+    left: 14.75rem !important;
+    min-width: 5.5rem;
+    width: 5.5rem;
+    max-width: 5.5rem;
+    text-align: center;
+    box-shadow: 2px 0 8px rgba(16, 24, 40, 0.12);
+}
+
+.kv-timesheet tbody tr:nth-child(even):not(.kv-section):not(.kv-empty):not(.kv-site-total) td {
+    background: #f8fafc;
+}
+
+.kv-timesheet tbody tr:nth-child(even):not(.kv-section):not(.kv-empty):not(.kv-site-total) .kv-sticky {
+    background: #f8fafc;
+}
+
+.kv-timesheet tbody tr:hover:not(.kv-section):not(.kv-empty):not(.kv-site-total) td {
+    background: #eef6ff;
+}
+
+.kv-timesheet tbody tr:hover:not(.kv-section):not(.kv-empty):not(.kv-site-total) .kv-sticky {
+    background: #eef6ff;
+}
+
+.kv-timesheet .kv-site-total td {
+    background: #fff2cc !important;
+    font-weight: 700;
+}
+
+.kv-timesheet .kv-site-total .kv-sticky {
+    background: #fff2cc !important;
+}
+
+.kv-timesheet .kv-site-total .kv-total {
+    background: #ffe08a !important;
+}
+
+.kv-timesheet .kv-section td {
+    background: #d9ead3 !important;
+    font-weight: 700;
+}
+
+.kv-timesheet .kv-empty td {
+    background: #f9fafb !important;
+}
+
+.kv-timesheet .kv-name {
+    font-weight: 600;
+}
+
+.kv-timesheet .kv-num {
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+.kv-timesheet .kv-total {
+    font-weight: 700;
+    background: #f0fdf4;
+}
+
+.kv-timesheet tbody tr:nth-child(even):not(.kv-section):not(.kv-empty) .kv-total {
+    background: #e8f8ee;
+}
+
+.kv-timesheet .kv-text {
+    text-align: left;
+    max-width: 10rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.kv-timesheet .kv-center {
+    text-align: center;
+}
+
+.kv-timesheet .kv-blank {
+    color: transparent;
+}
+
+.kv-timesheet td.kv-day.kv-half,
+.kv-timesheet tbody tr:nth-child(even):not(.kv-section):not(.kv-empty):not(.kv-site-total) td.kv-day.kv-half,
+.kv-timesheet tbody tr:hover:not(.kv-section):not(.kv-empty):not(.kv-site-total) td.kv-day.kv-half,
+.kv-timesheet .kv-site-total td.kv-day.kv-half {
+    background: #fde68a;
+    color: #7c2d12;
+    font-weight: 700;
+}
+
+.kv-timesheet .kv-muted {
+    color: #98a2b3;
+    font-style: italic;
+    font-weight: 400;
+}
+
+.kv-timesheet-empty {
+    border-radius: 0.5rem;
+}
+
+@media (max-width: 767.98px) {
+    .kv-timesheet-scroll {
+        max-height: min(65vh, 560px);
+    }
+
+    .kv-timesheet {
+        font-size: 0.75rem;
+    }
+
+    .kv-timesheet .kv-sticky-1 {
+        width: 9.5rem;
+        min-width: 9.5rem;
+        max-width: 9.5rem;
+    }
+
+    .kv-timesheet .kv-sticky-2 {
+        left: 12.25rem !important;
+        min-width: 4.5rem;
+        width: 4.5rem;
+        max-width: 4.5rem;
+    }
+}

@@ -104,8 +104,18 @@ class HrAttendanceCorrection(models.Model):
             attendance._apply_session_vals({
                 correction._effective_field_name(): correction.proposed_value,
             })
+            # Forgotten checkout: also close the original punch so the employee
+            # is no longer "at work" / checked in.
+            if (
+                correction.correction_type == "check_out"
+                and not attendance.check_out
+            ):
+                attendance._close_open_punch(correction.proposed_value)
             if attendance.session_state != "denied":
-                attendance._classify_session(force=True)
+                attendance.with_context(
+                    attendance_auto_approve_overtime=True,
+                )._classify_session(force=True)
+                attendance._reapply_reduce_after_correction()
 
     @api.model
     def submit_for(self, attendance, correction_type, proposed, reason, attachment=False, requester_id=None):
@@ -121,8 +131,15 @@ class HrAttendanceCorrection(models.Model):
         original = attendance.check_in if correction_type == "check_in" else attendance.check_out
         start = proposed if correction_type == "check_in" else (attendance.effective_check_in or attendance.check_in)
         end = proposed if correction_type == "check_out" else (attendance.effective_check_out or attendance.check_out)
-        if start and end and end < start:
+        if start and end and end <= start:
             raise UserError(self.env._("The proposed end cannot be earlier than the start."))
+        # Closing a forgotten checkout cannot invent a future punch-out.
+        if (
+            correction_type == "check_out"
+            and not attendance.check_out
+            and proposed > fields.Datetime.now()
+        ):
+            raise UserError(self.env._("Checkout cannot be in the future."))
         actor_id = requester_id or self.env.uid
         correction = self.create({
             "attendance_id": attendance.id,

@@ -21,3 +21,57 @@
         min-height: 2.75rem;
     }
 }
+
+/* Session / correction wizards: keep dialog usable on short phones.
+   Centered modals otherwise clip the datetime picker and block scrolling. */
+.o_dialog .modal.o_technical_modal .modal-dialog {
+    max-height: calc(100dvh - 1rem);
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.o_dialog .modal.o_technical_modal .modal-dialog.modal-dialog-centered {
+    align-items: flex-start;
+    min-height: auto;
+    padding-top: max(0.5rem, env(safe-area-inset-top, 0px));
+}
+
+.o_dialog .modal.o_technical_modal .modal-content {
+    max-height: calc(100dvh - 1rem);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.o_dialog .modal.o_technical_modal .modal-header,
+.o_dialog .modal.o_technical_modal .modal-footer {
+    flex-shrink: 0;
+}
+
+.o_dialog .modal.o_technical_modal .modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Bulk time-correction lines: own scroll box so the datetime field stays reachable. */
+.o_dialog .modal .kv_attendance_wizard .kv_correction_lines,
+.o_dialog .modal .kv_attendance_wizard .o_field_one2many {
+    max-height: min(42vh, 18rem);
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Datetime picker popover: stay within the viewport and scroll if needed. */
+.o_popover:has(.o_datetime_picker),
+.o_datetime_picker_popover {
+    max-height: min(75dvh, 32rem);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.o_datetime_picker {
+    max-width: min(100vw - 1.5rem, 24rem);
+}

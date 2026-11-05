@@ -102,6 +102,34 @@ class TestAttendancePortalAPI(AttendancePortalMixin, TransactionCase):
         self.assertEqual(missing["error"], "invalid_month")
         self.assertEqual(self.portal.attendance_sheet(year=2026, month=10)["error"], "invalid_session")
 
+    def test_client_location_issue_is_logged_once_per_window(self):
+        _, token = self._issue_token()
+        Issue = self.env["hr.attendance.client.issue"]
+        self.assertEqual(self.portal.report_client_issue("geolocation_timeout")["error"], "invalid_session")
+        self.assertTrue(self.portal.report_client_issue("geolocation_timeout", token=token)["ok"])
+        self.assertTrue(self.portal.report_client_issue("geolocation_timeout", token=token)["ok"])
+        self.assertTrue(self.portal.report_client_issue("not_a_location_issue", token=token)["ok"])
+        issues = Issue.search([("employee_id", "=", self.employee.id)])
+        self.assertEqual(len(issues), 1)
+        self.assertEqual(issues.issue_code, "geolocation_timeout")
+
+    def test_client_issue_classifies_user_agent(self):
+        Issue = self.env["hr.attendance.client.issue"]
+        cases = {
+            "Mozilla/5.0 (Linux; Android 14; wv) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36 Zalo android/12": ("zalo", "android"),
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 ZaloTheme/light": ("zalo", "ios"),
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 [FBAN/FBIOS;FBAV/450.0]": ("facebook", "ios"),
+            "Mozilla/5.0 (Linux; Android 14; wv) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36 [FB_IAB/Orca-Android;FBAV/450.0;]": ("messenger", "android"),
+            "Mozilla/5.0 (Linux; Android 14; wv) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36": ("android_webview", "android"),
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148": ("ios_webview", "ios"),
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 CriOS/120.0 Mobile/15E148 Safari/604.1": ("chrome", "ios"),
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Version/17.0 Mobile/15E148 Safari/604.1": ("safari", "ios"),
+            "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36": ("chrome", "android"),
+            "": ("other", "other"),
+        }
+        for user_agent, expected in cases.items():
+            self.assertEqual(Issue._classify_user_agent(user_agent), expected, user_agent)
+
     def test_resolve_location_returns_workplace_name(self):
         _, token = self._issue_token()
         result = self.portal.resolve_location(

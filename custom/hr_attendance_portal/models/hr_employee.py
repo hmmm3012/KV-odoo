@@ -143,10 +143,21 @@ class HrEmployee(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
-        employees = super().create(vals_list)
+        for vals in vals_list:
+            if not vals.get("pin") and vals.get("emp_code"):
+                pin = self._attendance_pin_from_emp_code(vals["emp_code"])
+                if pin:
+                    vals["pin"] = pin
+        # emp_code may be assigned by hr_employee_kv inside super(); skip the
+        # PIN constraint until _ensure_attendance_pin runs immediately after.
+        employees = super(
+            HrEmployee, self.with_context(skip_attendance_pin_constraint=True)
+        ).create(vals_list)
+        # PIN from emp_code first so every new employee has an attendance PIN.
+        employees._ensure_attendance_pin()
         for employee, vals in zip(employees, vals_list):
-            pin = vals.get("pin")
-            if pin:
+            pin = vals.get("pin") or employee.pin
+            if pin and not employee.sudo().attendance_pin_hash:
                 employee._store_attendance_pin_hash(pin)
             if vals.get("attendance_face_image"):
                 employee._enroll_attendance_face(vals.get("attendance_face_image"))
@@ -154,6 +165,16 @@ class HrEmployee(models.Model):
         return employees
 
     def write(self, vals):
+        vals = dict(vals)
+        reset_pin_from_code = False
+        if (
+            not self.env.context.get("skip_auto_attendance")
+            and "pin" in vals
+            and not vals.get("pin")
+        ):
+            # Never leave an employee without a PIN: reset to last 5 digits.
+            vals.pop("pin")
+            reset_pin_from_code = True
         res = super().write(vals)
         if "attendance_face_image" in vals and not self.env.context.get("skip_attendance_face_embed"):
             lenient = self.env.context.get("attendance_face_enroll_lenient")
@@ -167,6 +188,17 @@ class HrEmployee(models.Model):
             for employee in self:
                 employee._store_attendance_pin_hash(pin)
                 self.env["hr.attendance.session"].sudo()._revoke_employee(employee)
+        if reset_pin_from_code:
+            for employee in self:
+                derived = employee._attendance_pin_from_emp_code(employee.emp_code)
+                if not derived:
+                    raise ValidationError(self.env._(
+                        "Employee %(name)s needs an employee code with digits so an attendance PIN can be set.",
+                        name=employee.name,
+                    ))
+                employee.with_context(skip_auto_attendance=True).write({"pin": derived})
+        elif not self.env.context.get("skip_auto_attendance") and "emp_code" in vals:
+            self._ensure_attendance_pin()
         watched = {"department_id", "image_1920", "emp_code"}
         if not self.env.context.get("skip_auto_attendance") and watched.intersection(vals):
             self._apply_auto_attendance_setup(
@@ -182,6 +214,43 @@ class HrEmployee(models.Model):
             return False
         return digits[-5:].zfill(5)
 
+    def _ensure_attendance_pin(self):
+        """Every employee must have an attendance PIN: last 5 digits of emp_code."""
+        if self.env.context.get("skip_auto_attendance"):
+            return
+        for employee in self:
+            if employee.pin or employee.sudo().attendance_pin_hash:
+                continue
+            pin = employee._attendance_pin_from_emp_code(employee.emp_code)
+            if pin:
+                employee.with_context(skip_auto_attendance=True).write({"pin": pin})
+                continue
+            if employee.emp_code:
+                raise ValidationError(self.env._(
+                    "Cannot set an attendance PIN for %(name)s: employee code %(code)s has no digits.",
+                    name=employee.name,
+                    code=employee.emp_code,
+                ))
+            raise ValidationError(self.env._(
+                "Employee %(name)s needs an employee code so an attendance PIN can be set.",
+                name=employee.name,
+            ))
+
+    @api.constrains("pin", "attendance_pin_hash", "emp_code", "active")
+    def _constrain_attendance_pin_required(self):
+        """Active employees with an employee code must always have an attendance PIN."""
+        if self.env.context.get("skip_attendance_pin_constraint"):
+            return
+        for employee in self:
+            if not employee.active or not employee.emp_code:
+                continue
+            if employee.pin or employee.sudo().attendance_pin_hash:
+                continue
+            raise ValidationError(self.env._(
+                "Employee %(name)s must have an attendance PIN (last 5 digits of the employee code).",
+                name=employee.name,
+            ))
+
     def _apply_auto_attendance_setup(self, sync_face=False):
         """Set the attendance PIN from the employee code and enroll the HR photo.
 
@@ -190,13 +259,10 @@ class HrEmployee(models.Model):
         """
         if self.env.context.get("skip_auto_attendance"):
             return
+        self._ensure_attendance_pin()
+        if not sync_face:
+            return
         for employee in self:
-            if not employee.pin:
-                pin = employee._attendance_pin_from_emp_code(employee.emp_code)
-                if pin:
-                    employee.with_context(skip_auto_attendance=True).write({"pin": pin})
-            if not sync_face:
-                continue
             photo = employee.with_context(bin_size=False).image_1920
             if not photo:
                 continue

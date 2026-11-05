@@ -44,6 +44,10 @@ class AttendancePortalController(http.Controller):
             gps_accuracy=gps_accuracy,
         )
 
+    @http.route("/attendance/api/client_issue", type="json", auth="public", methods=["POST"])
+    def api_client_issue(self, issue_code=False):
+        return self._portal().report_client_issue(issue_code=issue_code)
+
     @http.route("/attendance/api/face_preview", type="json", auth="public", methods=["POST"])
     def api_face_preview(self, face_image=False):
         return self._portal().preview_face(face_image=face_image)

@@ -10,8 +10,10 @@ from . import attendance_overtime
 from . import attendance_correction
 from . import attendance_session_wizard
 from . import attendance_timesheet
+from . import attendance_timesheet_order
 from . import attendance_session
 from . import attendance_auth_attempt
+from . import attendance_client_issue
 from . import hr_employee
 from . import hr_attendance
 from . import res_users

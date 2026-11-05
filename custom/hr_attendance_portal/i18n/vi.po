@@ -870,9 +870,9 @@ msgid "Captain Rejected"
 msgstr "Đội trưởng từ chối"
 
 #. module: hr_attendance_portal
-#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance__overtime_state__hr_reviewed
-msgid "HR Reviewed"
-msgstr "HR đã đối chiếu"
+#: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance__overtime_state__captain_reviewed
+msgid "Captain Reviewed"
+msgstr "Đội trưởng đã duyệt"
 
 #. module: hr_attendance_portal
 #: model:ir.model.fields.selection,name:hr_attendance_portal.selection__hr_attendance__overtime_state__hr_discrepancy
@@ -1219,6 +1219,16 @@ msgid "Date To"
 msgstr "Đến ngày"
 
 #. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance_timesheet_wizard__preview_html
+msgid "Timesheet Preview"
+msgstr "Bảng công tổng"
+
+#. module: hr_attendance_portal
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.view_hr_attendance_timesheet_wizard_form
+msgid "Load Timesheet"
+msgstr "Xem bảng công"
+
+#. module: hr_attendance_portal
 #: model_terms:ir.ui.view,arch_db:hr_attendance_portal.view_hr_attendance_timesheet_wizard_form
 msgid "Export Timesheet"
 msgstr "Xuất bảng công"
@@ -1252,3 +1262,37 @@ msgstr "Mỗi lần xuất nhiều nhất %s ngày."
 #: code:addons/hr_attendance_portal/models/attendance_timesheet.py:0
 msgid "Excel export is not available."
 msgstr "Không xuất được file Excel."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/attendance_timesheet.py:0
+msgid ""
+"Select a specific parking lot. Combined timesheets for %(name)s "
+"are not allowed because they mix hours from %(lots)s."
+msgstr ""
+"Hãy chọn một bãi xe cụ thể. Không xuất bảng công gộp cho %(name)s "
+"vì sẽ lẫn giờ công từ %(lots)s."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/hr_employee.py:0
+msgid "Cannot set an attendance PIN for %(name)s: employee code %(code)s has no digits."
+msgstr "Không đặt được mã PIN chấm công cho %(name)s: mã nhân viên %(code)s không có chữ số."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/hr_employee.py:0
+msgid "Employee %(name)s needs an employee code so an attendance PIN can be set."
+msgstr "Nhân viên %(name)s cần mã nhân viên để hệ thống đặt mã PIN chấm công."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/hr_employee.py:0
+msgid "Employee %(name)s needs an employee code with digits so an attendance PIN can be set."
+msgstr "Nhân viên %(name)s cần mã nhân viên có chữ số để hệ thống đặt mã PIN chấm công."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/hr_employee.py:0
+msgid "Employee %(name)s must have an attendance PIN (last 5 digits of the employee code)."
+msgstr "Nhân viên %(name)s phải có mã PIN chấm công (5 số cuối của mã nhân viên)."

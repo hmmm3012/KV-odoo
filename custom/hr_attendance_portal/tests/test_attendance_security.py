@@ -2,7 +2,7 @@
 
 from unittest.mock import patch
 
-from odoo.exceptions import AccessError
+from odoo.exceptions import AccessError, ValidationError
 from odoo.tests.common import TransactionCase, new_test_user, tagged
 
 from .common import TINY_JPEG_B64, AttendancePortalMixin
@@ -301,6 +301,24 @@ class TestAttendancePortalSecurity(AttendancePortalMixin, TransactionCase):
         self.assertEqual(employee.pin, "12345")
         self.assertTrue(employee.attendance_face_image)
         self.assertTrue(employee.attendance_face_is_enrolled)
+
+    def test_new_employee_always_gets_pin_from_emp_code(self):
+        employee = self.env["hr.employee"].create({
+            "name": "Auto Pin Staff",
+            "emp_code": "KV-NEW-98765",
+            "company_id": self.company.id,
+        })
+        self.assertEqual(employee.pin, "98765")
+        self.assertTrue(employee.attendance_pin_is_set)
+        self.assertTrue(employee.sudo().attendance_pin_hash)
+        employee.write({"pin": False})
+        self.assertEqual(employee.pin, "98765")
+        with self.assertRaises(ValidationError):
+            self.env["hr.employee"].create({
+                "name": "No Digits",
+                "emp_code": "ABC-XYZ",
+                "company_id": self.company.id,
+            })
 
     def test_aeon_bad_photo_still_saves_employee(self):
         department = self.env["hr.department"].create({

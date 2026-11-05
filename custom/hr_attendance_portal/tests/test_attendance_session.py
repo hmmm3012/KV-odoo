@@ -97,6 +97,11 @@ class TestAttendanceSession(AttendancePortalMixin, TransactionCase):
         self.assertAlmostEqual(counted.recognized_regular_hours, 0.5, places=4)
         self.assertTrue(self.env["hr.attendance"].search([("id", "=", counted.id)] + domain))
 
+        forgotten = self._session(20)
+        self.assertEqual(forgotten.exception_code, "missing_checkout")
+        self.assertEqual(forgotten.recognized_regular_hours, 0)
+        self.assertTrue(self.env["hr.attendance"].search([("id", "=", forgotten.id)] + domain))
+
     def test_short_session_is_validated(self):
         attendance = self._session(6)
         self.assertEqual(attendance.session_state, "validated")
@@ -153,7 +158,7 @@ class TestAttendanceSession(AttendancePortalMixin, TransactionCase):
         self.assertAlmostEqual(first.recognized_regular_hours, 8, places=2)
         self.assertAlmostEqual(second.recognized_regular_hours, 8, places=2)
         self.assertAlmostEqual(first.overtime_candidate_hours, 4, places=2)
-        self.assertEqual(first.overtime_state, "hr_reviewed")
+        self.assertEqual(first.overtime_state, "captain_reviewed")
         self.assertEqual(open_shift.check_out, False)
 
     def test_captain_cannot_increase_hours_or_overtime(self):
@@ -183,10 +188,50 @@ class TestAttendanceSession(AttendancePortalMixin, TransactionCase):
         self.assertAlmostEqual(attendance.recognized_regular_hours, 8, places=2)
         self.assertAlmostEqual(attendance.payroll_regular_hours, 8, places=2)
         self.assertAlmostEqual(attendance.overtime_candidate_hours, 6, places=2)
-        self.assertEqual(attendance.overtime_state, "hr_reviewed")
-        self.assertAlmostEqual(attendance.payroll_overtime_hours, 4, places=2)
-        self.assertAlmostEqual(attendance.overtime_case_ids.captain_hours, 4, places=2)
+        self.assertEqual(attendance.overtime_state, "captain_reviewed")
+        # Captain-entered total (14) is payroll truth: 8 regular + 6 OT, not clipped
+        # to the automatic overtime policy cap.
+        self.assertAlmostEqual(attendance.payroll_overtime_hours, 6, places=2)
+        self.assertAlmostEqual(attendance.overtime_case_ids.captain_hours, 6, places=2)
         self.assertEqual(attendance.overtime_case_ids.captain_user_id, self.captain)
+
+    def test_reduce_then_time_correction_keeps_payroll(self):
+        """Editing bounds after a reduce must not wipe payroll hours."""
+        attendance = self._session(20)
+        attendance.with_user(self.captain).action_reduce_regular(10, "real worked time")
+        self.assertAlmostEqual(attendance.payroll_regular_hours, 8, places=2)
+        self.assertAlmostEqual(attendance.payroll_overtime_hours, 2, places=2)
+        self.assertEqual(attendance.overtime_state, "captain_reviewed")
+        proposed = attendance.check_in + timedelta(hours=10)
+        attendance.with_user(self.captain).action_request_correction(
+            "check_out", proposed, "align checkout"
+        )
+        self.assertEqual(attendance.effective_check_out, proposed)
+        self.assertAlmostEqual(attendance.payroll_regular_hours, 8, places=2)
+        self.assertAlmostEqual(attendance.payroll_overtime_hours, 2, places=2)
+        self.assertEqual(attendance.overtime_state, "captain_reviewed")
+        self.assertAlmostEqual(
+            attendance.payroll_regular_hours + attendance.payroll_overtime_hours,
+            10,
+            places=2,
+        )
+
+    def test_checkout_correction_on_open_shift_auto_approves_overtime(self):
+        now = fields.Datetime.now()
+        attendance = self.env["hr.attendance"].create({
+            "employee_id": self.employee.id,
+            "check_in": now - timedelta(hours=11),
+        })
+        checkout = now
+        attendance.with_user(self.captain).action_request_correction(
+            "check_out", checkout, "left at gate"
+        )
+        self.assertEqual(attendance.check_out, checkout)
+        self.assertEqual(attendance.work_status, "finished")
+        self.assertEqual(attendance.employee_id.attendance_state, "checked_out")
+        self.assertEqual(attendance.overtime_state, "captain_reviewed")
+        self.assertAlmostEqual(attendance.payroll_regular_hours, 8, places=2)
+        self.assertAlmostEqual(attendance.payroll_overtime_hours, 3, places=2)
 
     def test_captain_decides_several_overtime_shifts_at_once(self):
         now = fields.Datetime.now()
@@ -212,8 +257,8 @@ class TestAttendanceSession(AttendancePortalMixin, TransactionCase):
         self.assertEqual(wizard.shift_count, 2)
         self.assertFalse(wizard.rejected)
         wizard.action_apply()
-        self.assertEqual(first.overtime_state, "hr_reviewed")
-        self.assertEqual(second.overtime_state, "hr_reviewed")
+        self.assertEqual(first.overtime_state, "captain_reviewed")
+        self.assertEqual(second.overtime_state, "captain_reviewed")
         self.assertEqual(first.session_state, "validated")
         self.assertEqual(second.session_state, "validated")
         self.assertAlmostEqual(first.overtime_case_ids.captain_hours, 3, places=2)
@@ -274,8 +319,8 @@ class TestAttendanceSession(AttendancePortalMixin, TransactionCase):
         first = shift(12, now - timedelta(days=4))
         second = shift(11, now - timedelta(days=3))
         self.assertEqual(first.captain_overtime_reason, "worked late")
-        self.assertEqual(first.overtime_state, "hr_reviewed")
-        self.assertEqual(second.overtime_state, "hr_reviewed")
+        self.assertEqual(first.overtime_state, "captain_reviewed")
+        self.assertEqual(second.overtime_state, "captain_reviewed")
         self.assertAlmostEqual(first.payroll_overtime_hours, 2, places=2)
         self.assertAlmostEqual(second.payroll_overtime_hours, 2, places=2)
         with self.assertRaises(UserError):
@@ -285,9 +330,68 @@ class TestAttendanceSession(AttendancePortalMixin, TransactionCase):
         attendance = self._session(11)
         attendance.with_user(self.captain).action_captain_overtime(2, "two hours")
         self.assertEqual(attendance.payroll_overtime_hours, 2)
-        self.assertEqual(attendance.overtime_state, "hr_reviewed")
+        self.assertEqual(attendance.overtime_state, "captain_reviewed")
         with self.assertRaises(UserError):
             attendance.with_user(self.officer).action_hr_overtime(2, "already final")
+
+    def test_captain_can_still_adjust_after_overtime_finalized(self):
+        """captain_reviewed is captain-final for payroll, not a lock until HR closes."""
+        now = fields.Datetime.now()
+
+        def shift(hours, end):
+            attendance = self.env["hr.attendance"].create({
+                "employee_id": self.employee.id,
+                "check_in": end - timedelta(hours=hours),
+            })
+            attendance.with_context(attendance_original_punch=True).write({"check_out": end})
+            return attendance
+
+        attendance = shift(11, now - timedelta(days=4))
+        captain = attendance.with_user(self.captain)
+        captain.action_captain_overtime(2, "worked late")
+        self.assertEqual(attendance.overtime_state, "captain_reviewed")
+        self.assertAlmostEqual(attendance.payroll_overtime_hours, 2, places=2)
+
+        captain.action_captain_overtime(1, "revise overtime")
+        self.assertEqual(attendance.overtime_state, "captain_reviewed")
+        self.assertAlmostEqual(attendance.payroll_overtime_hours, 1, places=2)
+
+        captain.action_reduce_regular(6, "left early after all")
+        self.assertEqual(attendance.session_state, "validated")
+        self.assertEqual(attendance.overtime_state, "not_required")
+        self.assertAlmostEqual(attendance.recognized_regular_hours, 6, places=2)
+        self.assertEqual(attendance.payroll_overtime_hours, 0)
+
+        long_shift = shift(11, now - timedelta(days=3))
+        long_shift.with_user(self.captain).action_captain_overtime(3, "approved")
+        self.assertEqual(long_shift.overtime_state, "captain_reviewed")
+        proposed = long_shift.check_in + timedelta(hours=8)
+        correction = long_shift.with_user(self.captain).action_request_correction(
+            "check_out", proposed, "real checkout was earlier"
+        )
+        self.assertEqual(correction.state, "approved")
+        self.assertEqual(long_shift.effective_check_out, proposed)
+        self.assertEqual(long_shift.overtime_state, "not_required")
+        self.assertEqual(long_shift.payroll_overtime_hours, 0)
+
+        denied = shift(11, now - timedelta(days=2))
+        denied.with_user(self.captain).action_captain_overtime(2, "approved")
+        denied.with_user(self.captain).action_deny_session("wrong person")
+        self.assertEqual(denied.session_state, "denied")
+        self.assertEqual(denied.payroll_overtime_hours, 0)
+        self.assertEqual(denied.overtime_case_ids.state, "captain_rejected")
+
+        closed = shift(11, now - timedelta(days=1))
+        closed.with_user(self.captain).action_captain_overtime(2, "approved")
+        closed.with_user(self.officer).action_close_session()
+        with self.assertRaises(UserError):
+            closed.with_user(self.captain).action_reduce_regular(6, "too late")
+        with self.assertRaises(UserError):
+            closed.with_user(self.captain).action_deny_session("too late")
+        with self.assertRaises(UserError):
+            closed.with_user(self.captain).action_request_correction(
+                "check_out", closed.check_in + timedelta(hours=8), "too late"
+            )
 
     def test_deny_keeps_original_times_and_events(self):
         attendance = self._session(11)
@@ -328,6 +432,53 @@ class TestAttendanceSession(AttendancePortalMixin, TransactionCase):
         self.assertEqual(attendance.payroll_overtime_hours, 0)
         self.assertIn(attendance.session_state, ("validated", "corrected"))
 
+    def test_correction_that_creates_overtime_is_auto_approved(self):
+        """Captain-adjusted bounds that introduce OT count as already approved."""
+        end = fields.Datetime.now() - timedelta(days=1)
+        attendance = self.env["hr.attendance"].create({
+            "employee_id": self.employee.id,
+            "check_in": end - timedelta(hours=7),
+        })
+        attendance.with_context(attendance_original_punch=True).write({"check_out": end})
+        self.assertEqual(attendance.overtime_state, "not_required")
+        self.assertEqual(attendance.payroll_overtime_hours, 0)
+        proposed = attendance.check_in + timedelta(hours=10)
+        attendance.with_user(self.captain).action_request_correction(
+            "check_out", proposed, "real checkout was later"
+        )
+        self.assertEqual(attendance.effective_check_out, proposed)
+        self.assertEqual(attendance.overtime_state, "captain_reviewed")
+        self.assertAlmostEqual(attendance.payroll_regular_hours, 8, places=2)
+        self.assertAlmostEqual(attendance.payroll_overtime_hours, 2, places=2)
+        self.assertAlmostEqual(attendance.overtime_case_ids.captain_hours, 2, places=2)
+        self.assertIn(attendance.session_state, ("validated", "corrected"))
+        self.assertEqual(attendance.overtime_case_ids.captain_user_id, self.captain)
+
+    def test_force_reclassify_without_correction_does_not_auto_approve_ot(self):
+        attendance = self._session(11)
+        self.assertEqual(attendance.overtime_state, "pending_captain")
+        attendance._classify_session(force=True)
+        self.assertEqual(attendance.overtime_state, "pending_captain")
+        self.assertEqual(attendance.payroll_overtime_hours, 0)
+        self.assertEqual(attendance.session_state, "pending_review")
+
+    def test_correction_that_expands_overtime_approves_new_candidate(self):
+        end = fields.Datetime.now() - timedelta(days=1)
+        attendance = self.env["hr.attendance"].create({
+            "employee_id": self.employee.id,
+            "check_in": end - timedelta(hours=10),
+        })
+        attendance.with_context(attendance_original_punch=True).write({"check_out": end})
+        attendance.with_user(self.captain).action_captain_overtime(1, "partial")
+        self.assertAlmostEqual(attendance.payroll_overtime_hours, 1, places=2)
+        proposed = attendance.check_in + timedelta(hours=12)
+        attendance.with_user(self.captain).action_request_correction(
+            "check_out", proposed, "stayed longer"
+        )
+        self.assertEqual(attendance.overtime_state, "captain_reviewed")
+        self.assertAlmostEqual(attendance.payroll_regular_hours, 8, places=2)
+        self.assertAlmostEqual(attendance.payroll_overtime_hours, 4, places=2)
+
     def test_closed_session_rejects_decisions(self):
         attendance = self._session(6)
         attendance.with_user(self.officer).action_close_session()
@@ -338,7 +489,7 @@ class TestAttendanceSession(AttendancePortalMixin, TransactionCase):
         attendance = self._session(11)
         attendance.with_user(self.captain).action_captain_overtime(2, "worked late")
         self.assertEqual(attendance.session_state, "validated")
-        self.assertEqual(attendance.overtime_state, "hr_reviewed")
+        self.assertEqual(attendance.overtime_state, "captain_reviewed")
         attendance.with_user(self.officer).action_close_session()
         self.assertEqual(attendance.session_state, "closed")
         self.assertEqual(attendance.overtime_state, "closed")
@@ -346,8 +497,8 @@ class TestAttendanceSession(AttendancePortalMixin, TransactionCase):
             attendance.with_user(self.captain).action_reopen_session()
         attendance.with_user(self.officer).action_reopen_session()
         self.assertEqual(attendance.session_state, "validated")
-        self.assertEqual(attendance.overtime_state, "hr_reviewed")
-        self.assertEqual(attendance.overtime_case_ids.state, "hr_reviewed")
+        self.assertEqual(attendance.overtime_state, "captain_reviewed")
+        self.assertEqual(attendance.overtime_case_ids.state, "captain_reviewed")
         self.assertAlmostEqual(attendance.overtime_case_ids.captain_hours, 2, places=2)
 
     def test_original_timestamps_cannot_be_edited(self):
@@ -357,23 +508,40 @@ class TestAttendanceSession(AttendancePortalMixin, TransactionCase):
                 "check_out": fields.Datetime.now(),
             })
 
-    def test_captain_confirms_missing_checkout(self):
+    def test_checkout_correction_closes_forgotten_open_shift(self):
         attendance = self._session(13, check_out=False)
+        self.assertEqual(attendance.work_status, "at_work")
         checkout = attendance.check_in + timedelta(hours=9)
-        attendance.with_user(self.captain).action_confirm_checkout(checkout, "left at the end of the shift")
+        correction = attendance.with_user(self.captain).action_request_correction(
+            "check_out", checkout, "left at the end of the shift"
+        )
+        self.assertEqual(correction.state, "approved")
         self.assertEqual(attendance.check_out, checkout)
+        self.assertEqual(attendance.effective_check_out, checkout)
         self.assertEqual(attendance.out_mode, "manual")
+        self.assertEqual(attendance.work_status, "finished")
         self.assertEqual(attendance.employee_id.attendance_state, "checked_out")
         self.assertAlmostEqual(attendance.recognized_regular_hours, 8, places=4)
         self.assertAlmostEqual(attendance.overtime_candidate_hours, 1, places=4)
-        decision = attendance.hour_decision_ids.filtered(lambda item: item.decision_type == "confirm_checkout")
-        self.assertEqual(decision.user_id, self.captain)
+        self.assertEqual(attendance.overtime_state, "captain_reviewed")
         with self.assertRaises(UserError):
-            attendance.with_user(self.captain).action_confirm_checkout(checkout, "again")
-        with self.assertRaises(UserError):
-            self._session(1, check_out=False).with_user(self.captain).action_confirm_checkout(
-                fields.Datetime.now() + timedelta(hours=1), "future"
+            self._session(1, check_out=False).with_user(self.captain).action_request_correction(
+                "check_out",
+                fields.Datetime.now() + timedelta(hours=1),
+                "future",
             )
+
+    def test_deny_open_shift_marks_finished(self):
+        attendance = self._session(13, check_out=False)
+        self.assertEqual(attendance.work_status, "at_work")
+        self.assertEqual(attendance.employee_id.attendance_state, "checked_in")
+        attendance.with_user(self.captain).action_deny_session("wrong person")
+        self.assertEqual(attendance.session_state, "denied")
+        self.assertTrue(attendance.check_out)
+        self.assertEqual(attendance.work_status, "finished")
+        self.assertEqual(attendance.employee_id.attendance_state, "checked_out")
+        self.assertEqual(attendance.recognized_regular_hours, 0)
+        self.assertEqual(attendance.payroll_regular_hours, 0)
 
     def test_missing_checkout_is_flagged_without_inventing_time(self):
         attendance = self._session(13, check_out=False)

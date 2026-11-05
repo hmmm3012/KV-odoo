@@ -330,7 +330,7 @@ class HrAttendancePortal(models.AbstractModel):
     @api.model
     def _sheet_approved_overtime(self, attendance):
         """Overtime the employee can see only after HR has confirmed it."""
-        if attendance.overtime_state not in ("hr_reviewed", "closed"):
+        if attendance.overtime_state not in ("captain_reviewed", "closed"):
             return 0.0
         return attendance.payroll_overtime_hours or 0.0
 
@@ -372,6 +372,20 @@ class HrAttendancePortal(models.AbstractModel):
             "error": reason or False,
             "server_time": fields.Datetime.now(),
         }
+
+    @api.model
+    def report_client_issue(self, issue_code=False, token=None):
+        """Record a browser-side location failure for the logged-in employee."""
+        session = self._require_session(token)
+        if not session:
+            return self._error_payload("invalid_session")
+        self.env["hr.attendance.client.issue"].sudo()._log_issue(
+            session.employee_id,
+            issue_code,
+            user_agent=self._user_agent(),
+            ip_address=self._client_ip(),
+        )
+        return {"ok": True}
 
     def _require_session(self, token=None):
         Session = self.env["hr.attendance.session"].sudo()

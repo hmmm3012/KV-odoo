@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hr_attendance_client_issue_list" model="ir.ui.view">
+        <field name="name">hr.attendance.client.issue.list</field>
+        <field name="model">hr.attendance.client.issue</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0">
+                <field name="server_time"/>
+                <field name="employee_id"/>
+                <field name="issue_code"/>
+                <field name="browser"/>
+                <field name="platform"/>
+                <field name="ip_address" optional="hide"/>
+                <field name="user_agent" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_hr_attendance_client_issue_pivot" model="ir.ui.view">
+        <field name="name">hr.attendance.client.issue.pivot</field>
+        <field name="model">hr.attendance.client.issue</field>
+        <field name="arch" type="xml">
+            <pivot string="Lỗi vị trí">
+                <field name="browser" type="row"/>
+                <field name="issue_code" type="col"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_hr_attendance_client_issue_search" model="ir.ui.view">
+        <field name="name">hr.attendance.client.issue.search</field>
+        <field name="model">hr.attendance.client.issue</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="employee_id"/>
+                <field name="browser"/>
+                <filter name="filter_last_7_days" string="7 ngày gần đây" domain="[('server_time', '&gt;=', (context_today() - relativedelta(days=7)).strftime('%Y-%m-%d'))]"/>
+                <filter name="filter_timeout" string="Không phản hồi quyền" domain="[('issue_code', '=', 'geolocation_timeout')]"/>
+                <filter name="filter_denied" string="Bị từ chối quyền" domain="[('issue_code', '=', 'geolocation_denied')]"/>
+                <group>
+                    <filter name="group_browser" string="Trình duyệt" context="{'group_by': 'browser'}"/>
+                    <filter name="group_issue" string="Lỗi" context="{'group_by': 'issue_code'}"/>
+                    <filter name="group_platform" string="Hệ điều hành" context="{'group_by': 'platform'}"/>
+                    <filter name="group_employee" string="Nhân viên" context="{'group_by': 'employee_id'}"/>
+                    <filter name="group_day" string="Ngày" context="{'group_by': 'server_time:day'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_hr_attendance_client_issue" model="ir.actions.act_window">
+        <field name="name">Lỗi vị trí trên portal</field>
+        <field name="res_model">hr.attendance.client.issue</field>
+        <field name="view_mode">list,pivot</field>
+        <field name="context">{'search_default_filter_last_7_days': 1, 'search_default_group_browser': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Chưa có lỗi vị trí nào</p>
+            <p>Mỗi lần nhân viên không lấy được vị trí trên portal chấm công sẽ được ghi lại ở đây, kèm loại trình duyệt.</p>
+        </field>
+    </record>
+
+    <menuitem
+        id="menu_hr_attendance_client_issue"
+        name="Lỗi vị trí trên portal"
+        parent="hr_attendance.menu_hr_attendance_root"
+        action="action_hr_attendance_client_issue"
+        sequence="22"
+        groups="base.group_system"/>
+</odoo>
