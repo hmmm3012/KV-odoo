@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     "name": "HR Employee Kien Viet",
-    "version": "18.0.1.3.7",
+    "version": "18.0.1.4.2",
     "summary": "Adds custom fields to Employees",
     "depends": ["hr"],
     "data": [
@@ -10,6 +10,7 @@
         "data/intro_letter_cleanup.xml",
         "views/res_company_views.xml",
         "views/intro_letter_wizard_views.xml",
+        "views/badge_wizard_views.xml",
         "views/hr_employee_views.xml",
     ],
     "assets": {

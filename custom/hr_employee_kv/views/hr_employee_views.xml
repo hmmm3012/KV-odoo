@@ -15,6 +15,12 @@
                 class="btn-secondary"
                 groups="hr.group_hr_user"
                 invisible="not id"/>
+        <button name="%(action_hr_employee_badge_wizard)d"
+                string="In thẻ nhân viên"
+                type="action"
+                class="btn-secondary"
+                groups="hr.group_hr_user"
+                invisible="not id"/>
       </xpath>
       
       <!-- Replace the private address div with custom address fields -->
@@ -68,7 +74,9 @@
         <group>
           <field name="tax_identification_number" string="Mã số thuế"/>
           <field name="sinid" string="Mã bảo hiểm"/>
+          <field name="fire_safety_cert_date"/>
           <field name="date_import" string="Ngày nhận việc"/>
+          <field name="emp_hr_source"/>
           <field name="departure_date" string="Ngày nghỉ việc"/>
           <field name="notes" string="Ghi chú"/>
         </group>
@@ -180,6 +188,8 @@
         <field name="emp_permanent_address" optional="hide"/>
         <field name="emp_temporary_address" optional="hide"/>
         <field name="sinid" string="Mã bảo hiểm" optional="hide"/>
+        <field name="fire_safety_cert_date" optional="hide"/>
+        <field name="emp_hr_source" optional="hide"/>
         <field name="departure_description" string="Ghi chú quá trình" optional="hide"/>
         <field name="tax_identification_number" string="Mã số thuế" optional="hide"/>
       </xpath>
@@ -272,6 +282,10 @@
       <!-- Add filter for date import -->
       <filter name="filter_birth_month" position="after">
         <filter name="filter_date_import" string="Ngày nhận việc" domain="[]" context="{'group_by': 'date_import'}"/>
+      </filter>
+
+      <filter name="filter_date_import" position="after">
+        <filter name="filter_hr_source" string="Nguồn nhân sự" domain="[]" context="{'group_by': 'emp_hr_source'}"/>
       </filter>
     </field>
   </record>

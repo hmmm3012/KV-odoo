@@ -63,6 +63,16 @@ class HrEmployee(models.Model):
     # Date of import
     date_import = fields.Date("Ngày nhận việc")
 
+    # HR source
+    emp_hr_source = fields.Selection(
+        [
+            ("internal_referral", "Nội bộ giới thiệu"),
+            ("hr_recruitment", "Phòng nhân sự tuyển dụng"),
+            ("other_parking_referral", "Bãi xe khác giới thiệu"),
+        ],
+        string="Nguồn nhân sự",
+    )
+
     # Employee code - generated automatically via ir.sequence in create()
     emp_code = fields.Char("Mã nhân viên", readonly=True, copy=False)
 
@@ -74,6 +84,9 @@ class HrEmployee(models.Model):
 
     # SINID
     sinid = fields.Char("Mã bảo hiểm")
+
+    # Fire safety (PCCC) certificate
+    fire_safety_cert_date = fields.Date("Chứng chỉ PCCC (ngày cấp)")
     
     # Month of birth - computed field based on birthday
     month_of_birth = fields.Selection(

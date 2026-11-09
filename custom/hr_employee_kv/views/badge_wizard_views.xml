@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_hr_employee_badge_wizard_form" model="ir.ui.view">
+        <field name="name">hr.employee.badge.wizard.form</field>
+        <field name="model">hr.employee.badge.wizard</field>
+        <field name="arch" type="xml">
+            <form string="In thẻ nhân viên">
+                <div class="text-muted mb-2">
+                    Họ tên được in trên 1 dòng. Nếu tên quá dài, hãy viết tắt trước khi in.
+                    Tối đa 8 thẻ trên mỗi tờ A4, có khoảng trống giữa các thẻ để cắt.
+                </div>
+                <field name="line_ids" nolabel="1">
+                    <list editable="bottom" create="0">
+                        <field name="employee_id" force_save="1"/>
+                        <field name="card_name"/>
+                        <field name="job_name"/>
+                        <field name="department_name"/>
+                        <field name="emp_code"/>
+                    </list>
+                </field>
+                <footer>
+                    <button name="action_print" type="object" string="In thẻ" class="btn-primary" data-hotkey="q"/>
+                    <button string="Hủy" special="cancel" data-hotkey="z"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_hr_employee_badge_wizard" model="ir.actions.act_window">
+        <field name="name">In thẻ nhân viên</field>
+        <field name="res_model">hr.employee.badge.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="hr.model_hr_employee"/>
+        <field name="binding_type">report</field>
+        <field name="binding_view_types">list,form</field>
+        <field name="groups_id" eval="[(4, ref('hr.group_hr_user'))]"/>
+    </record>
+
+    <!-- Standard Odoo badge needs wkhtmltopdf; the card above replaces it. -->
+    <record id="hr.hr_employee_print_badge" model="ir.actions.report">
+        <field name="binding_model_id" eval="False"/>
+    </record>
+</odoo>
