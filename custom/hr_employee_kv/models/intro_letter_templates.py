@@ -25,9 +25,8 @@ INTRO_LETTER_TEMPLATES = {
     THANH_NIEN: {
         "docx": _MODULE_STATIC / "giay_gioi_thieu_thanh_nien.docx",
         "odt": _MODULE_STATIC / "giay_gioi_thieu_thanh_nien.odt",
-        # Logo is word/media/image1.png in header only; employee photo is an empty VML box.
-        "docx_portrait": None,
-        "docx_portrait_vml": True,
+        # Header logo: word/media/image2.png — employee photo slot: word/media/image1.jpeg
+        "docx_portrait": "word/media/image1.jpeg",
         "odt_portrait": None,
         "portrait_format": "jpeg",
     },
