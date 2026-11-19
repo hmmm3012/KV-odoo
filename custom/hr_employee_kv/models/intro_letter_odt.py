@@ -54,7 +54,7 @@ def build_intro_letter_odt(wizard):
     portrait = _employee_portrait_bytes(
         wizard.employee_id, fmt=config["portrait_format"]
     ) or _blank_portrait_bytes(fmt=config["portrait_format"])
-    portrait_name = config["odt_portrait"]
+    portrait_name = config.get("odt_portrait")
     buffer = io.BytesIO()
     with zipfile.ZipFile(template_path, "r") as src, zipfile.ZipFile(
         buffer, "w", compression=zipfile.ZIP_DEFLATED
@@ -63,7 +63,7 @@ def build_intro_letter_odt(wizard):
             data = src.read(info.filename)
             if info.filename == "content.xml":
                 data = _fill_content_xml(data, values, template_key=template_key)
-            elif info.filename == portrait_name and portrait:
+            elif portrait_name and info.filename == portrait_name and portrait:
                 data = portrait
             if info.filename.endswith((".png", ".jpeg", ".jpg")):
                 dst.writestr(info, data, compress_type=zipfile.ZIP_STORED)

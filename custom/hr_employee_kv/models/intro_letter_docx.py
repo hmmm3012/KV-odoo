@@ -27,6 +27,14 @@ except ImportError:  # pragma: no cover
     Image = None
 
 W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+V = "{urn:schemas-microsoft-com:vml}"
+R = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
+REL_PKG = "{http://schemas.openxmlformats.org/package/2006/relationships}"
+IMAGE_REL_TYPE = (
+    "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image"
+)
+THANH_NIEN_PORTRAIT_RID = "rIdKvEmpPortrait"
+THANH_NIEN_PORTRAIT_ZIP = "word/media/portrait.jpeg"
 PORTRAIT_SIZE = (244, 326)
 
 
@@ -43,22 +51,32 @@ def build_intro_letter_docx(wizard):
     portrait_bytes = _employee_portrait_bytes(
         wizard.employee_id, fmt=config["portrait_format"]
     ) or _blank_portrait_bytes(fmt=config["portrait_format"])
-    portrait_name = config["docx_portrait"]
+    portrait_name = config.get("docx_portrait")
+    use_vml = config.get("docx_portrait_vml")
     buffer = io.BytesIO()
-    with zipfile.ZipFile(template_path, "r") as src, zipfile.ZipFile(
-        buffer, "w", compression=zipfile.ZIP_DEFLATED
-    ) as dst:
-        for info in src.infolist():
-            data = src.read(info.filename)
-            if info.filename == "word/document.xml":
-                data = _fill_document_xml(data, values, template_key=template_key)
-            elif info.filename == portrait_name and portrait_bytes:
-                data = portrait_bytes
-            # Keep original compress type for already-stored media when possible.
-            if info.filename.endswith((".png", ".jpeg", ".jpg")):
-                dst.writestr(info, data, compress_type=zipfile.ZIP_STORED)
+    with zipfile.ZipFile(template_path, "r") as src:
+        archive = {info.filename: src.read(info.filename) for info in src.infolist()}
+
+    archive["word/document.xml"] = _fill_document_xml(
+        archive["word/document.xml"], values, template_key=template_key
+    )
+    if use_vml and portrait_bytes:
+        rels_name = "word/_rels/document.xml.rels"
+        if rels_name in archive:
+            archive["word/document.xml"], archive[rels_name] = _inject_thanh_nien_vml_portrait(
+                archive["word/document.xml"],
+                archive[rels_name],
+            )
+        archive[THANH_NIEN_PORTRAIT_ZIP] = portrait_bytes
+    elif portrait_name and portrait_bytes and portrait_name in archive:
+        archive[portrait_name] = portrait_bytes
+
+    with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_DEFLATED) as dst:
+        for filename, data in archive.items():
+            if filename.endswith((".png", ".jpeg", ".jpg")):
+                dst.writestr(filename, data, compress_type=zipfile.ZIP_STORED)
             else:
-                dst.writestr(info.filename, data)
+                dst.writestr(filename, data)
     return buffer.getvalue()
 
 
@@ -259,6 +277,53 @@ def _set_paragraph_text(paragraph, text):
     _write_t(nodes[0], text or "")
     for node in nodes[1:]:
         _write_t(node, "")
+
+
+def _inject_thanh_nien_vml_portrait(document_xml, rels_xml):
+    """Attach portrait JPEG to the empty employee photo VML frame (not the header logo)."""
+    rels_root = etree.fromstring(rels_xml)
+    existing_ids = {rel.get("Id") for rel in rels_root}
+    if THANH_NIEN_PORTRAIT_RID not in existing_ids:
+        rel = etree.SubElement(rels_root, REL_PKG + "Relationship")
+        rel.set("Id", THANH_NIEN_PORTRAIT_RID)
+        rel.set("Type", IMAGE_REL_TYPE)
+        rel.set("Target", "media/portrait.jpeg")
+
+    doc_root = etree.fromstring(document_xml)
+    matched = False
+    for shape in doc_root.iter(V + "shape"):
+        style = shape.get("style") or ""
+        if "margin-left:408" in style and "height:120" in style:
+            imagedata = shape.find(V + "imagedata")
+            if imagedata is None:
+                imagedata = etree.SubElement(shape, V + "imagedata")
+            imagedata.set(R + "id", THANH_NIEN_PORTRAIT_RID)
+            matched = True
+            break
+    if not matched:
+        for shape in doc_root.iter(V + "shape"):
+            style = shape.get("style") or ""
+            if "width:95.05pt" in style and "height:120.9pt" in style:
+                imagedata = shape.find(V + "imagedata")
+                if imagedata is None:
+                    imagedata = etree.SubElement(shape, V + "imagedata")
+                imagedata.set(R + "id", THANH_NIEN_PORTRAIT_RID)
+                break
+
+    return (
+        etree.tostring(
+            doc_root,
+            xml_declaration=True,
+            encoding="UTF-8",
+            standalone=True,
+        ),
+        etree.tostring(
+            rels_root,
+            xml_declaration=True,
+            encoding="UTF-8",
+            standalone=True,
+        ),
+    )
 
 
 def _is_thanh_nien_recipient_continuation(full):
