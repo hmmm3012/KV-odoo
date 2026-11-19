@@ -36,7 +36,7 @@ def build_intro_letter_docx(wizard):
             wizard.env._("Thiếu file mẫu giấy giới thiệu nhân sự trên hệ thống.")
         )
 
-    portrait_jpeg = _employee_portrait_jpeg(wizard.employee_id)
+    portrait_jpeg = _employee_portrait_jpeg(wizard.employee_id) or _blank_portrait_jpeg()
     buffer = io.BytesIO()
     with zipfile.ZipFile(TEMPLATE_PATH, "r") as src, zipfile.ZipFile(
         buffer, "w", compression=zipfile.ZIP_DEFLATED
@@ -59,9 +59,6 @@ def _fill_document_xml(xml_bytes, values):
     root = etree.fromstring(xml_bytes)
     male = values.get("gender") == "male"
     female = values.get("gender") == "female"
-    # If gender unknown, keep sample mark on Nam (matches blank form usage).
-    if not male and not female:
-        male = True
 
     day_dots_done = False
     for paragraph in root.iter(f"{W}p"):
@@ -69,44 +66,55 @@ def _fill_document_xml(xml_bytes, values):
         if not full:
             continue
 
-        if full.startswith("Kính gửi:"):
-            _set_text_node(paragraph, 1, values.get("recipient") or "…………………………….")
+        if full.startswith("Kính gửi"):
+            _set_field_value(paragraph, "Kính gửi", values.get("recipient") or "")
         elif full.startswith("Họ và tên"):
-            _set_text_node(paragraph, 2, values.get("name") or "")
+            _set_field_value(paragraph, "Họ và tên", values.get("name") or "")
         elif "Nam" in full and "Nữ" not in full:
             _set_gender_male_paragraph(paragraph, selected=male)
         elif "Nữ" in full and "Nam" not in full:
             _set_gender_female_paragraph(paragraph, selected=female)
         elif full.startswith("Ngày sinh"):
-            _set_text_node(paragraph, 2, values.get("birthday") or "")
+            _set_field_value(paragraph, "Ngày sinh", values.get("birthday") or "")
         elif full.startswith("Nơi sinh"):
-            place = values.get("place_of_origin") or ""
-            _set_text_node(paragraph, 1, f" {place}" if place else " ")
+            _set_field_value(paragraph, "Nơi sinh", values.get("place_of_origin") or "")
         elif full.startswith("CCCD số"):
-            _set_text_node(paragraph, 3, values.get("identification_id") or "")
+            _set_field_value(paragraph, "CCCD số", values.get("identification_id") or "")
         elif full.startswith("Ngày cấp"):
-            _set_text_node(paragraph, 1, values.get("identification_date") or "")
+            _set_field_value(paragraph, "Ngày cấp", values.get("identification_date") or "")
         elif full.startswith("Nơi cấp"):
-            _set_text_node(paragraph, 1, values.get("identification_by") or "")
+            _set_field_value(paragraph, "Nơi cấp", values.get("identification_by") or "")
         elif full.startswith("Trình độ học vấn"):
-            _set_text_node(paragraph, 2, values.get("education_level") or "")
+            _set_field_value(
+                paragraph, "Trình độ học vấn", values.get("education_level") or ""
+            )
         elif full.startswith("Địa chỉ thường trú"):
-            _set_text_node(paragraph, 3, values.get("permanent_address") or "")
+            _set_field_value(
+                paragraph, "Địa chỉ thường trú", values.get("permanent_address") or ""
+            )
         elif full.startswith("Địa chỉ tạm trú"):
-            _set_text_node(paragraph, 2, values.get("temporary_address") or "")
+            _set_field_value(
+                paragraph, "Địa chỉ tạm trú", values.get("temporary_address") or ""
+            )
         elif full.startswith("Điện thoại liên lạc"):
-            _set_text_node(paragraph, 2, values.get("phone") or "")
+            _set_field_value(
+                paragraph, "Điện thoại liên lạc", values.get("phone") or ""
+            )
         elif full.startswith("Ngày bắt đầu làm việc"):
-            _set_text_node(paragraph, 2, values.get("date_import") or "")
+            _set_field_value(
+                paragraph, "Ngày bắt đầu làm việc", values.get("date_import") or ""
+            )
         elif full.startswith("Vị trí"):
-            _set_text_node(paragraph, 2, values.get("job_title") or "")
+            _set_field_value(paragraph, "Vị trí", values.get("job_title") or "")
         elif full.startswith("MSNV"):
-            _set_text_node(paragraph, 2, values.get("emp_code") or "")
+            _set_field_value(paragraph, "MSNV", values.get("emp_code") or "")
         elif full.startswith("Ca làm việc"):
-            _set_text_node(paragraph, 2, values.get("work_shift") or "")
+            _set_field_value(paragraph, "Ca làm việc", values.get("work_shift") or "")
         elif full.startswith("Tình trạng sức khỏe"):
             health = (values.get("health_status") or "").rstrip(".")
-            _set_text_node(paragraph, 1, f": {health}." if health else ": ")
+            _set_field_value(
+                paragraph, "Tình trạng sức khỏe", f"{health}." if health else ""
+            )
         elif "Tp.HCM" in full and "ngày" in full:
             for node in paragraph.iter(f"{W}t"):
                 text = node.text or ""
@@ -115,7 +123,8 @@ def _fill_document_xml(xml_bytes, values):
                         _write_t(node, values.get("sign_day") or "")
                         day_dots_done = True
                     else:
-                        _write_t(node, values.get("sign_month") or "")
+                        # Template run is " tháng" with no space before the dots.
+                        _write_t(node, f" {values.get('sign_month') or ''}")
                 elif text == "………":
                     _write_t(node, values.get("sign_year") or "")
 
@@ -135,11 +144,45 @@ def _text_nodes(paragraph):
     return list(paragraph.iter(f"{W}t"))
 
 
-def _set_text_node(paragraph, index, value):
+def _set_field_value(paragraph, label, value):
+    """Write ``label: value`` without depending on how Word split the runs.
+
+    The official template keeps the sample person (Dương Tuấn Anh) in the value
+    run. Some rows are ``[label, ': value']``, some ``[label, ': ', value]``,
+    and some a single run ``'label: value'``. Index-based writes miss the short
+    rows and leave the sample birthday, start date, employee code, and shift.
+    """
     nodes = _text_nodes(paragraph)
-    if index >= len(nodes):
+    if not nodes:
         return
-    _write_t(nodes[index], value)
+    texts = [node.text or "" for node in nodes]
+    full = "".join(texts)
+    start = full.find(label)
+    if start < 0:
+        return
+    label_end = start + len(label)
+    new_value = f": {value}" if value else ": "
+    consumed = 0
+    value_written = False
+    for node, text in zip(nodes, texts):
+        node_start = consumed
+        node_end = consumed + len(text)
+        consumed = node_end
+        if node_end <= label_end:
+            continue
+        if node_start >= label_end:
+            if not value_written:
+                _write_t(node, new_value)
+                value_written = True
+            else:
+                _write_t(node, "")
+            continue
+        keep = text[: label_end - node_start]
+        _write_t(node, keep + new_value)
+        value_written = True
+    if not value_written:
+        last = nodes[-1]
+        _write_t(last, (last.text or "") + new_value)
 
 
 def _write_t(node, value):
@@ -173,6 +216,16 @@ def _set_gender_female_paragraph(paragraph, selected):
     else:
         _write_t(nodes[0], "     ")
     _write_t(nodes[1], "Nữ")
+
+
+def _blank_portrait_jpeg():
+    """White photo box so the template sample portrait is never printed."""
+    if Image is None:
+        return None
+    image = Image.new("RGB", PORTRAIT_SIZE, (255, 255, 255))
+    out = io.BytesIO()
+    image.save(out, format="JPEG", quality=85)
+    return out.getvalue()
 
 
 def _employee_portrait_jpeg(employee):

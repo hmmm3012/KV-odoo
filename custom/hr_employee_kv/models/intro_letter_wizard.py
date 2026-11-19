@@ -6,7 +6,11 @@ from odoo import api, fields, models
 from odoo.exceptions import UserError
 
 from .intro_letter_docx import build_intro_letter_docx
-from .intro_letter_pdf import build_intro_letter_pdf
+from .intro_letter_odt import export_intro_letter_pdf_from_odt
+
+HEALTH_STATUS_DEFAULT = "đủ sức khoẻ làm việc"
+PROP_WORK_SHIFT = "Ca làm việc"
+PROP_EDUCATION = "Học vấn"
 
 
 class HrEmployeeIntroLetterWizard(models.TransientModel):
@@ -20,24 +24,34 @@ class HrEmployeeIntroLetterWizard(models.TransientModel):
         readonly=True,
     )
     recipient = fields.Char(string="Kính gửi", required=True)
-    education_level = fields.Char(string="Trình độ học vấn")
-    work_shift = fields.Char(string="Ca làm việc")
-    health_status = fields.Char(
-        string="Tình trạng sức khỏe",
-        default="đủ sức khoẻ làm việc",
-        required=True,
+    # Company employee Properties (not standard Education / Working Hours).
+    education_level = fields.Char(
+        string="Học vấn",
+        compute="_compute_employee_property_fields",
+        readonly=True,
+    )
+    work_shift = fields.Char(
+        string="Ca làm việc",
+        compute="_compute_employee_property_fields",
+        readonly=True,
     )
     export_format = fields.Selection(
         [
-            ("pdf", "PDF"),
             ("docx", "Word (.docx)"),
+            ("pdf", "PDF"),
         ],
         string="Định dạng",
         required=True,
-        default="pdf",
+        default="docx",
     )
     file_data = fields.Binary(string="File", readonly=True, attachment=False)
     file_name = fields.Char(string="Tên file", readonly=True)
+
+    @api.depends("employee_id", "employee_id.employee_properties")
+    def _compute_employee_property_fields(self):
+        for wizard in self:
+            wizard.education_level = wizard._employee_property_display(PROP_EDUCATION)
+            wizard.work_shift = wizard._employee_property_display(PROP_WORK_SHIFT)
 
     @api.model
     def default_get(self, fields_list):
@@ -45,8 +59,7 @@ class HrEmployeeIntroLetterWizard(models.TransientModel):
         employee = self.env["hr.employee"].browse(self.env.context.get("active_id"))
         if employee:
             values.setdefault("employee_id", employee.id)
-        values.setdefault("health_status", "đủ sức khoẻ làm việc")
-        values.setdefault("export_format", "pdf")
+        values.setdefault("export_format", "docx")
         return values
 
     def action_download(self):
@@ -57,7 +70,7 @@ class HrEmployeeIntroLetterWizard(models.TransientModel):
             content = build_intro_letter_docx(self)
             extension = "docx"
         else:
-            content = build_intro_letter_pdf(self)
+            content = export_intro_letter_pdf_from_odt(self)
             extension = "pdf"
         return self._action_download_file(content, extension)
 
@@ -96,6 +109,40 @@ class HrEmployeeIntroLetterWizard(models.TransientModel):
     def _phone(self):
         employee = self.employee_id
         return employee.private_phone or employee.mobile_phone or employee.work_phone or ""
+
+    def _employee_property_definition(self, label):
+        """Find a company employee Property definition by its display string."""
+        self.ensure_one()
+        employee = self.employee_id
+        if not employee:
+            return None
+        definitions = employee.company_id.employee_properties_definition or []
+        for definition in definitions:
+            if definition.get("string") == label:
+                return definition
+        return None
+
+    def _employee_property_display(self, label):
+        """Resolve Properties value (selection → label, char → text)."""
+        self.ensure_one()
+        employee = self.employee_id
+        if not employee:
+            return ""
+        definition = self._employee_property_definition(label)
+        if not definition:
+            return ""
+        props = employee.employee_properties or {}
+        raw = props.get(definition.get("name"))
+        if not raw:
+            return ""
+        if definition.get("type") == "selection":
+            options = {
+                option[0]: option[1]
+                for option in (definition.get("selection") or [])
+                if option
+            }
+            return options.get(raw, raw) or ""
+        return str(raw).strip()
 
     @api.model
     def _province_from_address(self, address):
@@ -137,7 +184,7 @@ class HrEmployeeIntroLetterWizard(models.TransientModel):
             "job_title": employee.job_id.name or employee.job_title or "",
             "emp_code": employee.emp_code or "",
             "work_shift": self.work_shift or "",
-            "health_status": self.health_status or "",
+            "health_status": HEALTH_STATUS_DEFAULT,
             "sign_day": f"{today.day:02d}",
             "sign_month": f"{today.month:02d}",
             "sign_year": str(today.year),

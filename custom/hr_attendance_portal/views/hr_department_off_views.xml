@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hr_department_off_list" model="ir.ui.view">
+        <field name="name">hr.department.off.list</field>
+        <field name="model">hr.department.off</field>
+        <field name="arch" type="xml">
+            <list string="Lịch OFF" editable="bottom" multi_edit="1">
+                <field name="date"/>
+                <field name="employee_id" widget="many2one_avatar_employee" options="{'no_create': True}"/>
+                <field name="department_id" options="{'no_create': True}"/>
+                <field name="shift" widget="badge" decoration-info="shift == 'day'" decoration-muted="shift == 'night'"/>
+                <field name="note" optional="show"/>
+                <field name="company_id" optional="hide" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_hr_department_off_form" model="ir.ui.view">
+        <field name="name">hr.department.off.form</field>
+        <field name="model">hr.department.off</field>
+        <field name="arch" type="xml">
+            <form string="Lịch OFF">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="employee_id" widget="many2one_avatar_employee" options="{'no_create': True}"/>
+                            <field name="department_id" options="{'no_create': True}"/>
+                        </group>
+                        <group>
+                            <field name="date"/>
+                            <field name="shift"/>
+                        </group>
+                    </group>
+                    <field name="note" placeholder="Ghi chú..."/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_hr_department_off_calendar" model="ir.ui.view">
+        <field name="name">hr.department.off.calendar</field>
+        <field name="model">hr.department.off</field>
+        <field name="arch" type="xml">
+            <calendar string="Lịch OFF" date_start="date" mode="month" color="department_id"
+                      quick_create="0" event_open_popup="1" scales="month,week">
+                <field name="employee_id"/>
+                <field name="department_id" filters="1"/>
+                <field name="shift"/>
+                <field name="note"/>
+            </calendar>
+        </field>
+    </record>
+
+    <record id="view_hr_department_off_pivot" model="ir.ui.view">
+        <field name="name">hr.department.off.pivot</field>
+        <field name="model">hr.department.off</field>
+        <field name="arch" type="xml">
+            <pivot string="Lịch OFF" sample="1">
+                <field name="date" interval="day" type="row"/>
+                <field name="department_id" type="col"/>
+                <field name="shift" type="col"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_hr_department_off_search" model="ir.ui.view">
+        <field name="name">hr.department.off.search</field>
+        <field name="model">hr.department.off</field>
+        <field name="arch" type="xml">
+            <search string="Lịch OFF">
+                <field name="employee_id"/>
+                <field name="department_id" operator="child_of"/>
+                <filter name="upcoming" string="Từ hôm nay" domain="[('date', '&gt;=', context_today().strftime('%Y-%m-%d'))]"/>
+                <filter name="date" string="Ngày OFF" date="date"/>
+                <separator/>
+                <filter name="shift_day" string="Ca ngày" domain="[('shift', '=', 'day')]"/>
+                <filter name="shift_night" string="Ca đêm" domain="[('shift', '=', 'night')]"/>
+                <group expand="0" string="Nhóm theo">
+                    <filter name="group_date" string="Ngày" context="{'group_by': 'date:day'}"/>
+                    <filter name="group_department" string="Phòng ban" context="{'group_by': 'department_id'}"/>
+                    <filter name="group_shift" string="Ca" context="{'group_by': 'shift'}"/>
+                    <filter name="group_employee" string="Nhân viên" context="{'group_by': 'employee_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_hr_department_off" model="ir.actions.act_window">
+        <field name="name">Lịch OFF</field>
+        <field name="res_model">hr.department.off</field>
+        <field name="view_mode">list,calendar,pivot,form</field>
+        <field name="search_view_id" ref="view_hr_department_off_search"/>
+        <field name="context">{'search_default_upcoming': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Chưa có lịch OFF</p>
+            <p>Thêm một dòng cho mỗi nhân viên và ngày OFF đã đăng ký trước.</p>
+        </field>
+    </record>
+
+    <record id="view_hr_department_off_export_form" model="ir.ui.view">
+        <field name="name">hr.department.off.export.form</field>
+        <field name="model">hr.department.off.export</field>
+        <field name="arch" type="xml">
+            <form string="Xuất lịch OFF">
+                <group>
+                    <group>
+                        <field name="date_from"/>
+                        <field name="date_to"/>
+                    </group>
+                    <group>
+                        <field name="department_ids" widget="many2many_tags" options="{'no_create': True}"/>
+                    </group>
+                </group>
+                <footer>
+                    <button name="action_export" type="object" string="Xuất Excel" class="btn-primary"/>
+                    <button string="Đóng" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_hr_department_off_export" model="ir.actions.act_window">
+        <field name="name">Xuất lịch OFF</field>
+        <field name="res_model">hr.department.off.export</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <record id="action_hr_department_off_calendar" model="ir.actions.client">
+        <field name="name">Nhập lịch OFF</field>
+        <field name="tag">hr_attendance_portal.off_calendar</field>
+    </record>
+
+    <menuitem
+        id="menu_hr_department_off"
+        name="Lịch OFF"
+        parent="hr_attendance.menu_hr_attendance_root"
+        sequence="8"
+        groups="hr.group_hr_user,hr_attendance.group_hr_attendance_officer,group_hr_attendance_site_captain"/>
+
+    <menuitem
+        id="menu_hr_department_off_calendar"
+        name="Nhập lịch OFF"
+        parent="menu_hr_department_off"
+        action="action_hr_department_off_calendar"
+        sequence="0"/>
+
+    <menuitem
+        id="menu_hr_department_off_list"
+        name="Lịch OFF"
+        parent="menu_hr_department_off"
+        action="action_hr_department_off"
+        sequence="1"/>
+
+    <menuitem
+        id="menu_hr_department_off_export"
+        name="Xuất lịch OFF"
+        parent="menu_hr_department_off"
+        action="action_hr_department_off_export"
+        sequence="2"/>
+</odoo>

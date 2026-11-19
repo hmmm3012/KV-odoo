@@ -6,6 +6,10 @@ from odoo import fields, models
 class ResConfigSettings(models.TransientModel):
     _inherit = "res.config.settings"
 
+    off_schedule_lock_day = fields.Integer(
+        related="company_id.off_schedule_lock_day",
+        readonly=False,
+    )
     attendance_portal_session_minutes = fields.Integer(
         related="company_id.attendance_portal_session_minutes",
         readonly=False,

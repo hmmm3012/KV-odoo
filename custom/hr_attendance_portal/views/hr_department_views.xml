@@ -5,6 +5,15 @@
         <field name="model">hr.department</field>
         <field name="inherit_id" ref="hr.view_department_form"/>
         <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button class="oe_stat_button" type="object" name="action_open_off_schedule" icon="fa-calendar-times-o"
+                        groups="hr.group_hr_user,hr_attendance.group_hr_attendance_officer,hr_attendance_portal.group_hr_attendance_site_captain">
+                    <field name="off_count" string="OFF sắp tới" widget="statinfo"/>
+                </button>
+                <button class="oe_stat_button" type="object" name="action_open_off_calendar" icon="fa-calendar"
+                        string="Nhập lịch OFF"
+                        groups="hr.group_hr_user,hr_attendance.group_hr_attendance_officer,hr_attendance_portal.group_hr_attendance_site_captain"/>
+            </xpath>
             <xpath expr="//field[@name='parent_id']" position="after">
                 <separator string="Attendance parking site"/>
                 <field name="attendance_location_id"/>
@@ -12,6 +21,73 @@
                 <field name="attendance_longitude"/>
                 <field name="attendance_radius_meters"/>
                 <field name="attendance_max_gps_accuracy_meters"/>
+            </xpath>
+            <xpath expr="//sheet/group" position="after">
+                <notebook groups="hr.group_hr_user,hr_attendance.group_hr_attendance_officer,hr_attendance_portal.group_hr_attendance_site_captain">
+                    <page string="Cơ cấu nhân sự" name="staff_structure">
+                        <table class="table table-sm table-bordered text-center w-auto">
+                            <thead>
+                                <tr>
+                                    <th class="text-start">Vị trí</th>
+                                    <th>Cơ cấu</th>
+                                    <th>Thực tế</th>
+                                    <th>Thừa / thiếu</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="text-start">QLBX</td>
+                                    <td><field name="structure_qlbx" class="text-center"/></td>
+                                    <td><field name="actual_qlbx"/></td>
+                                    <td><field name="gap_qlbx"/></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-start">CSKH</td>
+                                    <td><field name="structure_cskh" class="text-center"/></td>
+                                    <td><field name="actual_cskh"/></td>
+                                    <td><field name="gap_cskh"/></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-start">Ca ngày</td>
+                                    <td><field name="structure_day" class="text-center"/></td>
+                                    <td><field name="actual_day"/></td>
+                                    <td><field name="gap_day"/></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-start">Ca đêm</td>
+                                    <td><field name="structure_night" class="text-center"/></td>
+                                    <td><field name="actual_night"/></td>
+                                    <td><field name="gap_night"/></td>
+                                </tr>
+                                <tr invisible="not actual_unassigned">
+                                    <td class="text-start">Chưa xếp ca</td>
+                                    <td/>
+                                    <td><field name="actual_unassigned"/></td>
+                                    <td/>
+                                </tr>
+                                <tr class="fw-bold">
+                                    <td class="text-start">Tổng</td>
+                                    <td><field name="structure_total"/></td>
+                                    <td><field name="actual_total"/></td>
+                                    <td><field name="gap_total"/></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <group>
+                            <group>
+                                <field name="structure_note"/>
+                            </group>
+                            <group string="Giới hạn lịch OFF">
+                                <field name="off_max_day"/>
+                                <field name="off_max_night"/>
+                            </group>
+                        </group>
+                        <div class="text-muted small">
+                            QLBX và CSKH đếm theo "Nhóm cơ cấu" của chức vụ. Nhân viên còn lại đếm theo "Ca làm việc" trong hồ sơ.
+                            Số âm ở cột Thừa / thiếu là đang thiếu người.
+                        </div>
+                    </page>
+                </notebook>
             </xpath>
         </field>
     </record>
@@ -29,4 +105,71 @@
             </xpath>
         </field>
     </record>
+
+    <record id="view_department_filter_staff_structure" model="ir.ui.view">
+        <field name="name">hr.department.search.staff.structure</field>
+        <field name="model">hr.department</field>
+        <field name="inherit_id" ref="hr.view_department_filter"/>
+        <field name="arch" type="xml">
+            <filter name="inactive" position="before">
+                <filter string="Có cơ cấu nhân sự" name="has_structure" domain="[('structure_total', '>', 0)]"/>
+                <separator/>
+            </filter>
+        </field>
+    </record>
+
+    <record id="view_department_staff_structure_list" model="ir.ui.view">
+        <field name="name">hr.department.list.staff.structure</field>
+        <field name="model">hr.department</field>
+        <field name="priority">100</field>
+        <field name="arch" type="xml">
+            <list string="Cơ cấu nhân sự" editable="bottom" create="false" delete="false">
+                <field name="name" string="Phòng ban" readonly="1"/>
+                <field name="structure_total" sum="Tổng"/>
+                <field name="structure_qlbx" string="CC QLBX" sum="Tổng"/>
+                <field name="structure_cskh" string="CC CSKH" sum="Tổng"/>
+                <field name="structure_day" string="CC Ngày" sum="Tổng"/>
+                <field name="structure_night" string="CC Đêm" sum="Tổng"/>
+                <field name="actual_total" sum="Tổng"/>
+                <field name="actual_qlbx" string="TT QLBX" sum="Tổng" optional="show"/>
+                <field name="actual_cskh" string="TT CSKH" sum="Tổng" optional="show"/>
+                <field name="actual_day" string="TT Ngày" sum="Tổng" optional="show"/>
+                <field name="actual_night" string="TT Đêm" sum="Tổng" optional="show"/>
+                <field name="actual_unassigned" sum="Tổng" optional="show"/>
+                <field name="gap_total" sum="Tổng"
+                       decoration-danger="gap_total &lt; 0" decoration-warning="gap_total &gt; 0"/>
+                <field name="gap_qlbx" string="± QLBX" sum="Tổng" optional="show"
+                       decoration-danger="gap_qlbx &lt; 0" decoration-warning="gap_qlbx &gt; 0"/>
+                <field name="gap_cskh" string="± CSKH" sum="Tổng" optional="show"
+                       decoration-danger="gap_cskh &lt; 0" decoration-warning="gap_cskh &gt; 0"/>
+                <field name="gap_day" string="± Ngày" sum="Tổng" optional="show"
+                       decoration-danger="gap_day &lt; 0" decoration-warning="gap_day &gt; 0"/>
+                <field name="gap_night" string="± Đêm" sum="Tổng" optional="show"
+                       decoration-danger="gap_night &lt; 0" decoration-warning="gap_night &gt; 0"/>
+                <field name="structure_note" optional="show"/>
+                <field name="off_max_day" string="OFF tối đa ngày" optional="hide"/>
+                <field name="off_max_night" string="OFF tối đa đêm" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_hr_department_staff_structure" model="ir.actions.act_window">
+        <field name="name">Cơ cấu nhân sự</field>
+        <field name="res_model">hr.department</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_id" ref="view_department_staff_structure_list"/>
+        <field name="context">{'search_default_has_structure': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Chưa có phòng ban nào được nhập cơ cấu nhân sự</p>
+            <p>Bỏ bộ lọc "Có cơ cấu nhân sự" để nhập số cơ cấu cho từng phòng ban ngay trong danh sách.</p>
+        </field>
+    </record>
+
+    <menuitem
+        id="menu_hr_department_staff_structure"
+        name="Cơ cấu nhân sự"
+        parent="hr.hr_menu_hr_reports"
+        action="action_hr_department_staff_structure"
+        sequence="5"
+        groups="hr.group_hr_user"/>
 </odoo>

@@ -2,7 +2,7 @@
 
 """Employee badge: overlay text and photo on the printer-ready card template.
 
-The template is 100 x 65.3 mm including a 3 mm bleed. Coordinates below are in
+The template is exactly 100 x 70 mm (finished size). Coordinates below are in
 points measured from the top-left corner of the template, taken from the
 approved sample card.
 """
@@ -32,37 +32,37 @@ _FONTS = {
 }
 _FONTS_REGISTERED = False
 
-_TEXT_LEFT = 101.2
-_TEXT_MAX_WIDTH = 165.0
+_TEXT_LEFT = 105.9
+_TEXT_MAX_WIDTH = 162.0
 
 # key: (font, size, rgb, x, baseline from top, align, tracking in em)
-# Negative tracking narrows Be Vietnam Pro to the width of the designer's font.
 _STYLE = {
-    "name_label": ("kv_badge_regular", 5.0, (94, 40, 5), 100.9, 82.24, "left", 0.0),
-    "name": ("kv_badge_bold", 12.0, (31, 23, 12), _TEXT_LEFT, 96.04, "left", -0.026),
-    "job": ("kv_badge_bold", 7.5, (31, 23, 12), 101.0, 116.44, "left", -0.02),
-    "department": ("kv_badge_regular", 6.2, (65, 33, 8), 101.0, 126.2, "left", 0.0),
-    "code_label": ("kv_badge_medium", 5.0, (254, 220, 195), 262.4, 158.44, "right", 0.0),
-    "code": ("kv_badge_semibold", 10.0, (255, 255, 255), 262.0, 169.52, "right", -0.017),
+    "name_label": ("kv_badge_regular", 5.8, (91, 40, 16), 105.7, 70.9, "left", 0.0),
+    "name": ("kv_badge_bold", 13.5, (28, 25, 22), _TEXT_LEFT, 92.0, "left", -0.02),
+    "job": ("kv_badge_bold", 8.55, (28, 25, 22), 105.9, 115.6, "left", -0.015),
+    "department": ("kv_badge_regular", 6.45, (62, 34, 22), 105.7, 129.4, "left", 0.0),
+    "code_label": ("kv_badge_medium", 5.2, (254, 220, 195), 272.1, 176.0, "right", 0.0),
+    "code": ("kv_badge_semibold", 11.65, (255, 255, 255), 271.4, 187.0, "right", -0.01),
 }
-_RULE = {"x": 100.4, "y": 103.96, "w": 18.71, "h": 0.84, "rgb": (52, 16, 6)}
-_PHOTO = {"x": 25.55, "y": 70.78, "w": 59.26, "h": 77.85}
+_RULE = {"x": 105.1, "y": 98.97, "w": 22.9, "h": 0.96, "rgb": (52, 16, 6)}
+_PHOTO = {"x": 13.56, "y": 63.46, "w": 78.57, "h": 104.73}
 # Photo pixels at ~600 dpi on the card.
-_PHOTO_PX = (494, 649)
+_PHOTO_PX = (655, 873)
 
 # Pack badges onto A4 (2 columns × 4 rows = 8 cards per sheet).
 _A4 = (595.28, 841.89)
 _COLS = 2
 _ROWS = 4
 _PER_PAGE = _COLS * _ROWS
-# White gap between cards so they can be cut apart (≈ 4 mm).
-_GAP = 11.34
+# White gap between cards so they can be cut apart (≈ 3 mm; 4 mm is too tight for 70 mm cards).
+_GAP = 8.5
 
 
 def build_badge_pdf(cards):
     """Return PDF bytes with up to 8 badges per A4 page.
 
     Each card has: name, job, department, code, photo (base64 or False).
+    Finished cards are 100 x 70 mm.
     """
     if not cards:
         raise ValueError("No badges to print.")
@@ -87,9 +87,13 @@ def build_badge_pdf(cards):
     step_y = card_h + _GAP
     grid_w = _COLS * card_w + (_COLS - 1) * _GAP
     grid_h = _ROWS * card_h + (_ROWS - 1) * _GAP
+    if grid_w > page_w + 0.01 or grid_h > page_h + 0.01:
+        raise ValueError(
+            f"Badge grid {grid_w:.1f}x{grid_h:.1f} pt does not fit on A4."
+        )
     margin_x = (page_w - grid_w) / 2
     margin_y = (page_h - grid_h) / 2
-    blank_bytes = _blank_a4_bytes()
+    blank_bytes = _blank_pdf_bytes(_A4)
 
     writer = PdfWriter()
     for start in range(0, len(overlay_pages), _PER_PAGE):
@@ -114,9 +118,9 @@ def build_badge_pdf(cards):
     return output.getvalue()
 
 
-def _blank_a4_bytes():
+def _blank_pdf_bytes(pagesize):
     buffer = BytesIO()
-    blank = canvas.Canvas(buffer, pagesize=_A4)
+    blank = canvas.Canvas(buffer, pagesize=pagesize)
     blank.showPage()
     blank.save()
     return buffer.getvalue()

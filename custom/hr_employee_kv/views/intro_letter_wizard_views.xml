@@ -8,9 +8,8 @@
                 <group>
                     <field name="employee_id"/>
                     <field name="recipient" placeholder="Ban Quản lý bãi xe..."/>
-                    <field name="education_level" placeholder="12/12"/>
-                    <field name="work_shift" placeholder="15h-23h"/>
-                    <field name="health_status"/>
+                    <field name="education_level" placeholder="Chưa có trên hồ sơ nhân viên"/>
+                    <field name="work_shift" placeholder="Chưa có trên hồ sơ nhân viên"/>
                     <field name="export_format" widget="radio"/>
                 </group>
                 <footer>

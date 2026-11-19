@@ -101,6 +101,9 @@ class ResUsers(models.Model):
         must also see visitors who checked in or out at their workplace.
         """
         domain = super()._hr_department_access_domain(model_name)
+        if model_name == "hr.department.off":
+            department_ids = list(self._hr_authorized_department_ids())
+            return [("department_id", "child_of", department_ids)] if department_ids else []
         if not domain or not self.env.user.has_group(
             "hr_attendance_portal.group_hr_attendance_site_captain"
         ):

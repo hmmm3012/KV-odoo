@@ -7,7 +7,7 @@
             <form string="In thẻ nhân viên">
                 <div class="text-muted mb-2">
                     Họ tên được in trên 1 dòng. Nếu tên quá dài, hãy viết tắt trước khi in.
-                    Tối đa 8 thẻ trên mỗi tờ A4, có khoảng trống giữa các thẻ để cắt.
+                    Thẻ thành phẩm 10 × 7 cm. Tối đa 8 thẻ trên mỗi tờ A4, có khoảng trống giữa các thẻ để cắt.
                 </div>
                 <field name="line_ids" nolabel="1">
                     <list editable="bottom" create="0">

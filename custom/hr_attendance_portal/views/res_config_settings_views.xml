@@ -71,6 +71,14 @@
                         <field name="attendance_portal_face_not_enrolled_policy"/>
                     </setting>
                 </block>
+                <block title="Lịch OFF" name="off_schedule_settings">
+                    <setting string="Ngày chốt lịch OFF"
+                             help="Đội trưởng sửa được lịch OFF của một tháng đến hết ngày trước ngày chốt của tháng trước. Ví dụ ngày chốt 27: lịch tháng 11 phải chốt xong trước ngày 27/10. Sau đó chỉ nhân sự được sửa.">
+                        <span>Ngày </span>
+                        <field name="off_schedule_lock_day" class="text-center" style="width: 4ch;"/>
+                        <span> của tháng trước</span>
+                    </setting>
+                </block>
             </xpath>
         </field>
     </record>

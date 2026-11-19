@@ -415,9 +415,13 @@ class HrAttendanceTimesheetWizard(models.TransientModel):
 
     @api.model
     def _employee_work_shift_kind(self, employee):
-        """Return 'day' or 'night' from the employee Property "Ca làm việc".
+        """Return 'day' or 'night'; an unset "Ca làm việc" counts as day."""
+        return self._employee_work_shift_value(employee) or "day"
 
-        Missing property definition or empty value defaults to day.
+    @api.model
+    def _employee_work_shift_value(self, employee):
+        """Return 'day', 'night', or False from the employee Property "Ca làm việc".
+
         Captains may lack hr.group_hr_user, so Properties are read with sudo.
         """
         visible = employee.sudo()
@@ -428,10 +432,10 @@ class HrAttendanceTimesheetWizard(models.TransientModel):
             None,
         )
         if not definition:
-            return "day"
+            return False
         raw = (visible.employee_properties or {}).get(definition.get("name"))
         if not raw:
-            return "day"
+            return False
         if definition.get("type") == "selection":
             options = {
                 option[0]: option[1]

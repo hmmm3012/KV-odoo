@@ -19,6 +19,7 @@ class IrUiMenu(models.Model):
                 "hr_attendance_portal.menu_hr_attendance_timesheet",
                 "hr_attendance_portal.menu_hr_attendance_event",
                 "hr_attendance_portal.menu_hr_overtime_approved",
+                "hr_attendance_portal.menu_hr_department_off",
                 "hr_attendance.menu_hr_attendance_reporting",
             )
             allowed = set()
@@ -42,6 +43,10 @@ class IrUiMenu(models.Model):
             "hr_attendance_portal.menu_site_captain_exception",
             "hr_attendance_portal.menu_hr_overtime_approved",
             "hr_attendance_portal.menu_site_captain_event",
+            "hr_attendance_portal.menu_hr_department_off",
+            "hr_attendance_portal.menu_hr_department_off_calendar",
+            "hr_attendance_portal.menu_hr_department_off_list",
+            "hr_attendance_portal.menu_hr_department_off_export",
         )
         allowed = set()
         for xmlid in xmlids:

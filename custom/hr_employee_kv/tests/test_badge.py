@@ -6,6 +6,7 @@ from io import BytesIO
 from pdfrw import PdfReader
 from PIL import Image
 
+from odoo.addons.hr_employee_kv.models.badge_pdf import _TEMPLATE_PDF
 from odoo.tests.common import TransactionCase, tagged
 
 
@@ -57,6 +58,13 @@ class TestEmployeeBadge(TransactionCase):
         self.assertEqual(line.card_name, "HÀ QUANG LÝ HÙNG")
         self.assertEqual(line.job_name, "Nhân viên nghiệp vụ")
         self.assertEqual(line.department_name, "Phòng Nghiệp vụ và đào tạo")
+
+    def test_template_is_100x70mm(self):
+        page = PdfReader(str(_TEMPLATE_PDF)).pages[0]
+        width = float(page.MediaBox[2]) / 72 * 25.4
+        height = float(page.MediaBox[3]) / 72 * 25.4
+        self.assertAlmostEqual(width, 100.0, places=2)
+        self.assertAlmostEqual(height, 70.0, places=2)
 
     def test_print_single_uses_edited_name(self):
         wizard = self._wizard(self.employees[0])

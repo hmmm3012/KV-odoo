@@ -1,10 +1,24 @@
 # -*- coding: utf-8 -*-
 
-from odoo import fields, models
+from odoo import api, fields, models
+from odoo.exceptions import ValidationError
 
 
 class ResCompany(models.Model):
     _inherit = "res.company"
+
+    off_schedule_lock_day = fields.Integer(
+        "Ngày chốt lịch OFF",
+        default=27,
+        help="Đội trưởng sửa được lịch OFF của một tháng đến hết ngày trước ngày này của tháng trước. "
+        "Từ ngày này trở đi chỉ nhân sự được sửa.",
+    )
+
+    @api.constrains("off_schedule_lock_day")
+    def _check_off_schedule_lock_day(self):
+        for company in self:
+            if not 1 <= company.off_schedule_lock_day <= 28:
+                raise ValidationError(self.env._("Ngày chốt lịch OFF phải từ 1 đến 28."))
 
     attendance_portal_session_minutes = fields.Integer(
         default=720,

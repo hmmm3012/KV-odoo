@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="hr_attendance_portal.OffCalendar">
+        <div class="o_action o_kv_off_calendar_action">
+            <Layout display="{ controlPanel: {} }">
+                <t t-set-slot="control-panel-create-button">
+                    <button type="button" class="btn btn-primary" t-if="!readonly" t-att-disabled="!state.dirty or state.saving" t-on-click="save">
+                        Lưu lịch OFF
+                    </button>
+                    <button type="button" class="btn btn-secondary" t-if="state.dirty" t-att-disabled="state.saving" t-on-click="discard">
+                        Bỏ thay đổi
+                    </button>
+                </t>
+                <div class="kv-off">
+                    <div t-if="!state.departments.length" class="alert alert-info m-3">
+                        Bạn chưa được giao phòng ban nào. Nhờ quản trị thêm phòng ban vào tài khoản của bạn để nhập lịch OFF.
+                    </div>
+                    <t t-elif="state.data">
+                        <div class="kv-off-toolbar">
+                            <select class="form-select kv-off-department" aria-label="Phòng ban" t-on-change="onDepartmentChange">
+                                <option t-foreach="state.departments" t-as="department" t-key="department.id"
+                                        t-att-value="department.id"
+                                        t-att-selected="department.id === state.departmentId"
+                                        t-esc="department.name"/>
+                            </select>
+                            <div class="kv-off-nav">
+                                <button type="button" class="btn btn-secondary" aria-label="Tháng trước" t-on-click="() => this.changeMonth(-1)">
+                                    <i class="fa fa-chevron-left" aria-hidden="true"/>
+                                </button>
+                                <span class="kv-off-month" t-esc="monthLabel"/>
+                                <button type="button" class="btn btn-secondary" aria-label="Tháng sau" t-on-click="() => this.changeMonth(1)">
+                                    <i class="fa fa-chevron-right" aria-hidden="true"/>
+                                </button>
+                                <button type="button" class="btn btn-link" t-on-click="goToCurrentMonth">Tháng này</button>
+                            </div>
+                            <div class="kv-off-legend">
+                                <span><i class="kv-off-swatch kv-off-chip-day"/>Ca ngày</span>
+                                <span><i class="kv-off-swatch kv-off-chip-night"/>Ca đêm</span>
+                                <span><i class="kv-off-swatch kv-off-swatch-today"/>Hôm nay</span>
+                                <span><i class="kv-off-swatch kv-off-swatch-selected"/>Ngày đang chọn</span>
+                                <span class="text-muted" t-esc="limitLabel"/>
+                            </div>
+                        </div>
+                        <div t-if="lockNotice" class="alert py-2 px-3 mb-2 kv-off-lock" t-att-class="lockNotice.cls" role="status">
+                            <i class="fa me-2" t-att-class="readonly ? 'fa-lock' : (state.data.lock.locked ? 'fa-unlock-alt' : 'fa-clock-o')" aria-hidden="true"/>
+                            <t t-esc="lockNotice.text"/>
+                        </div>
+                        <div class="kv-off-body">
+                            <div class="kv-off-calendar">
+                                <div class="kv-off-weekdays">
+                                    <div t-foreach="weekdays" t-as="weekday" t-key="weekday" t-esc="weekday"/>
+                                </div>
+                                <div class="kv-off-grid">
+                                    <t t-foreach="cells" t-as="cell" t-key="cell.key">
+                                        <div t-if="cell.blank" class="kv-off-cell kv-off-blank"/>
+                                        <button t-else="" type="button" class="kv-off-cell"
+                                                t-att-class="{
+                                                    'kv-off-selected': cell.key === state.selected,
+                                                    'kv-off-over': cell.overDay or cell.overNight,
+                                                    'kv-off-today': cell.isToday,
+                                                    'kv-off-past': cell.isPast,
+                                                    'kv-off-sunday': cell.weekday === 6,
+                                                }"
+                                                t-att-aria-pressed="cell.key === state.selected ? 'true' : 'false'"
+                                                t-att-aria-label="cell.ariaLabel"
+                                                t-on-click="() => this.selectDay(cell.key)">
+                                            <span class="kv-off-num">
+                                                <span class="kv-off-day" t-esc="cell.day"/>
+                                                <span class="kv-off-counts">
+                                                    <span t-if="cell.dayCount" class="kv-off-count kv-off-chip-day"
+                                                          t-att-class="{'kv-off-count-over': cell.overDay}" t-esc="cell.dayCount"/>
+                                                    <span t-if="cell.nightCount" class="kv-off-count kv-off-chip-night"
+                                                          t-att-class="{'kv-off-count-over': cell.overNight}" t-esc="cell.nightCount"/>
+                                                </span>
+                                            </span>
+                                            <span class="kv-off-chips">
+                                                <span t-foreach="cell.chips" t-as="chip" t-key="chip.key"
+                                                      class="kv-off-chip" t-att-class="chip.cls"
+                                                      t-att-title="chip.title" t-esc="chip.label"/>
+                                            </span>
+                                            <span t-if="cell.key === state.selected" class="kv-off-selected-tag">Đang chọn</span>
+                                        </button>
+                                    </t>
+                                </div>
+                            </div>
+                            <aside class="kv-off-side" aria-live="polite">
+                                <div class="kv-off-side-heading">
+                                    <small>Đang chọn ngày</small>
+                                    <h3 class="kv-off-side-title" t-esc="selectedLabel"/>
+                                </div>
+                                <input type="search" class="form-control" placeholder="Tìm tên nhân viên"
+                                       aria-label="Tìm tên nhân viên" t-model="state.search"/>
+                                <section t-foreach="panels" t-as="panel" t-key="panel.shift" class="kv-off-group">
+                                    <header class="kv-off-group-header">
+                                        <span><i class="kv-off-swatch" t-att-class="'kv-off-chip-' + panel.shift"/><t t-esc="panel.title"/></span>
+                                        <span t-att-class="{'text-danger fw-bold': panel.over}" t-esc="panel.countLabel"/>
+                                    </header>
+                                    <div class="kv-off-people">
+                                        <label t-foreach="panel.people" t-as="person" t-key="person.id" class="kv-off-person">
+                                            <input type="checkbox" class="form-check-input" t-att-checked="person.checked"
+                                                   t-att-disabled="readonly"
+                                                   t-on-change="() => this.toggle(person.id, panel.shift)"/>
+                                            <span class="kv-off-person-name" t-esc="person.name"/>
+                                            <small t-if="person.note" class="text-muted" t-esc="person.note"/>
+                                        </label>
+                                        <div t-if="!panel.people.length" class="text-muted small">
+                                            <t t-if="state.search">Không có nhân viên khớp tên đã gõ.</t>
+                                            <t t-else="">Phòng ban chưa có nhân viên cho ca này.</t>
+                                        </div>
+                                    </div>
+                                </section>
+                            </aside>
+                        </div>
+                    </t>
+                </div>
+            </Layout>
+        </div>
+    </t>
+</templates>

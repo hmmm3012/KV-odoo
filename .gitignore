@@ -57,3 +57,14 @@ package.json
 /src/
 
 /venv*
+
+# BEGIN ACM managed
+.acm/cache/
+.acm/repository/
+.acm/*.tmp
+.acm/*.tmp-*
+.acm/.lock
+.acm/.lock.*
+.acm/context/
+.acm/handoff/
+# END ACM managed

@@ -1,9 +1,14 @@
 # -*- coding: utf-8 -*-
 
 from odoo import api, fields, models
-from odoo.exceptions import ValidationError
+from odoo.exceptions import AccessError, ValidationError
 
 from .attendance_location import HrAttendanceLocation
+
+STRUCTURE_FIELDS = frozenset((
+    "structure_qlbx", "structure_cskh", "structure_day", "structure_night",
+    "structure_note", "off_max_day", "off_max_night",
+))
 
 
 class HrDepartment(models.Model):
@@ -40,12 +45,146 @@ class HrDepartment(models.Model):
         string="Attendance Site",
     )
 
+    structure_qlbx = fields.Integer("Cơ cấu QLBX", tracking=True)
+    structure_cskh = fields.Integer("Cơ cấu CSKH", tracking=True)
+    structure_day = fields.Integer("Cơ cấu ca ngày", tracking=True)
+    structure_night = fields.Integer("Cơ cấu ca đêm", tracking=True)
+    structure_total = fields.Integer(
+        "Tổng cơ cấu",
+        compute="_compute_structure_total",
+        store=True,
+    )
+    structure_note = fields.Char("Ghi chú cơ cấu", tracking=True)
+
+    actual_qlbx = fields.Integer("Thực tế QLBX", compute="_compute_structure_actual")
+    actual_cskh = fields.Integer("Thực tế CSKH", compute="_compute_structure_actual")
+    actual_day = fields.Integer("Thực tế ca ngày", compute="_compute_structure_actual")
+    actual_night = fields.Integer("Thực tế ca đêm", compute="_compute_structure_actual")
+    actual_unassigned = fields.Integer(
+        "Chưa xếp ca",
+        compute="_compute_structure_actual",
+        help="Nhân viên không thuộc nhóm QLBX/CSKH và chưa chọn \"Ca làm việc\" trong hồ sơ.",
+    )
+    actual_total = fields.Integer("Tổng thực tế", compute="_compute_structure_actual")
+    gap_qlbx = fields.Integer("Thừa/thiếu QLBX", compute="_compute_structure_actual")
+    gap_cskh = fields.Integer("Thừa/thiếu CSKH", compute="_compute_structure_actual")
+    gap_day = fields.Integer("Thừa/thiếu ca ngày", compute="_compute_structure_actual")
+    gap_night = fields.Integer("Thừa/thiếu ca đêm", compute="_compute_structure_actual")
+    gap_total = fields.Integer("Thừa/thiếu tổng", compute="_compute_structure_actual")
+
+    off_max_day = fields.Integer(
+        "OFF tối đa/ngày - ca ngày",
+        tracking=True,
+        help="Số nhân viên ca ngày được OFF cùng một ngày. 0 = không giới hạn.",
+    )
+    off_max_night = fields.Integer(
+        "OFF tối đa/ngày - ca đêm",
+        tracking=True,
+        help="Số nhân viên ca đêm được OFF cùng một ngày. 0 = không giới hạn.",
+    )
+    off_count = fields.Integer(
+        "Lịch OFF",
+        compute="_compute_off_count",
+        groups="hr.group_hr_user,hr_attendance.group_hr_attendance_officer,"
+        "hr_attendance_portal.group_hr_attendance_site_captain",
+    )
+
+    @api.depends("structure_qlbx", "structure_cskh", "structure_day", "structure_night")
+    def _compute_structure_total(self):
+        for department in self:
+            department.structure_total = (
+                department.structure_qlbx
+                + department.structure_cskh
+                + department.structure_day
+                + department.structure_night
+            )
+
+    @api.depends(
+        "member_ids.job_id.structure_role",
+        "member_ids.employee_properties",
+        "structure_qlbx",
+        "structure_cskh",
+        "structure_day",
+        "structure_night",
+    )
+    def _compute_structure_actual(self):
+        Timesheet = self.env["hr.attendance.timesheet.wizard"]
+        for department in self:
+            counts = dict.fromkeys(("qlbx", "cskh", "day", "night", "unassigned"), 0)
+            for employee in department.sudo().member_ids:
+                bucket = (
+                    employee.job_id.structure_role
+                    or Timesheet._employee_work_shift_value(employee)
+                    or "unassigned"
+                )
+                counts[bucket] += 1
+            department.actual_qlbx = counts["qlbx"]
+            department.actual_cskh = counts["cskh"]
+            department.actual_day = counts["day"]
+            department.actual_night = counts["night"]
+            department.actual_unassigned = counts["unassigned"]
+            department.actual_total = sum(counts.values())
+            department.gap_qlbx = counts["qlbx"] - department.structure_qlbx
+            department.gap_cskh = counts["cskh"] - department.structure_cskh
+            department.gap_day = counts["day"] - department.structure_day
+            department.gap_night = counts["night"] - department.structure_night
+            department.gap_total = department.actual_total - department.structure_total
+
+    def _compute_off_count(self):
+        groups = self.env["hr.department.off"]._read_group(
+            [("department_id", "in", self.ids), ("date", ">=", fields.Date.context_today(self))],
+            ["department_id"],
+            ["__count"],
+        )
+        counts = {department.id: count for department, count in groups}
+        for department in self:
+            department.off_count = counts.get(department.id, 0)
+
+    def write(self, vals):
+        # Stock HR lets every internal user write departments; keep the plan with HR.
+        if STRUCTURE_FIELDS.intersection(vals) and not self.env.su and not (
+            self.env.user.has_group("hr.group_hr_user")
+            or self.env.user.has_group("hr_attendance.group_hr_attendance_officer")
+        ):
+            raise AccessError(self.env._("Chỉ nhân sự được sửa cơ cấu và số OFF tối đa của phòng ban."))
+        return super().write(vals)
+
+    def action_open_off_calendar(self):
+        self.ensure_one()
+        action = self.env["ir.actions.actions"]._for_xml_id(
+            "hr_attendance_portal.action_hr_department_off_calendar"
+        )
+        action["context"] = {"default_department_id": self.id}
+        return action
+
+    def action_open_off_schedule(self):
+        self.ensure_one()
+        action = self.env["ir.actions.act_window"]._for_xml_id(
+            "hr_attendance_portal.action_hr_department_off"
+        )
+        action["domain"] = [("department_id", "=", self.id)]
+        action["context"] = {"default_department_id": self.id}
+        return action
+
     @api.depends("attendance_latitude", "attendance_longitude")
     def _compute_attendance_is_geofenced(self):
         for department in self:
             department.attendance_is_geofenced = bool(
                 department.attendance_latitude and department.attendance_longitude
             )
+
+    @api.constrains(
+        "structure_qlbx", "structure_cskh", "structure_day", "structure_night",
+        "off_max_day", "off_max_night",
+    )
+    def _check_structure_numbers(self):
+        for department in self:
+            if min(
+                department.structure_qlbx, department.structure_cskh,
+                department.structure_day, department.structure_night,
+                department.off_max_day, department.off_max_night,
+            ) < 0:
+                raise ValidationError(self.env._("Số cơ cấu và số OFF tối đa không được âm."))
 
     @api.constrains("attendance_radius_meters", "attendance_max_gps_accuracy_meters")
     def _check_attendance_meters(self):

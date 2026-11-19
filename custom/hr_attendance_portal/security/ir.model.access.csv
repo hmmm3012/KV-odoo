@@ -47,3 +47,9 @@ access_hr_attendance_timesheet_row_order_captain,hr.attendance.timesheet.row.ord
 access_hr_attendance_timesheet_row_order_officer,hr.attendance.timesheet.row.order.officer,model_hr_attendance_timesheet_row_order,hr_attendance.group_hr_attendance_officer,1,1,1,1
 access_hr_attendance_timesheet_row_order_system,hr.attendance.timesheet.row.order.system,model_hr_attendance_timesheet_row_order,base.group_system,1,1,1,1
 access_hr_attendance_client_issue_system,hr.attendance.client.issue.system,model_hr_attendance_client_issue,base.group_system,1,0,0,1
+access_hr_department_off_hr_user,hr.department.off.hr.user,model_hr_department_off,hr.group_hr_user,1,1,1,1
+access_hr_department_off_officer,hr.department.off.officer,model_hr_department_off,hr_attendance.group_hr_attendance_officer,1,1,1,1
+access_hr_department_off_captain,hr.department.off.captain,model_hr_department_off,group_hr_attendance_site_captain,1,1,1,1
+access_hr_department_off_export_hr_user,hr.department.off.export.hr.user,model_hr_department_off_export,hr.group_hr_user,1,1,1,1
+access_hr_department_off_export_officer,hr.department.off.export.officer,model_hr_department_off_export,hr_attendance.group_hr_attendance_officer,1,1,1,1
+access_hr_department_off_export_captain,hr.department.off.export.captain,model_hr_department_off_export,group_hr_attendance_site_captain,1,1,1,1
