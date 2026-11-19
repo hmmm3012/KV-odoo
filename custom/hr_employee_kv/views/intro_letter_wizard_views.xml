@@ -7,7 +7,7 @@
             <form string="Giấy giới thiệu nhân sự">
                 <group>
                     <field name="employee_id"/>
-                    <field name="recipient" placeholder="Ban Quản lý bãi xe..."/>
+                    <field name="recipient" placeholder="Dòng 1: ban quản lý tòa nhà&#10;Dòng 2: ban quản lý bãi xe&#10;Dòng 3: liên hệ đội trưởng..."/>
                     <field name="education_level" placeholder="Chưa có trên hồ sơ nhân viên"/>
                     <field name="work_shift" placeholder="Chưa có trên hồ sơ nhân viên"/>
                     <field name="export_format" widget="radio"/>

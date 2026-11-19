@@ -7,6 +7,7 @@
         <field name="arch" type="xml">
             <!-- Add employee_code_prefix field in the General Information section -->
             <xpath expr="//field[@name='country_id']" position="after">
+                <field name="intro_letter_template"/>
                 <field name="employee_code_prefix" 
                        string="Employee Code Prefix"
                        placeholder="e.g., KV, TN, ZM"

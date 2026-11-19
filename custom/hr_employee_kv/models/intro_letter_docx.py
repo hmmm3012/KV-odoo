@@ -13,40 +13,47 @@ from pathlib import Path
 from lxml import etree
 from odoo.exceptions import UserError
 
+from .intro_letter_templates import (
+    KIEN_VIET,
+    THANH_NIEN,
+    intro_letter_template_key,
+    recipient_lines,
+    template_config,
+)
+
 try:
     from PIL import Image
 except ImportError:  # pragma: no cover
     Image = None
 
 W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
-TEMPLATE_PATH = (
-    Path(__file__).resolve().parent.parent
-    / "static"
-    / "report"
-    / "giay_gioi_thieu_nhan_su.docx"
-)
-PORTRAIT_NAME = "word/media/image2.jpeg"
 PORTRAIT_SIZE = (244, 326)
 
 
 def build_intro_letter_docx(wizard):
     values = wizard._letter_values()
-    if not TEMPLATE_PATH.is_file():
+    template_key = intro_letter_template_key(wizard.employee_id.company_id)
+    config = template_config(template_key)
+    template_path = config["docx"]
+    if not template_path.is_file():
         raise UserError(
             wizard.env._("Thiếu file mẫu giấy giới thiệu nhân sự trên hệ thống.")
         )
 
-    portrait_jpeg = _employee_portrait_jpeg(wizard.employee_id) or _blank_portrait_jpeg()
+    portrait_bytes = _employee_portrait_bytes(
+        wizard.employee_id, fmt=config["portrait_format"]
+    ) or _blank_portrait_bytes(fmt=config["portrait_format"])
+    portrait_name = config["docx_portrait"]
     buffer = io.BytesIO()
-    with zipfile.ZipFile(TEMPLATE_PATH, "r") as src, zipfile.ZipFile(
+    with zipfile.ZipFile(template_path, "r") as src, zipfile.ZipFile(
         buffer, "w", compression=zipfile.ZIP_DEFLATED
     ) as dst:
         for info in src.infolist():
             data = src.read(info.filename)
             if info.filename == "word/document.xml":
-                data = _fill_document_xml(data, values)
-            elif info.filename == PORTRAIT_NAME and portrait_jpeg:
-                data = portrait_jpeg
+                data = _fill_document_xml(data, values, template_key=template_key)
+            elif info.filename == portrait_name and portrait_bytes:
+                data = portrait_bytes
             # Keep original compress type for already-stored media when possible.
             if info.filename.endswith((".png", ".jpeg", ".jpg")):
                 dst.writestr(info, data, compress_type=zipfile.ZIP_STORED)
@@ -55,18 +62,38 @@ def build_intro_letter_docx(wizard):
     return buffer.getvalue()
 
 
-def _fill_document_xml(xml_bytes, values):
+def _fill_document_xml(xml_bytes, values, template_key=KIEN_VIET):
     root = etree.fromstring(xml_bytes)
     male = values.get("gender") == "male"
     female = values.get("gender") == "female"
 
     day_dots_done = False
+    extra_recipient_lines = []
+    extra_recipient_index = 0
+    lines = recipient_lines(values.get("recipient"))
+
     for paragraph in root.iter(f"{W}p"):
         full = _paragraph_text(paragraph)
         if not full:
             continue
 
-        if full.startswith("Kính gửi"):
+        if full.startswith("Kính gửi / To"):
+            _set_field_value(
+                paragraph,
+                "Kính gửi / To",
+                lines[0] if lines else "",
+            )
+            extra_recipient_lines = lines[1:]
+            extra_recipient_index = 0
+        elif template_key == THANH_NIEN and _is_thanh_nien_recipient_continuation(full):
+            if extra_recipient_index < len(extra_recipient_lines):
+                _set_paragraph_text(
+                    paragraph, extra_recipient_lines[extra_recipient_index]
+                )
+            else:
+                _set_paragraph_text(paragraph, "")
+            extra_recipient_index += 1
+        elif full.startswith("Kính gửi"):
             _set_field_value(paragraph, "Kính gửi", values.get("recipient") or "")
         elif full.startswith("Họ và tên"):
             _set_field_value(paragraph, "Họ và tên", values.get("name") or "")
@@ -110,12 +137,19 @@ def _fill_document_xml(xml_bytes, values):
             _set_field_value(paragraph, "MSNV", values.get("emp_code") or "")
         elif full.startswith("Ca làm việc"):
             _set_field_value(paragraph, "Ca làm việc", values.get("work_shift") or "")
-        elif full.startswith("Tình trạng sức khỏe"):
+        elif template_key == KIEN_VIET and full.startswith("Tình trạng sức khỏe"):
             health = (values.get("health_status") or "").rstrip(".")
             _set_field_value(
                 paragraph, "Tình trạng sức khỏe", f"{health}." if health else ""
             )
-        elif "Tp.HCM" in full and "ngày" in full:
+        elif template_key == THANH_NIEN and "Tp.HCM" in full and "ngày" in full:
+            sign = (
+                f"     Tp.HCM, ngày {values.get('sign_day') or ''} "
+                f"tháng {values.get('sign_month') or ''} "
+                f"năm {values.get('sign_year') or ''}"
+            )
+            _set_paragraph_text(paragraph, sign)
+        elif template_key == KIEN_VIET and "Tp.HCM" in full and "ngày" in full:
             for node in paragraph.iter(f"{W}t"):
                 text = node.text or ""
                 if text == "…..":
@@ -218,17 +252,39 @@ def _set_gender_female_paragraph(paragraph, selected):
     _write_t(nodes[1], "Nữ")
 
 
-def _blank_portrait_jpeg():
+def _set_paragraph_text(paragraph, text):
+    nodes = _text_nodes(paragraph)
+    if not nodes:
+        return
+    _write_t(nodes[0], text or "")
+    for node in nodes[1:]:
+        _write_t(node, "")
+
+
+def _is_thanh_nien_recipient_continuation(full):
+    if full.startswith("Phòng nhân sự"):
+        return False
+    if full.startswith("BAN QUẢN"):
+        return True
+    if full.startswith("Anh ") or full.startswith("Chị "):
+        return True
+    return False
+
+
+def _blank_portrait_bytes(fmt="jpeg"):
     """White photo box so the template sample portrait is never printed."""
     if Image is None:
         return None
     image = Image.new("RGB", PORTRAIT_SIZE, (255, 255, 255))
     out = io.BytesIO()
-    image.save(out, format="JPEG", quality=85)
+    if fmt == "png":
+        image.save(out, format="PNG")
+    else:
+        image.save(out, format="JPEG", quality=85)
     return out.getvalue()
 
 
-def _employee_portrait_jpeg(employee):
+def _employee_portrait_bytes(employee, fmt="jpeg"):
     """Replace the sample portrait when the employee has an image."""
     if Image is None or not employee:
         return None
@@ -246,7 +302,10 @@ def _employee_portrait_jpeg(employee):
             image = image.convert("RGB")
         image = _fit_cover(image, PORTRAIT_SIZE)
         out = io.BytesIO()
-        image.save(out, format="JPEG", quality=90)
+        if fmt == "png":
+            image.save(out, format="PNG")
+        else:
+            image.save(out, format="JPEG", quality=90)
         return out.getvalue()
     except Exception:
         return None

@@ -3,9 +3,19 @@
 from odoo import models, fields, api
 import re
 
+from .intro_letter_templates import INTRO_LETTER_TEMPLATE_SELECTION, KIEN_VIET
+
 
 class ResCompany(models.Model):
     _inherit = 'res.company'
+
+    intro_letter_template = fields.Selection(
+        selection=INTRO_LETTER_TEMPLATE_SELECTION,
+        string="Mẫu giấy giới thiệu",
+        default=KIEN_VIET,
+        help="Chọn mẫu in giấy giới thiệu nhân sự cho công ty này. "
+        "Thanh Niên dùng mẫu SGC (nhiều dòng Kính gửi, không có dòng sức khỏe).",
+    )
 
     employee_code_prefix = fields.Char(
         string='Employee Code Prefix',
