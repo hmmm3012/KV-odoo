@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     "name": "HR Employee Kien Viet",
-    "version": "18.0.1.4.6",
+    "version": "18.0.1.4.7",
     "summary": "Adds custom fields to Employees",
     "depends": ["hr"],
     "data": [

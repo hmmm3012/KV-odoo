@@ -6,6 +6,7 @@ python-docx rewrite destroys headers/drawings/styles. Instead we copy the
 template ZIP and only change <w:t> text nodes (and optionally the portrait).
 """
 
+import copy
 import io
 import zipfile
 from pathlib import Path
@@ -27,15 +28,18 @@ except ImportError:  # pragma: no cover
     Image = None
 
 W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
-V = "{urn:schemas-microsoft-com:vml}"
+WP = "{http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing}"
+A = "{http://schemas.openxmlformats.org/drawingml/2006/main}"
 R = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}"
 REL_PKG = "{http://schemas.openxmlformats.org/package/2006/relationships}"
+CT_NS = "{http://schemas.openxmlformats.org/package/2006/content-types}"
 IMAGE_REL_TYPE = (
     "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image"
 )
 THANH_NIEN_PORTRAIT_RID = "rIdKvEmpPortrait"
 THANH_NIEN_PORTRAIT_ZIP = "word/media/portrait.jpeg"
 PORTRAIT_SIZE = (244, 326)
+_PORTRAIT_INLINE_REFERENCE = None
 
 
 def build_intro_letter_docx(wizard):
@@ -63,11 +67,12 @@ def build_intro_letter_docx(wizard):
     if use_vml and portrait_bytes:
         rels_name = "word/_rels/document.xml.rels"
         if rels_name in archive:
-            archive["word/document.xml"], archive[rels_name] = _inject_thanh_nien_vml_portrait(
+            archive["word/document.xml"], archive[rels_name] = _inject_thanh_nien_portrait(
                 archive["word/document.xml"],
                 archive[rels_name],
             )
         archive[THANH_NIEN_PORTRAIT_ZIP] = portrait_bytes
+        _ensure_jpeg_content_type(archive)
     elif portrait_name and portrait_bytes and portrait_name in archive:
         archive[portrait_name] = portrait_bytes
 
@@ -279,8 +284,19 @@ def _set_paragraph_text(paragraph, text):
         _write_t(node, "")
 
 
-def _inject_thanh_nien_vml_portrait(document_xml, rels_xml):
-    """Attach portrait JPEG to the empty employee photo VML frame (not the header logo)."""
+def _kien_viet_portrait_inline_reference():
+    """Picture drawing from the Kiến Việt letter (Word displays it reliably)."""
+    global _PORTRAIT_INLINE_REFERENCE
+    if _PORTRAIT_INLINE_REFERENCE is None:
+        ref_path = template_config(KIEN_VIET)["docx"]
+        with zipfile.ZipFile(ref_path, "r") as src:
+            doc = etree.fromstring(src.read("word/document.xml"))
+        _PORTRAIT_INLINE_REFERENCE = next(doc.iter(WP + "inline"))
+    return copy.deepcopy(_PORTRAIT_INLINE_REFERENCE)
+
+
+def _inject_thanh_nien_portrait(document_xml, rels_xml):
+    """Replace the empty text-box anchor with a real inline picture (keep header logo untouched)."""
     rels_root = etree.fromstring(rels_xml)
     existing_ids = {rel.get("Id") for rel in rels_root}
     if THANH_NIEN_PORTRAIT_RID not in existing_ids:
@@ -289,26 +305,21 @@ def _inject_thanh_nien_vml_portrait(document_xml, rels_xml):
         rel.set("Type", IMAGE_REL_TYPE)
         rel.set("Target", "media/portrait.jpeg")
 
+    inline = _kien_viet_portrait_inline_reference()
+    blip = inline.find(".//" + A + "blip")
+    if blip is not None:
+        blip.set(R + "embed", THANH_NIEN_PORTRAIT_RID)
+
     doc_root = etree.fromstring(document_xml)
-    matched = False
-    for shape in doc_root.iter(V + "shape"):
-        style = shape.get("style") or ""
-        if "margin-left:408" in style and "height:120" in style:
-            imagedata = shape.find(V + "imagedata")
-            if imagedata is None:
-                imagedata = etree.SubElement(shape, V + "imagedata")
-            imagedata.set(R + "id", THANH_NIEN_PORTRAIT_RID)
-            matched = True
-            break
-    if not matched:
-        for shape in doc_root.iter(V + "shape"):
-            style = shape.get("style") or ""
-            if "width:95.05pt" in style and "height:120.9pt" in style:
-                imagedata = shape.find(V + "imagedata")
-                if imagedata is None:
-                    imagedata = etree.SubElement(shape, V + "imagedata")
-                imagedata.set(R + "id", THANH_NIEN_PORTRAIT_RID)
-                break
+    for anchor in doc_root.iter(WP + "anchor"):
+        doc_pr = anchor.find(WP + "docPr")
+        if doc_pr is None or doc_pr.get("name") != "Text Box 2":
+            continue
+        drawing = anchor.getparent()
+        if drawing is not None:
+            drawing.remove(anchor)
+            drawing.append(inline)
+        break
 
     return (
         etree.tostring(
@@ -323,6 +334,25 @@ def _inject_thanh_nien_vml_portrait(document_xml, rels_xml):
             encoding="UTF-8",
             standalone=True,
         ),
+    )
+
+
+def _ensure_jpeg_content_type(archive):
+    ct_name = "[Content_Types].xml"
+    if ct_name not in archive:
+        return
+    root = etree.fromstring(archive[ct_name])
+    for default in root.findall(f"{CT_NS}Default"):
+        if default.get("Extension") == "jpeg":
+            return
+    default = etree.SubElement(root, f"{CT_NS}Default")
+    default.set("Extension", "jpeg")
+    default.set("ContentType", "image/jpeg")
+    archive[ct_name] = etree.tostring(
+        root,
+        xml_declaration=True,
+        encoding="UTF-8",
+        standalone=True,
     )
 
 
