@@ -7,3 +7,5 @@ from . import kpi_monthly_sheet
 from . import kpi_monthly_employee
 from . import kpi_daily_line
 from . import kpi_daily_wizard
+from . import kpi_hub
+from . import ir_ui_menu

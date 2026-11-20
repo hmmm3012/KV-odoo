@@ -79,32 +79,52 @@ class HrKpiDailyWizard(models.TransientModel):
         return line
 
     @api.model
+    def _sync_employee_day_lines(self, monthly_employee, day, criteria=None):
+        """Ensure one line per daily criterion for a single day."""
+        sheet = monthly_employee.sheet_id
+        sheet._check_captain_editable()
+        criteria = criteria or self.env["hr.kpi.criterion"].search(
+            self.env["hr.kpi.criterion"]._daily_criteria_domain()
+        )
+        Daily = self.env["hr.kpi.daily.line"]
+        existing_criteria = {
+            line.criterion_id.id
+            for line in Daily.search([
+                ("monthly_employee_id", "=", monthly_employee.id),
+                ("date", "=", day),
+            ])
+        }
+        to_create = []
+        for criterion in criteria:
+            if criterion.id not in existing_criteria:
+                to_create.append({
+                    "monthly_employee_id": monthly_employee.id,
+                    "date": day,
+                    "criterion_id": criterion.id,
+                })
+        if to_create:
+            Daily.create(to_create)
+
+    @api.model
+    def _sync_sheet_day(self, sheet, day):
+        """Ensure daily criterion lines for every employee on one day."""
+        criteria = self.env["hr.kpi.criterion"].search(
+            self.env["hr.kpi.criterion"]._daily_criteria_domain()
+        )
+        for employee_line in sheet.employee_ids:
+            self._sync_employee_day_lines(employee_line, day, criteria=criteria)
+
+    @api.model
     def _sync_daily_lines(self, monthly_employee):
         """Ensure one line per day × daily criterion for the month."""
         sheet = monthly_employee.sheet_id
         sheet._check_captain_editable()
         start = sheet.month_date
         end = start + relativedelta(months=1, days=-1)
-        criteria = self.env["hr.kpi.criterion"].search(self.env["hr.kpi.criterion"]._daily_criteria_domain())
-        Daily = self.env["hr.kpi.daily.line"]
-        existing = {
-            (line.date, line.criterion_id.id): line
-            for line in Daily.search([("monthly_employee_id", "=", monthly_employee.id)])
-        }
         day = start
-        to_create = []
         while day <= end:
-            for criterion in criteria:
-                key = (day, criterion.id)
-                if key not in existing:
-                    to_create.append({
-                        "monthly_employee_id": monthly_employee.id,
-                        "date": day,
-                        "criterion_id": criterion.id,
-                    })
+            self._sync_employee_day_lines(monthly_employee, day)
             day += relativedelta(days=1)
-        if to_create:
-            Daily.create(to_create)
 
     def action_open_daily_grid(self):
         self.ensure_one()

@@ -131,6 +131,29 @@ class TestHrAttendanceKpi(TransactionCase):
         with self.assertRaises(AccessError):
             self.sheet.with_user(self.captain).action_hr_lock()
 
+    def test_hub_day_sync(self):
+        hub = self.env["hr.kpi.hub"].with_user(self.captain).create({
+            "department_id": self.department.id,
+            "month_date": self.month,
+        })
+        self.assertTrue(hub.sheet_id)
+        days_in_month = (self.month + relativedelta(months=1, days=-1)).day
+        self.assertEqual(len(hub.day_line_ids), days_in_month)
+        day_line = hub.day_line_ids.filtered(lambda l: l.date == self.month)
+        action = day_line.action_open_day()
+        self.assertEqual(action["res_model"], "hr.kpi.daily.line")
+        count = self.env["hr.kpi.daily.line"].search_count(action["domain"])
+        criteria_count = self.env["hr.kpi.criterion"].search_count(
+            self.env["hr.kpi.criterion"]._daily_criteria_domain()
+        )
+        self.assertEqual(count, len(self.sheet.employee_ids) * criteria_count)
+
+    def test_captain_sees_kpi_menu(self):
+        Menu = self.env["ir.ui.menu"].with_user(self.captain)
+        kpi_menu = self.env.ref("hr_attendance_kpi.menu_hr_kpi_hub")
+        visible = Menu._visible_menu_ids()
+        self.assertIn(kpi_menu.id, visible)
+
     def test_deduction_for_hits_tiered_below_threshold(self):
         self.assertEqual(self.criterion_uniform._deduction_for_hits(2), 10.0)
         self.assertEqual(self.criterion_late._deduction_for_hits(1), 20.0)
