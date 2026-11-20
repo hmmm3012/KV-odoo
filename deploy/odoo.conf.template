@@ -14,6 +14,10 @@ http_interface = 0.0.0.0
 
 admin_passwd = ${ODOO_ADMIN_PASSWD}
 
+list_db = False
+db_name = odoo
+dbfilter = ^odoo$
+
 ; Production (docker-compose.prod.yml): workers >= 1, proxy_mode True, gevent on 8072
 workers = ${ODOO_WORKERS}
 max_cron_threads = ${ODOO_MAX_CRON_THREADS}
