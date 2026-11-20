@@ -47,6 +47,8 @@ services:
       ODOO_UPDATE_MODULES: ${ODOO_UPDATE_MODULES:-}
     volumes:
       - odoo-web-data:/var/lib/odoo
+      # Host template so list_db/db_name/dbfilter changes apply without image rebuild
+      - ./odoo.conf.template:/opt/odoo/deploy/odoo.conf.template:ro
 
 volumes:
   odoo-db-data:
