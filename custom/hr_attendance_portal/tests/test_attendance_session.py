@@ -559,3 +559,37 @@ class TestAttendanceSession(AttendancePortalMixin, TransactionCase):
         self.assertEqual(len(attendance.hour_decision_ids), 2)
         self.assertAlmostEqual(attendance.recognized_regular_hours, 5, places=2)
         self.assertAlmostEqual(attendance.payroll_regular_hours, 5, places=2)
+
+    def test_denied_session_visible_on_approved_list_for_denying_captain(self):
+        attendance = self._session(6)
+        attendance.with_user(self.captain).action_deny_session("mistake")
+        action = self.env.ref("hr_attendance_portal.action_hr_overtime_approved")
+        domain = safe_eval(action.domain, {"uid": self.captain.id})
+        found = self.env["hr.attendance"].with_user(self.captain).search(
+            [("id", "=", attendance.id)] + domain
+        )
+        self.assertTrue(found)
+        self.assertEqual(attendance.approved_list_status, "denied")
+
+    def test_captain_can_undo_own_deny_with_audit(self):
+        attendance = self._session(6)
+        attendance.with_user(self.captain).action_deny_session("wrong person")
+        self.assertTrue(attendance.can_undo_deny)
+        attendance.with_user(self.captain).action_undo_deny_session(6, "denied by mistake")
+        self.assertEqual(attendance.session_state, "validated")
+        self.assertAlmostEqual(attendance.recognized_regular_hours, 6, places=2)
+        types = attendance.hour_decision_ids.mapped("decision_type")
+        self.assertIn("deny_session", types)
+        self.assertIn("undo_deny", types)
+        undo = attendance.hour_decision_ids.filtered(
+            lambda d: d.decision_type == "undo_deny"
+        )
+        self.assertEqual(undo.role, "captain")
+        self.assertEqual(len(attendance.hour_decision_ids), 2)
+
+    def test_captain_cannot_undo_deny_on_closed_session(self):
+        attendance = self._session(6)
+        attendance.with_user(self.captain).action_deny_session("wrong person")
+        attendance.with_user(self.officer).action_close_session()
+        with self.assertRaises(UserError):
+            attendance.with_user(self.captain).action_undo_deny_session(6, "too late")

@@ -224,11 +224,13 @@ class IrUiMenu(models.Model):
                 "deny_session": "Từ chối ca",
                 "reduce_regular": "Giảm giờ",
                 "restore_session": "Khôi phục ca",
+                "undo_deny": "Hoàn tác từ chối",
             },
             ("hr.attendance.hour.decision", "decision_type"): {
                 "deny_session": "Từ chối ca",
                 "reduce_regular": "Giảm giờ",
                 "restore_session": "Khôi phục ca",
+                "undo_deny": "Hoàn tác từ chối",
                 "confirm_checkout": "Xác nhận giờ ra",
             },
             ("hr.attendance.hour.decision", "role"): {
@@ -297,6 +299,7 @@ class IrUiMenu(models.Model):
             "Request Time Correction": "Xin điều chỉnh giờ",
             "HR Overtime Review": "Nhân sự đối chiếu làm thêm",
             "Restore Session": "Khôi phục ca",
+            "Undo Deny": "Hoàn tác từ chối",
             "Close Session": "Chốt ca",
             "Reopen Session": "Bỏ chốt",
             "Reopen this shift?": "Bỏ chốt ca này?",

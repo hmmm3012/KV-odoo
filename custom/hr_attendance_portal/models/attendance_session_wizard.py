@@ -14,6 +14,7 @@ class HrAttendanceHourWizard(models.TransientModel):
             ("deny_session", "Deny Session"),
             ("reduce_regular", "Reduce Hours"),
             ("restore_session", "Restore Session"),
+            ("undo_deny", "Undo Deny"),
         ],
         required=True,
     )
@@ -27,6 +28,8 @@ class HrAttendanceHourWizard(models.TransientModel):
             attendance.action_deny_session(self.reason)
         elif self.decision_type == "reduce_regular":
             attendance.action_reduce_regular(self.hours, self.reason)
+        elif self.decision_type == "undo_deny":
+            attendance.action_undo_deny_session(self.hours, self.reason)
         else:
             attendance.action_restore_session(self.hours, self.reason)
         return {"type": "ir.actions.act_window_close"}

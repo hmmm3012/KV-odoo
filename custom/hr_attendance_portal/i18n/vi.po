@@ -1043,6 +1043,24 @@ msgstr "Chỉ nhân sự được khôi phục ca đã từ chối."
 #. module: hr_attendance_portal
 #. odoo-python
 #: code:addons/hr_attendance_portal/models/hr_attendance.py:0
+msgid "Only a denied session can be undone."
+msgstr "Chỉ ca đã từ chối mới hoàn tác được."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/hr_attendance.py:0
+msgid "Only the captain who denied this session can undo it."
+msgstr "Chỉ đội trưởng đã từ chối ca này mới hoàn tác được."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/hr_attendance.py:0
+msgid "You cannot undo this denied session."
+msgstr "Bạn không thể hoàn tác ca từ chối này."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/hr_attendance.py:0
 msgid "Reduce Selected Hours"
 msgstr "Giảm giờ đã chọn"
 
