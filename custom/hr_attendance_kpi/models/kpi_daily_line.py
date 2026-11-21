@@ -86,3 +86,18 @@ class HrKpiDailyLine(models.Model):
     def _onchange_is_fail(self):
         if self.is_fail and self.criterion_id.group_code == "E":
             self.note = self.note or self.env._("Vi phạm nghiêm trọng")
+
+    @api.model
+    def action_kpi_add_entry(self):
+        sheet_id = self.env.context.get("kpi_sheet_id")
+        day = self.env.context.get("kpi_hub_date")
+        if not sheet_id or not day:
+            raise UserError(self.env._("Thiếu thông tin ngày KPI."))
+        sheet = self.env["hr.kpi.monthly.sheet"].browse(sheet_id).exists()
+        if not sheet:
+            raise UserError(self.env._("Không tìm thấy bảng KPI tháng."))
+        return self.env["hr.kpi.daily.entry"].action_open_new(sheet, fields.Date.to_date(day))
+
+    def action_open_entry_wizard(self):
+        self.ensure_one()
+        return self.env["hr.kpi.daily.entry"].action_open_edit(self)

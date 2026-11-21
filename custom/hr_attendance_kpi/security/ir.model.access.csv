@@ -20,3 +20,6 @@ access_hr_kpi_hub_hr,hr.kpi.hub.hr,model_hr_kpi_hub,hr.group_hr_user,1,1,1,1
 access_hr_kpi_hub_day_captain,hr.kpi.hub.day.captain,model_hr_kpi_hub_day,hr_attendance_portal.group_hr_attendance_site_captain,1,1,1,1
 access_hr_kpi_hub_day_officer,hr.kpi.hub.day.officer,model_hr_kpi_hub_day,hr_attendance.group_hr_attendance_officer,1,1,1,1
 access_hr_kpi_hub_day_hr,hr.kpi.hub.day.hr,model_hr_kpi_hub_day,hr.group_hr_user,1,1,1,1
+access_hr_kpi_daily_entry_captain,hr.kpi.daily.entry.captain,model_hr_kpi_daily_entry,hr_attendance_portal.group_hr_attendance_site_captain,1,1,1,1
+access_hr_kpi_daily_entry_officer,hr.kpi.daily.entry.officer,model_hr_kpi_daily_entry,hr_attendance.group_hr_attendance_officer,1,1,1,1
+access_hr_kpi_daily_entry_hr,hr.kpi.daily.entry.hr,model_hr_kpi_daily_entry,hr.group_hr_user,1,1,1,1

@@ -249,20 +249,4 @@ class HrKpiHubDay(models.TransientModel):
         sheet = hub._get_or_create_sheet()
         sheet._check_captain_editable()
         sheet._ensure_employee_lines()
-        self.env["hr.kpi.daily.wizard"]._sync_sheet_day(sheet, target_date)
-        view = self.env.ref("hr_attendance_kpi.view_hr_kpi_daily_line_day_tree")
-        return {
-            "type": "ir.actions.act_window",
-            "name": self.env._("KPI ngày %s", target_date.strftime("%d/%m/%Y")),
-            "res_model": "hr.kpi.daily.line",
-            "view_mode": "list",
-            "views": [(view.id, "list")],
-            "domain": [
-                ("sheet_id", "=", sheet.id),
-                ("date", "=", target_date),
-            ],
-            "context": {
-                "default_date": fields.Date.to_string(target_date),
-                "kpi_hub_date": fields.Date.to_string(target_date),
-            },
-        }
+        return self.env["hr.kpi.daily.entry"]._day_list_action(sheet, target_date)

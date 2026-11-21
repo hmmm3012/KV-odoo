@@ -152,11 +152,9 @@ class TestHrAttendanceKpi(TransactionCase):
         day_line = hub.day_line_ids.filtered(lambda l: l.date == self.month)
         action = day_line.action_open_day()
         self.assertEqual(action["res_model"], "hr.kpi.daily.line")
+        self.assertIn(("is_fail", "=", True), action["domain"])
         count = self.env["hr.kpi.daily.line"].search_count(action["domain"])
-        criteria_count = self.env["hr.kpi.criterion"].search_count(
-            self.env["hr.kpi.criterion"]._daily_criteria_domain()
-        )
-        self.assertEqual(count, len(self.sheet.employee_ids) * criteria_count)
+        self.assertEqual(count, 0)
 
     def test_hub_open_day_without_manual_save(self):
         hub = self.env["hr.kpi.hub"].with_user(self.captain).new({
@@ -180,10 +178,31 @@ class TestHrAttendanceKpi(TransactionCase):
         self.assertTrue(persisted)
         self.assertTrue(persisted.sheet_id)
         count = self.env["hr.kpi.daily.line"].search_count(action["domain"])
-        criteria_count = self.env["hr.kpi.criterion"].search_count(
-            self.env["hr.kpi.criterion"]._daily_criteria_domain()
-        )
-        self.assertEqual(count, len(self.sheet.employee_ids) * criteria_count)
+        self.assertEqual(count, 0)
+
+    def test_daily_entry_wizard_creates_fail_line(self):
+        hub = self.env["hr.kpi.hub"].with_user(self.captain).create({
+            "department_id": self.department.id,
+            "month_date": self.month,
+        })
+        entry = self.env["hr.kpi.daily.entry"].create({
+            "sheet_id": hub.sheet_id.id,
+            "date": self.month,
+            "employee_id": self.employee.id,
+            "criterion_id": self.criterion_uniform.id,
+            "note": "Không mặc đồng phục",
+        })
+        entry.action_save()
+        line = self.env["hr.kpi.daily.line"].search([
+            ("sheet_id", "=", hub.sheet_id.id),
+            ("date", "=", self.month),
+            ("employee_id", "=", self.employee.id),
+            ("criterion_id", "=", self.criterion_uniform.id),
+        ], limit=1)
+        self.assertTrue(line.is_fail)
+        self.assertEqual(line.note, "Không mặc đồng phục")
+        self.line.action_recompute()
+        self.assertGreater(self.line.group_c_percent, 0)
 
     def test_action_open_kpi_hub_creates_record(self):
         action = self.env["hr.kpi.hub"].with_user(self.captain).action_open_kpi_hub()

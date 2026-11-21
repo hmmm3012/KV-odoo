@@ -1,20 +1,57 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <record id="view_hr_kpi_daily_line_day_tree" model="ir.ui.view">
-        <field name="name">hr.kpi.daily.line.day.list</field>
+    <record id="view_hr_kpi_daily_day_entries_list" model="ir.ui.view">
+        <field name="name">hr.kpi.daily.line.day.entries</field>
         <field name="model">hr.kpi.daily.line</field>
-        <field name="priority">20</field>
+        <field name="priority">30</field>
         <field name="arch" type="xml">
-            <list editable="bottom" create="false" delete="false"
+            <list create="false" edit="false" delete="true"
                   default_order="employee_id,criterion_id">
-                <field name="employee_id" readonly="1"/>
-                <field name="criterion_id" readonly="1"/>
-                <field name="group_code" readonly="1" optional="hide"/>
-                <field name="is_fail"/>
-                <field name="note" optional="show"/>
+                <header>
+                    <button name="action_kpi_add_entry" type="object"
+                            string="Thêm" class="btn-primary" display="always"/>
+                </header>
+                <field name="employee_id"/>
+                <field name="criterion_id"/>
+                <field name="group_code" optional="hide"/>
+                <field name="note"/>
+                <button name="action_open_entry_wizard" type="object"
+                        string="Sửa" class="btn-link" icon="fa-pencil" title="Sửa"/>
                 <field name="date" column_invisible="True"/>
-                <field name="monthly_employee_id" column_invisible="True"/>
+                <field name="sheet_id" column_invisible="True"/>
+                <field name="is_fail" column_invisible="True"/>
             </list>
+        </field>
+    </record>
+
+    <record id="view_hr_kpi_daily_entry_form" model="ir.ui.view">
+        <field name="name">hr.kpi.daily.entry.form</field>
+        <field name="model">hr.kpi.daily.entry</field>
+        <field name="arch" type="xml">
+            <form string="Ghi lỗi KPI">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="sheet_id" invisible="1"/>
+                            <field name="daily_line_id" invisible="1"/>
+                            <field name="department_id" invisible="1"/>
+                            <field name="date" readonly="1"/>
+                            <field name="employee_id"/>
+                        </group>
+                        <group>
+                            <field name="criterion_id"/>
+                            <field name="note" placeholder="Mô tả ngắn..."/>
+                        </group>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_save" type="object" string="Lưu"
+                            class="btn-primary"/>
+                    <button name="action_save_and_add" type="object" string="Lưu và thêm"
+                            class="btn-secondary"/>
+                    <button special="cancel" string="Hủy" class="btn-secondary"/>
+                </footer>
+            </form>
         </field>
     </record>
 
