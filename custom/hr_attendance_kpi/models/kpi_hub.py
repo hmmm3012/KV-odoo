@@ -82,8 +82,9 @@ class HrKpiHub(models.TransientModel):
     def _refresh_day_lines(self):
         Daily = self.env["hr.kpi.daily.line"]
         for hub in self:
-            hub.day_line_ids.unlink()
+            commands = [(5, 0, 0)]
             if not hub.sheet_id:
+                hub.day_line_ids = commands
                 continue
             start = hub._month_start()
             end = start + relativedelta(months=1, days=-1)
@@ -100,16 +101,14 @@ class HrKpiHub(models.TransientModel):
             ):
                 fail_by_date[group["date"]] = group["date_count"]
 
-            lines = []
             day = start
             while day <= end:
-                lines.append({
-                    "hub_id": hub.id,
+                commands.append((0, 0, {
                     "date": day,
                     "fail_count": fail_by_date.get(day, 0),
-                })
+                }))
                 day += relativedelta(days=1)
-            self.env["hr.kpi.hub.day"].create(lines)
+            hub.day_line_ids = commands
 
     @api.onchange("department_id", "month_date")
     def _onchange_filters(self):

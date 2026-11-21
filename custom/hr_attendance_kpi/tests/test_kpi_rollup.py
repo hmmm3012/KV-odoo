@@ -131,6 +131,16 @@ class TestHrAttendanceKpi(TransactionCase):
         with self.assertRaises(AccessError):
             self.sheet.with_user(self.captain).action_hr_lock()
 
+    def test_hub_onchange_day_lines_without_saved_hub(self):
+        hub = self.env["hr.kpi.hub"].with_user(self.captain).new({
+            "month_date": self.month,
+        })
+        hub.department_id = self.department
+        hub._onchange_filters()
+        days_in_month = (self.month + relativedelta(months=1, days=-1)).day
+        self.assertEqual(len(hub.day_line_ids), days_in_month)
+        self.assertTrue(all(line.hub_id == hub for line in hub.day_line_ids))
+
     def test_hub_day_sync(self):
         hub = self.env["hr.kpi.hub"].with_user(self.captain).create({
             "department_id": self.department.id,
