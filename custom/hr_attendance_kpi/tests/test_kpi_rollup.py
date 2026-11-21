@@ -158,6 +158,39 @@ class TestHrAttendanceKpi(TransactionCase):
         )
         self.assertEqual(count, len(self.sheet.employee_ids) * criteria_count)
 
+    def test_hub_open_day_without_manual_save(self):
+        hub = self.env["hr.kpi.hub"].with_user(self.captain).new({
+            "month_date": self.month,
+        })
+        hub.department_id = self.department
+        hub._onchange_filters()
+        self.assertFalse(hub.exists())
+        day_line = hub.day_line_ids.filtered(lambda line: line.date == self.month)
+        self.assertEqual(len(day_line), 1)
+        action = day_line.action_open_day()
+        self.assertEqual(action["res_model"], "hr.kpi.daily.line")
+        persisted = self.env["hr.kpi.hub"].search(
+            [
+                ("department_id", "=", self.department.id),
+                ("month_date", "=", self.month),
+            ],
+            order="id desc",
+            limit=1,
+        )
+        self.assertTrue(persisted)
+        self.assertTrue(persisted.sheet_id)
+        count = self.env["hr.kpi.daily.line"].search_count(action["domain"])
+        criteria_count = self.env["hr.kpi.criterion"].search_count(
+            self.env["hr.kpi.criterion"]._daily_criteria_domain()
+        )
+        self.assertEqual(count, len(self.sheet.employee_ids) * criteria_count)
+
+    def test_action_open_kpi_hub_creates_record(self):
+        action = self.env["hr.kpi.hub"].with_user(self.captain).action_open_kpi_hub()
+        hub = self.env["hr.kpi.hub"].browse(action["res_id"])
+        self.assertTrue(hub.exists())
+        self.assertTrue(hub.month_date)
+
     def test_captain_sees_kpi_menu(self):
         Menu = self.env["ir.ui.menu"].with_user(self.captain)
         kpi_menu = self.env.ref("hr_attendance_kpi.menu_hr_kpi_hub")

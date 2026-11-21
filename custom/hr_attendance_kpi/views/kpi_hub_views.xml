@@ -79,9 +79,9 @@
                             <field name="day_line_ids" nolabel="1">
                                 <list create="false" delete="false" edit="false"
                                       open_form_view="0" no_open="1">
-                                    <field name="hub_id" column_invisible="True"/>
+                                    <field name="hub_id" column_invisible="True" force_save="1"/>
                                     <field name="weekday" string="Thứ"/>
-                                    <field name="date" readonly="1"/>
+                                    <field name="date" readonly="1" force_save="1"/>
                                     <field name="fail_count" string="Lỗi đã ghi" widget="badge"
                                            decoration-danger="fail_count &gt; 0"/>
                                     <button name="action_open_day" type="object"
@@ -114,10 +114,10 @@
         </field>
     </record>
 
-    <record id="action_hr_kpi_hub" model="ir.actions.act_window">
+    <record id="action_hr_kpi_hub" model="ir.actions.server">
         <field name="name">Đánh giá KPI</field>
-        <field name="res_model">hr.kpi.hub</field>
-        <field name="view_mode">form</field>
-        <field name="target">current</field>
+        <field name="model_id" ref="model_hr_kpi_hub"/>
+        <field name="state">code</field>
+        <field name="code">action = model.action_open_kpi_hub()</field>
     </record>
 </odoo>
