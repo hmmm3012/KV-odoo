@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <delete model="ir.ui.menu" id="menu_hr_kpi_daily"/>
+    <delete model="ir.ui.menu" id="menu_hr_kpi_monthly"/>
+
+    <menuitem id="menu_hr_kpi_hub"
+              name="Đánh giá KPI"
+              parent="hr_attendance.menu_hr_attendance_root"
+              action="action_hr_kpi_hub"
+              sequence="8"
+              groups="hr_attendance_portal.group_hr_attendance_site_captain,hr_attendance.group_hr_attendance_officer,hr.group_hr_user"/>
+
+    <menuitem id="menu_hr_kpi_criterion"
+              name="Cấu hình tiêu chí KPI"
+              parent="hr_attendance.menu_hr_attendance_root"
+              action="action_hr_kpi_criterion"
+              sequence="90"
+              groups="hr_attendance.group_hr_attendance_officer,hr.group_hr_user"/>
+</odoo>

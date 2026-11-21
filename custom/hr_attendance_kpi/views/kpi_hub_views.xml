@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hr_kpi_daily_day_entries_list" model="ir.ui.view">
+        <field name="name">hr.kpi.daily.line.day.entries</field>
+        <field name="model">hr.kpi.daily.line</field>
+        <field name="priority">30</field>
+        <field name="arch" type="xml">
+            <list create="false" edit="false" delete="true"
+                  default_order="employee_id,criterion_id">
+                <header>
+                    <button name="action_kpi_add_entry" type="object"
+                            string="Thêm" class="btn-primary" display="always"/>
+                </header>
+                <field name="employee_id"/>
+                <field name="criterion_id"/>
+                <field name="group_code" optional="hide"/>
+                <field name="note"/>
+                <button name="action_open_entry_wizard" type="object"
+                        string="Sửa" class="btn-link" icon="fa-pencil" title="Sửa"/>
+                <field name="date" column_invisible="True"/>
+                <field name="sheet_id" column_invisible="True"/>
+                <field name="is_fail" column_invisible="True"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_hr_kpi_daily_entry_form" model="ir.ui.view">
+        <field name="name">hr.kpi.daily.entry.form</field>
+        <field name="model">hr.kpi.daily.entry</field>
+        <field name="arch" type="xml">
+            <form string="Ghi lỗi KPI">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="sheet_id" invisible="1"/>
+                            <field name="daily_line_id" invisible="1"/>
+                            <field name="department_id" invisible="1"/>
+                            <field name="date" readonly="1"/>
+                            <field name="employee_id"/>
+                        </group>
+                        <group>
+                            <field name="criterion_id"/>
+                            <field name="note" placeholder="Mô tả ngắn..."/>
+                        </group>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_save" type="object" string="Lưu"
+                            class="btn-primary"/>
+                    <button name="action_save_and_add" type="object" string="Lưu và thêm"
+                            class="btn-secondary"/>
+                    <button special="cancel" string="Hủy" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_hr_kpi_hub_day_form" model="ir.ui.view">
+        <field name="name">hr.kpi.hub.day.form</field>
+        <field name="model">hr.kpi.hub.day</field>
+        <field name="priority">100</field>
+        <field name="arch" type="xml">
+            <form string="Ngày trong tháng" create="false" edit="false" delete="false">
+                <sheet>
+                    <group>
+                        <field name="hub_id" invisible="1"/>
+                        <field name="weekday" string="Thứ" readonly="1"/>
+                        <field name="date" readonly="1"/>
+                        <field name="fail_count" string="Lỗi đã ghi" readonly="1"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_open_day" type="object" string="Nhập KPI" class="btn-primary"/>
+                    <button special="cancel" string="Đóng" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_hr_kpi_hub_form" model="ir.ui.view">
+        <field name="name">hr.kpi.hub.form</field>
+        <field name="model">hr.kpi.hub</field>
+        <field name="arch" type="xml">
+            <form string="Đánh giá KPI" create="false" duplicate="false" class="o_hr_kpi_hub_form">
+                <header>
+                    <button name="action_sheet_submit" type="object" string="Gửi bảng tháng"
+                            class="btn-primary" invisible="sheet_state != 'draft'"/>
+                    <button name="action_sheet_recompute" type="object" string="Tính lại %"
+                            class="btn-secondary" invisible="sheet_state == 'locked'"/>
+                    <button name="action_sheet_export" type="object" string="Xuất Excel"
+                            class="btn-secondary" invisible="not sheet_id"/>
+                    <button name="action_sheet_hr_lock" type="object" string="HR chốt tháng"
+                            class="btn-primary"
+                            groups="hr.group_hr_user,hr_attendance.group_hr_attendance_officer"
+                            invisible="sheet_state == 'locked'"/>
+                    <button name="action_sheet_unlock" type="object" string="Mở khóa"
+                            groups="hr.group_hr_user,hr_attendance.group_hr_attendance_officer"
+                            invisible="sheet_state != 'locked'"/>
+                    <field name="sheet_state" widget="statusbar"
+                           statusbar_visible="draft,submitted,locked"
+                           invisible="not sheet_id"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="department_id"/>
+                            <field name="month_date"/>
+                        </group>
+                        <group>
+                            <field name="lock_deadline" invisible="not sheet_id"/>
+                            <field name="sheet_id" invisible="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Đánh giá hằng ngày" name="daily">
+                            <field name="day_line_ids" nolabel="1">
+                                <list create="false" delete="false" edit="false"
+                                      open_form_view="0" no_open="1">
+                                    <field name="hub_id" column_invisible="True" force_save="1"/>
+                                    <field name="weekday" string="Thứ"/>
+                                    <field name="date" readonly="1" force_save="1"/>
+                                    <field name="fail_count" string="Lỗi đã ghi" widget="badge"
+                                           decoration-danger="fail_count &gt; 0"/>
+                                    <button name="action_open_day" type="object"
+                                            string="Nhập KPI" class="btn-link" icon="fa-edit"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Tổng hợp tháng" name="monthly">
+                            <field name="sheet_employee_ids" nolabel="1"
+                                   context="{'default_sheet_id': sheet_id}"
+                                   readonly="sheet_state == 'locked'">
+                                <list editable="bottom" create="false" delete="false">
+                                    <field name="employee_id" readonly="1"/>
+                                    <field name="manual_a_percent" string="A %"/>
+                                    <field name="manual_a_note" string="A mô tả" optional="hide"/>
+                                    <field name="manual_b_percent" string="B %"/>
+                                    <field name="manual_b_note" string="B mô tả" optional="hide"/>
+                                    <field name="group_c_percent" string="C %" readonly="1"/>
+                                    <field name="group_d_percent" string="D %" readonly="1"/>
+                                    <field name="group_e_percent" string="E %" readonly="1" optional="hide"/>
+                                    <field name="group_f_percent" string="F %" readonly="1" optional="hide"/>
+                                    <field name="total_deduction_percent" string="Tổng % trừ" readonly="1"/>
+                                    <field name="note" optional="hide"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_hr_kpi_hub" model="ir.actions.server">
+        <field name="name">Đánh giá KPI</field>
+        <field name="model_id" ref="model_hr_kpi_hub"/>
+        <field name="state">code</field>
+        <field name="code">action = model.action_open_kpi_hub()</field>
+    </record>
+</odoo>

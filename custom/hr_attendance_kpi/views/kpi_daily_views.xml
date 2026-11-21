@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hr_kpi_daily_line_tree" model="ir.ui.view">
+        <field name="name">hr.kpi.daily.line.list</field>
+        <field name="model">hr.kpi.daily.line</field>
+        <field name="arch" type="xml">
+            <list editable="bottom" create="false" delete="false">
+                <field name="date" readonly="1"/>
+                <field name="criterion_id" readonly="1"/>
+                <field name="group_code" readonly="1" optional="hide"/>
+                <field name="is_fail"/>
+                <field name="note" optional="show"/>
+                <field name="monthly_employee_id" column_invisible="True"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_hr_kpi_daily_wizard_form" model="ir.ui.view">
+        <field name="name">hr.kpi.daily.wizard.form</field>
+        <field name="model">hr.kpi.daily.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Đánh giá KPI (ngày)">
+                <header>
+                    <button name="action_open_daily_grid" type="object" string="Mở lưới KPI" class="btn-primary"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="department_id"/>
+                            <field name="employee_id" domain="[('department_id', 'child_of', department_id)]"/>
+                        </group>
+                        <group>
+                            <field name="month_date"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_hr_kpi_daily_wizard" model="ir.actions.act_window">
+        <field name="name">Đánh giá KPI (ngày)</field>
+        <field name="res_model">hr.kpi.daily.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">current</field>
+    </record>
+</odoo>

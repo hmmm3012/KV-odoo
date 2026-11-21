@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hr_kpi_monthly_employee_tree" model="ir.ui.view">
+        <field name="name">hr.kpi.monthly.employee.list</field>
+        <field name="model">hr.kpi.monthly.employee</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="employee_id" readonly="1"/>
+                <field name="manual_a_percent"/>
+                <field name="manual_a_note" optional="hide"/>
+                <field name="manual_b_percent"/>
+                <field name="manual_b_note" optional="hide"/>
+                <field name="group_c_percent" readonly="1"/>
+                <field name="group_d_percent" readonly="1"/>
+                <field name="group_e_percent" readonly="1" optional="hide"/>
+                <field name="group_f_percent" readonly="1" optional="hide"/>
+                <field name="total_deduction_percent" readonly="1"/>
+                <field name="kpi_remaining_percent" readonly="1"/>
+                <field name="note" optional="hide"/>
+                <button name="action_open_daily_lines" type="object" string="KPI ngày" icon="fa-calendar"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_hr_kpi_monthly_sheet_tree" model="ir.ui.view">
+        <field name="name">hr.kpi.monthly.sheet.list</field>
+        <field name="model">hr.kpi.monthly.sheet</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="department_id"/>
+                <field name="month_date"/>
+                <field name="lock_deadline"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'draft'"
+                       decoration-warning="state == 'submitted'"
+                       decoration-success="state == 'locked'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_hr_kpi_monthly_sheet_form" model="ir.ui.view">
+        <field name="name">hr.kpi.monthly.sheet.form</field>
+        <field name="model">hr.kpi.monthly.sheet</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_submit" type="object" string="Gửi" class="btn-primary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_recompute_all" type="object" string="Tính lại %"
+                            invisible="state == 'locked'"/>
+                    <button name="action_export_xlsx" type="object" string="Xuất Excel" class="btn-secondary"/>
+                    <button name="action_hr_lock" type="object" string="HR chốt tháng" class="btn-primary"
+                            groups="hr.group_hr_user,hr_attendance.group_hr_attendance_officer"
+                            invisible="state == 'locked'"/>
+                    <button name="action_unlock_draft" type="object" string="Mở khóa"
+                            groups="hr.group_hr_user,hr_attendance.group_hr_attendance_officer"
+                            invisible="state != 'locked'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,submitted,locked"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="department_id" readonly="state == 'locked'"/>
+                            <field name="month_date" readonly="state == 'locked'"/>
+                        </group>
+                        <group>
+                            <field name="lock_deadline"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Tổng hợp nhân viên" name="employees">
+                            <field name="employee_ids" nolabel="1" context="{'default_sheet_id': id}"
+                                   readonly="state == 'locked'"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_hr_kpi_monthly_sheet" model="ir.actions.act_window">
+        <field name="name">Tổng hợp KPI tháng</field>
+        <field name="res_model">hr.kpi.monthly.sheet</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

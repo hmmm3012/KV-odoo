@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_hr_kpi_criterion_tree" model="ir.ui.view">
+        <field name="name">hr.kpi.criterion.list</field>
+        <field name="model">hr.kpi.criterion</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="sequence" widget="handle"/>
+                <field name="code"/>
+                <field name="name"/>
+                <field name="group_code"/>
+                <field name="deduction_type"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_hr_kpi_criterion_form" model="ir.ui.view">
+        <field name="name">hr.kpi.criterion.form</field>
+        <field name="model">hr.kpi.criterion</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="code"/>
+                            <field name="name"/>
+                            <field name="group_code"/>
+                            <field name="deduction_type"/>
+                        </group>
+                        <group>
+                            <field name="sequence"/>
+                            <field name="active"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                    </group>
+                    <group string="Quy tắc trừ %" invisible="deduction_type == 'manual'">
+                        <group>
+                            <field name="fixed_percent" invisible="deduction_type != 'fixed_once'"/>
+                            <field name="per_hit_percent" invisible="deduction_type != 'per_hit'"/>
+                        </group>
+                        <group invisible="deduction_type != 'tiered'">
+                            <field name="tier1_percent"/>
+                            <field name="tier2_percent"/>
+                            <field name="tier_threshold"/>
+                        </group>
+                        <field name="cap_percent"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_hr_kpi_criterion" model="ir.actions.act_window">
+        <field name="name">Cấu hình tiêu chí KPI</field>
+        <field name="res_model">hr.kpi.criterion</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>
