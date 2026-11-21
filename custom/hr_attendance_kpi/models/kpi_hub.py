@@ -169,10 +169,15 @@ class HrKpiHub(models.TransientModel):
 
 class HrKpiHubDay(models.TransientModel):
     _name = "hr.kpi.hub.day"
-    _description = "Ngày KPI trên hub"
+    _description = "Ngày trong tháng"
     _order = "date"
 
-    hub_id = fields.Many2one("hr.kpi.hub", required=True, ondelete="cascade")
+    hub_id = fields.Many2one(
+        "hr.kpi.hub",
+        string=" ",
+        required=True,
+        ondelete="cascade",
+    )
     date = fields.Date(required=True)
     fail_count = fields.Integer(string="Số lỗi", readonly=True)
     weekday = fields.Char(compute="_compute_weekday")

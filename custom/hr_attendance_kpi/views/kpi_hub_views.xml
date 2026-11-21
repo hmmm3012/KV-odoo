@@ -18,6 +18,28 @@
         </field>
     </record>
 
+    <record id="view_hr_kpi_hub_day_form" model="ir.ui.view">
+        <field name="name">hr.kpi.hub.day.form</field>
+        <field name="model">hr.kpi.hub.day</field>
+        <field name="priority">100</field>
+        <field name="arch" type="xml">
+            <form string="Ngày trong tháng" create="false" edit="false" delete="false">
+                <sheet>
+                    <group>
+                        <field name="hub_id" invisible="1"/>
+                        <field name="weekday" string="Thứ" readonly="1"/>
+                        <field name="date" readonly="1"/>
+                        <field name="fail_count" string="Lỗi đã ghi" readonly="1"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_open_day" type="object" string="Nhập KPI" class="btn-primary"/>
+                    <button special="cancel" string="Đóng" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
     <record id="view_hr_kpi_hub_form" model="ir.ui.view">
         <field name="name">hr.kpi.hub.form</field>
         <field name="model">hr.kpi.hub</field>
@@ -55,9 +77,11 @@
                     <notebook>
                         <page string="Đánh giá hằng ngày" name="daily">
                             <field name="day_line_ids" nolabel="1">
-                                <list create="false" delete="false" edit="false">
+                                <list create="false" delete="false" edit="false"
+                                      open_form_view="0" no_open="1">
+                                    <field name="hub_id" column_invisible="True"/>
                                     <field name="weekday" string="Thứ"/>
-                                    <field name="date"/>
+                                    <field name="date" readonly="1"/>
                                     <field name="fail_count" string="Lỗi đã ghi" widget="badge"
                                            decoration-danger="fail_count &gt; 0"/>
                                     <button name="action_open_day" type="object"
