@@ -251,8 +251,10 @@ class TestAttendanceTimesheet(AttendancePortalMixin, TransactionCase):
         self.assertEqual(support["worked_days"], 1)
 
     def test_timesheet_highlights_half_hour_day_cells(self):
+        """Yellow cells still mark .5 values from captain reduce / legacy data."""
         day = datetime(2026, 9, 1, 1, 0, 0)
-        self._shift(self.employee, day, 7.5, self.department)
+        reduced = self._shift(self.employee, day, 8, self.department)
+        reduced.with_user(self.captain).action_reduce_regular(7.5, "Captain rounding display test")
         self._shift(self.employee, day + timedelta(days=1), 8, self.department)
         wizard = self.env["hr.attendance.timesheet.wizard"].with_user(self.captain).create({
             "department_id": self.department.id,

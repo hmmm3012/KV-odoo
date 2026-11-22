@@ -42,16 +42,22 @@ class TestAttendanceSession(AttendancePortalMixin, TransactionCase):
             attendance.with_context(attendance_original_punch=True).write({"check_out": end})
         return attendance
 
-    def test_worked_time_rounds_to_half_hour(self):
+    def test_worked_time_rounds_to_whole_hour(self):
         Attendance = self.env["hr.attendance"]
         end = fields.Datetime.now().replace(microsecond=0)
         cases = (
-            (timedelta(hours=12, minutes=44), 12.5),
+            (timedelta(), 0),
+            (timedelta(hours=1, minutes=44), 1.0),
+            (timedelta(hours=1, minutes=45), 2.0),
+            (timedelta(hours=2, minutes=30), 2.0),
+            (timedelta(hours=2, minutes=44, seconds=59), 2.0),
+            (timedelta(hours=9, minutes=15), 9.0),
+            (timedelta(hours=12, minutes=44), 12.0),
             (timedelta(hours=12, minutes=45), 13.0),
             (timedelta(hours=12, minutes=14), 12.0),
-            (timedelta(hours=12, minutes=15), 12.5),
+            (timedelta(hours=12, minutes=15), 12.0),
             (timedelta(hours=12), 12.0),
-            (timedelta(hours=12, minutes=30), 12.5),
+            (timedelta(hours=12, minutes=30), 12.0),
         )
         for delta, expected in cases:
             rounded = Attendance._round_elapsed_hours(end - delta, end)
@@ -65,8 +71,8 @@ class TestAttendanceSession(AttendancePortalMixin, TransactionCase):
 
         under = self._session(7 + 44 / 60)
         self.assertAlmostEqual(under.raw_elapsed_hours, 7 + 44 / 60, places=2)
-        self.assertAlmostEqual(under.recognized_regular_hours, 7.5, places=4)
-        self.assertAlmostEqual(under.payroll_regular_hours, 7.5, places=4)
+        self.assertAlmostEqual(under.recognized_regular_hours, 7.0, places=4)
+        self.assertAlmostEqual(under.payroll_regular_hours, 7.0, places=4)
         self.assertEqual(under.overtime_candidate_hours, 0)
 
         over_end = under.check_in - timedelta(minutes=1)
@@ -75,9 +81,9 @@ class TestAttendanceSession(AttendancePortalMixin, TransactionCase):
             "check_in": over_end - timedelta(hours=8, minutes=15),
         })
         over.with_context(attendance_original_punch=True).write({"check_out": over_end})
-        self.assertEqual(over.session_state, "pending_review")
+        self.assertEqual(over.session_state, "validated")
         self.assertAlmostEqual(over.recognized_regular_hours, 8, places=4)
-        self.assertAlmostEqual(over.overtime_candidate_hours, 0.5, places=4)
+        self.assertAlmostEqual(over.overtime_candidate_hours, 0.0, places=4)
 
     def test_shift_under_fifteen_minutes_is_saved_off_valid_list(self):
         short = self._session(14 / 60.0)
@@ -94,8 +100,8 @@ class TestAttendanceSession(AttendancePortalMixin, TransactionCase):
             "check_in": end - timedelta(minutes=15),
         })
         counted.with_context(attendance_original_punch=True).write({"check_out": end})
-        self.assertAlmostEqual(counted.recognized_regular_hours, 0.5, places=4)
-        self.assertTrue(self.env["hr.attendance"].search([("id", "=", counted.id)] + domain))
+        self.assertAlmostEqual(counted.recognized_regular_hours, 0.0, places=4)
+        self.assertFalse(self.env["hr.attendance"].search([("id", "=", counted.id)] + domain))
 
         forgotten = self._session(20)
         self.assertEqual(forgotten.exception_code, "missing_checkout")

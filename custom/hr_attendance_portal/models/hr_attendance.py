@@ -361,34 +361,36 @@ class HrAttendance(models.Model):
         return (end - start).total_seconds() / 3600.0
 
     @api.model
-    def _round_seconds_to_half_hour(self, total_seconds):
-        """Snap a duration to a half hour.
+    def _round_seconds_to_whole_hour(self, total_seconds):
+        """Snap worked duration to whole hours.
 
-        A remainder of 15 minutes or more rounds up to the next half hour.
-        A smaller remainder floors to the previous half hour. The result is
-        only a whole hour or a half hour (12:00, 12:30, 13:00, ...).
+        Trong mỗi khối giờ: phần dư >= 45 phút làm tròn lên giờ kế tiếp;
+        phần dư < 45 phút làm tròn xuống (floor) giờ trước.
+
+        Per hour block: remainder >= 45 minutes rounds up to the next full
+        hour; remainder < 45 minutes floors to the previous hour.
         """
         if not total_seconds or total_seconds <= 0:
             return 0
         total_seconds = int(total_seconds)
-        half_hour = 30 * 60
-        remainder = total_seconds % half_hour
-        if remainder >= 15 * 60:
-            return total_seconds + (half_hour - remainder)
+        one_hour = 60 * 60
+        remainder = total_seconds % one_hour
+        if remainder >= 45 * 60:
+            return total_seconds + (one_hour - remainder)
         return total_seconds - remainder
 
     @api.model
     def _round_elapsed_hours(self, start, end):
         if not start or not end or end < start:
             return 0.0
-        seconds = self._round_seconds_to_half_hour((end - start).total_seconds())
+        seconds = self._round_seconds_to_whole_hour((end - start).total_seconds())
         return seconds / 3600.0
 
     @api.model
     def _round_worked_hours(self, hours):
         if not hours or hours <= 0:
             return 0.0
-        seconds = self._round_seconds_to_half_hour(round(hours * 3600.0))
+        seconds = self._round_seconds_to_whole_hour(round(hours * 3600.0))
         return seconds / 3600.0
 
     def _compute_worked_hours(self):
