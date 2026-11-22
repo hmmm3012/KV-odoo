@@ -212,6 +212,7 @@ class HrAttendance(models.Model):
     can_decide_session = fields.Boolean(compute="_compute_session_buttons")
     can_review_overtime = fields.Boolean(compute="_compute_session_buttons")
     can_hr_review = fields.Boolean(compute="_compute_session_buttons")
+    can_undo_deny = fields.Boolean(compute="_compute_session_buttons")
     captain_approved_hours = fields.Float(
         string="Captain Hours",
         compute="_compute_captain_overtime_review",
@@ -341,6 +342,21 @@ class HrAttendance(models.Model):
                 is_hr
                 and open_session
                 and attendance.overtime_state in ("pending_hr_review", "hr_discrepancy", "captain_rejected")
+            )
+            deny = attendance.hour_decision_ids.filtered(
+                lambda d: d.decision_type == "deny_session"
+            )[:1]
+            attendance.can_undo_deny = (
+                attendance.session_state == "denied"
+                and open_session
+                and (
+                    is_hr
+                    or (
+                        is_captain
+                        and deny
+                        and deny.user_id == user
+                    )
+                )
             )
 
     def action_open_portal_events(self):
@@ -484,6 +500,7 @@ class HrAttendance(models.Model):
                     "reduce_regular",
                     "deny_session",
                     "restore_session",
+                    "undo_deny",
                 )
             )) and not force
             waiting_correction = (
@@ -1062,6 +1079,29 @@ class HrAttendance(models.Model):
         self._ensure_session_open()
         if self._session_actor_role() != "hr":
             raise AccessError(self.env._("Only HR can restore a denied session."))
+        return self._apply_restore_or_undo_deny(hours, reason, "restore_session", "hr")
+
+    def action_undo_deny_session(self, hours, reason):
+        """Let the denying captain (or HR) reverse a mistaken deny from the approved list."""
+        self.ensure_one()
+        self._check_session_visible()
+        self._ensure_session_open()
+        if self.session_state != "denied":
+            raise UserError(self.env._("Only a denied session can be undone."))
+        role = self._session_actor_role()
+        deny = self.hour_decision_ids.filtered(
+            lambda d: d.decision_type == "deny_session"
+        )[:1]
+        if role == "captain":
+            if not deny or deny.user_id != self.env.user:
+                raise AccessError(self.env._(
+                    "Only the captain who denied this session can undo it."
+                ))
+        reason = self._require_reason(reason)
+        return self._apply_restore_or_undo_deny(hours, reason, "undo_deny", role)
+
+    def _apply_restore_or_undo_deny(self, hours, reason, decision_type, role):
+        self.ensure_one()
         reason = self._require_reason(reason)
         cap = self._max_regular_hours()
         if float_compare(hours, 0.0, precision_digits=4) < 0 or float_compare(hours, cap, precision_digits=4) > 0:
@@ -1071,12 +1111,12 @@ class HrAttendance(models.Model):
         before = self.recognized_regular_hours
         self.env["hr.attendance.hour.decision"].sudo().create({
             "attendance_id": self.id,
-            "decision_type": "restore_session",
+            "decision_type": decision_type,
             "regular_before": before,
             "regular_after": hours,
             "reason": reason,
             "user_id": self.env.uid,
-            "role": "hr",
+            "role": role,
         })
         corrected = bool(self.effective_check_in or self.effective_check_out)
         self._apply_session_vals({
@@ -1196,13 +1236,23 @@ class HrAttendance(models.Model):
     def action_open_restore_wizard(self):
         return self._open_hour_wizard("restore_session")
 
+    def action_open_undo_deny_wizard(self):
+        self.ensure_one()
+        if not self.can_undo_deny:
+            raise AccessError(self.env._("You cannot undo this denied session."))
+        return self._open_hour_wizard("undo_deny")
+
     def _open_hour_wizard(self, decision_type):
         self.ensure_one()
         self._check_session_visible()
         self._ensure_session_open()
+        if decision_type == "undo_deny" and self.session_state != "denied":
+            raise UserError(self.env._("Only a denied session can be undone."))
         default_hours = self.recognized_regular_hours
-        if decision_type == "reduce_regular" and self._session_bounds()[1]:
+        if decision_type in ("reduce_regular", "undo_deny", "restore_session") and self._session_bounds()[1]:
             default_hours = self._session_duration()
+            if decision_type in ("undo_deny", "restore_session"):
+                default_hours = min(default_hours, self._max_regular_hours())
         return {
             "type": "ir.actions.act_window",
             "name": self.env._("Session Decision"),

@@ -191,6 +191,13 @@
             <xpath expr="//separator[@name='check_out_separator']" position="attributes">
                 <attribute name="string">Time Out</attribute>
             </xpath>
+            <xpath expr="//sheet" position="inside">
+                <div class="kv_session_actions" name="captain_undo_deny">
+                    <field name="can_undo_deny" invisible="1"/>
+                    <field name="session_state" invisible="1"/>
+                    <button name="action_open_undo_deny_wizard" type="object" string="Undo Deny" class="btn btn-secondary" invisible="not can_undo_deny" groups="hr_attendance_portal.group_hr_attendance_site_captain,hr_attendance.group_hr_attendance_officer"/>
+                </div>
+            </xpath>
         </field>
     </record>
 
