@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     "name": "HR Attendance KPI",
-    "version": "18.0.1.1.4",
+    "version": "18.0.1.1.5",
     "category": "Human Resources/Attendances",
     "summary": "Parking-lot employee KPI: daily entry, monthly rollup, HR lock",
     "author": "Kien Viet",
@@ -24,4 +24,9 @@
     ],
     "installable": True,
     "application": False,
+    "assets": {
+        "web.assets_backend": [
+            "hr_attendance_kpi/static/src/kpi_day_entry_list_view.js",
+        ],
+    },
 }

@@ -3,6 +3,7 @@
 from dateutil.relativedelta import relativedelta
 
 from odoo.exceptions import AccessError, UserError
+from odoo import fields
 from odoo.fields import Date
 from odoo.tests.common import TransactionCase, new_test_user, tagged
 
@@ -179,6 +180,25 @@ class TestHrAttendanceKpi(TransactionCase):
         self.assertTrue(persisted.sheet_id)
         count = self.env["hr.kpi.daily.line"].search_count(action["domain"])
         self.assertEqual(count, 0)
+
+    def test_inline_daily_line_create(self):
+        hub = self.env["hr.kpi.hub"].with_user(self.captain).create({
+            "department_id": self.department.id,
+            "month_date": self.month,
+        })
+        Daily = self.env["hr.kpi.daily.line"].with_user(self.captain)
+        line = Daily.with_context(
+            kpi_sheet_id=hub.sheet_id.id,
+            kpi_hub_date=fields.Date.to_string(self.month),
+        ).create({
+            "employee_id": self.employee.id,
+            "date": self.month,
+            "criterion_id": self.criterion_uniform.id,
+            "note": "Inline entry",
+        })
+        self.assertTrue(line.is_fail)
+        self.assertEqual(line.note, "Inline entry")
+        self.assertEqual(line.employee_id, self.employee)
 
     def test_daily_entry_wizard_creates_fail_line(self):
         hub = self.env["hr.kpi.hub"].with_user(self.captain).create({

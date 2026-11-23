@@ -5,21 +5,18 @@
         <field name="model">hr.kpi.daily.line</field>
         <field name="priority">30</field>
         <field name="arch" type="xml">
-            <list create="false" edit="false" delete="true"
+            <list js_class="kpi_day_entry_list"
+                  create="true" edit="true" delete="true" editable="bottom"
                   default_order="employee_id,criterion_id">
-                <header>
-                    <button name="action_kpi_add_entry" type="object"
-                            string="Thêm" class="btn-primary" display="always"/>
-                </header>
-                <field name="employee_id"/>
-                <field name="criterion_id"/>
-                <field name="group_code" optional="hide"/>
-                <field name="note"/>
-                <button name="action_open_entry_wizard" type="object"
-                        string="Sửa" class="btn-link" icon="fa-pencil" title="Sửa"/>
-                <field name="date" column_invisible="True"/>
+                <field name="employee_id" options="{'no_open': True, 'no_create': True}"/>
+                <field name="criterion_id" options="{'no_open': True, 'no_create': True}"/>
+                <field name="note" optional="show"/>
+                <field name="date" column_invisible="True" readonly="1" force_save="1"/>
+                <field name="monthly_employee_id" column_invisible="True"/>
                 <field name="sheet_id" column_invisible="True"/>
-                <field name="is_fail" column_invisible="True"/>
+                <field name="department_id" column_invisible="True"/>
+                <field name="is_fail" column_invisible="True" readonly="1" force_save="1"/>
+                <field name="group_code" column_invisible="True"/>
             </list>
         </field>
     </record>

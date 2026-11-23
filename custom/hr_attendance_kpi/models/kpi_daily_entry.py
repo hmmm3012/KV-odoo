@@ -53,6 +53,8 @@ class HrKpiDailyEntry(models.TransientModel):
             "context": {
                 "kpi_sheet_id": sheet.id,
                 "kpi_hub_date": fields.Date.to_string(day),
+                "default_date": fields.Date.to_string(day),
+                "default_is_fail": True,
             },
         }
 
