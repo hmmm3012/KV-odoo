@@ -9,7 +9,7 @@ KPI_GROUPS = [
     ("C", "C — Đồng phục / tác phong"),
     ("D", "D — Nội quy công ty"),
     ("E", "E — Vi phạm nghiêm trọng"),
-    ("F", "F — Khác"),
+    ("F", "F — Điện thoại"),
 ]
 
 DEDUCTION_TYPES = [
@@ -59,9 +59,13 @@ class HrKpiCriterion(models.Model):
 
     @api.constrains("deduction_type", "group_code")
     def _check_manual_groups(self):
+        """Manual type is only for optional A/B archive rows excluded from daily entry.
+
+        Daily KPI ticks use tiered/fixed_once/per_hit on all groups A–F.
+        Monthly ``manual_a_*`` / ``manual_b_*`` on ``hr.kpi.monthly.employee`` stay
+        for captain case notes in addition to daily rollup.
+        """
         for criterion in self:
-            if criterion.group_code in ("A", "B") and criterion.deduction_type != "manual":
-                raise ValidationError(self.env._("Nhóm A và B chỉ dùng nhập tay trên tổng hợp tháng."))
             if criterion.group_code not in ("A", "B") and criterion.deduction_type == "manual":
                 raise ValidationError(self.env._("Tiêu chí nhóm C–F không dùng nhập tay."))
 

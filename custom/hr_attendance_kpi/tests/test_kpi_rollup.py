@@ -31,6 +31,7 @@ class TestHrAttendanceKpi(TransactionCase):
         cls.month = Date.today().replace(day=1)
         cls.criterion_uniform = cls.env.ref("hr_attendance_kpi.kpi_criterion_uniform")
         cls.criterion_late = cls.env.ref("hr_attendance_kpi.kpi_criterion_late")
+        cls.criterion_safety = cls.env.ref("hr_attendance_kpi.kpi_criterion_safety")
 
         cls.captain = new_test_user(
             cls.env,
@@ -239,3 +240,17 @@ class TestHrAttendanceKpi(TransactionCase):
     def test_deduction_for_hits_tiered_below_threshold(self):
         self.assertEqual(self.criterion_uniform._deduction_for_hits(2), 10.0)
         self.assertEqual(self.criterion_late._deduction_for_hits(1), 20.0)
+
+    def test_ab_criteria_in_daily_domain(self):
+        domain = self.env["hr.kpi.criterion"]._daily_criteria_domain()
+        codes = set(
+            self.env["hr.kpi.criterion"].search(domain).mapped("code")
+        )
+        self.assertIn("A_SAFETY", codes)
+        self.assertIn("B_SKILL", codes)
+        self.assertEqual(len(codes), 12)
+
+    def test_daily_safety_rollup_group_a(self):
+        self._daily_fail(self.month, self.criterion_safety)
+        self.line.action_recompute()
+        self.assertEqual(self.line.group_a_percent, 20.0)

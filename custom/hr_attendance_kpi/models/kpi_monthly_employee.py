@@ -11,6 +11,15 @@ GROUP_FIELDS = {
     "F": "group_f_percent",
 }
 
+GROUP_ROLLUP_FIELDS = {
+    "A": "group_a_percent",
+    "B": "group_b_percent",
+    "C": "group_c_percent",
+    "D": "group_d_percent",
+    "E": "group_e_percent",
+    "F": "group_f_percent",
+}
+
 
 class HrKpiMonthlyEmployee(models.Model):
     _name = "hr.kpi.monthly.employee"
@@ -29,10 +38,18 @@ class HrKpiMonthlyEmployee(models.Model):
     month_date = fields.Date(related="sheet_id.month_date", store=True)
     sheet_state = fields.Selection(related="sheet_id.state", store=True)
 
-    manual_a_percent = fields.Float(string="A — % trừ")
+    manual_a_percent = fields.Float(
+        string="A — % trừ (nhập tay tháng)",
+        help="Bổ sung ngoài tick KPI ngày; dùng cho case mô tả riêng trên tổng hợp tháng.",
+    )
     manual_a_note = fields.Text(string="A — Mô tả")
-    manual_b_percent = fields.Float(string="B — % trừ")
+    manual_b_percent = fields.Float(
+        string="B — % trừ (nhập tay tháng)",
+        help="Bổ sung ngoài tick KPI ngày; dùng cho case mô tả riêng trên tổng hợp tháng.",
+    )
     manual_b_note = fields.Text(string="B — Mô tả")
+    group_a_percent = fields.Float(string="A — % từ KPI ngày", readonly=True)
+    group_b_percent = fields.Float(string="B — % từ KPI ngày", readonly=True)
     group_c_percent = fields.Float(string="C — % trừ", readonly=True)
     group_d_percent = fields.Float(string="D — % trừ", readonly=True)
     group_e_percent = fields.Float(string="E — % trừ", readonly=True)
@@ -74,7 +91,7 @@ class HrKpiMonthlyEmployee(models.Model):
                 grouped_hits.setdefault(criterion.id, 0)
                 grouped_hits[criterion.id] += 1
 
-            group_totals = {key: 0.0 for key in "CDEF"}
+            group_totals = {key: 0.0 for key in "ABCDEF"}
             criteria = self.env["hr.kpi.criterion"].search([
                 ("id", "in", list(grouped_hits.keys())),
             ])
@@ -84,19 +101,11 @@ class HrKpiMonthlyEmployee(models.Model):
                 if group_code in group_totals:
                     group_totals[group_code] += criterion._deduction_for_hits(hits)
 
-            values = {
-                "group_c_percent": group_totals["C"],
-                "group_d_percent": group_totals["D"],
-                "group_e_percent": group_totals["E"],
-                "group_f_percent": group_totals["F"],
-            }
+            values = {field: group_totals[code] for code, field in GROUP_ROLLUP_FIELDS.items()}
             total = sum([
                 line.manual_a_percent or 0.0,
                 line.manual_b_percent or 0.0,
-                values["group_c_percent"],
-                values["group_d_percent"],
-                values["group_e_percent"],
-                values["group_f_percent"],
+                *values.values(),
             ])
             total = min(total, 100.0)
             values["total_deduction_percent"] = total

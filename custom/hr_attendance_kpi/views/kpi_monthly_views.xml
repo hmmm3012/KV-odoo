@@ -8,8 +8,10 @@
                 <field name="employee_id" readonly="1"/>
                 <field name="manual_a_percent"/>
                 <field name="manual_a_note" optional="hide"/>
+                <field name="group_a_percent" readonly="1" optional="hide"/>
                 <field name="manual_b_percent"/>
                 <field name="manual_b_note" optional="hide"/>
+                <field name="group_b_percent" readonly="1" optional="hide"/>
                 <field name="group_c_percent" readonly="1"/>
                 <field name="group_d_percent" readonly="1"/>
                 <field name="group_e_percent" readonly="1" optional="hide"/>

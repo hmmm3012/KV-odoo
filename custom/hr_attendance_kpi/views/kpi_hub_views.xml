@@ -129,10 +129,12 @@
                                    readonly="sheet_state == 'locked'">
                                 <list editable="bottom" create="false" delete="false">
                                     <field name="employee_id" readonly="1"/>
-                                    <field name="manual_a_percent" string="A %"/>
+                                    <field name="manual_a_percent" string="A % tay"/>
                                     <field name="manual_a_note" string="A mô tả" optional="hide"/>
-                                    <field name="manual_b_percent" string="B %"/>
+                                    <field name="group_a_percent" string="A % ngày" readonly="1" optional="hide"/>
+                                    <field name="manual_b_percent" string="B % tay"/>
                                     <field name="manual_b_note" string="B mô tả" optional="hide"/>
+                                    <field name="group_b_percent" string="B % ngày" readonly="1" optional="hide"/>
                                     <field name="group_c_percent" string="C %" readonly="1"/>
                                     <field name="group_d_percent" string="D %" readonly="1"/>
                                     <field name="group_e_percent" string="E %" readonly="1" optional="hide"/>
