@@ -443,23 +443,28 @@
         return { text: MESSAGES.wifi_location_confirmed, kind: "ok" };
     }
 
-    function punchConfirmedViaWifi(result) {
-        if (!result) {
+    function punchAccepted(result) {
+        return Boolean(result && (result.result === "success" || result.result === "needs_review"));
+    }
+
+    function punchRefusedForMissingGps(result) {
+        if (!result || punchAccepted(result)) {
             return false;
         }
-        if (result.result === "success") {
-            return true;
-        }
-        return result.result === "needs_review" && Boolean(result.location_name);
+        return result.error === "missing_gps" || result.error === "unknown_location";
     }
 
     function applyPunchLocationHint(result, gpsError) {
-        if (gpsError && punchConfirmedViaWifi(result)) {
+        if (gpsError && punchAccepted(result) && result.location_name) {
             const hint = wifiConfirmedHint(result);
             setLocationHint(hint.text, hint.kind);
             return;
         }
-        if (gpsError && !punchConfirmedViaWifi(result)) {
+        if (gpsError && punchAccepted(result)) {
+            setLocationHint("");
+            return;
+        }
+        if (gpsError && punchRefusedForMissingGps(result)) {
             showLocationError(gpsError);
             return;
         }
@@ -486,8 +491,24 @@
         return result;
     }
 
+    async function geolocationPermissionState() {
+        if (!navigator.permissions || !navigator.permissions.query) {
+            return "";
+        }
+        try {
+            const status = await navigator.permissions.query({ name: "geolocation" });
+            return (status && status.state) || "";
+        } catch (_error) {
+            return "";
+        }
+    }
+
     async function requestClientLocation(options) {
         const quiet = options && options.quiet;
+        const permission = await geolocationPermissionState();
+        if (permission === "denied") {
+            throw new Error("geolocation_denied");
+        }
         if (!quiet) {
             setLocationHint("Đang xin quyền vị trí…");
         }
@@ -510,11 +531,8 @@
         try {
             const position = await requestClientLocation({ quiet: true });
             await applyWorkplaceHint(position, { quiet: true });
-        } catch (error) {
-            const result = await applyWorkplaceHint(null, { quiet: true }).catch(() => null);
-            if (isStatusPanelVisible() && !(result && result.location_name)) {
-                showLocationError(error && error.message);
-            }
+        } catch (_error) {
+            await applyWorkplaceHint(null, { quiet: true }).catch(() => null);
         } finally {
             locationPollInFlight = false;
         }
@@ -790,11 +808,7 @@
             .then((position) => applyWorkplaceHint(position))
             .catch((error) => {
                 reportLocationIssue(error && error.message);
-                return applyWorkplaceHint(null).then((result) => {
-                    if (!(result && result.location_name)) {
-                        showLocationError(error && error.message);
-                    }
-                });
+                return applyWorkplaceHint(null).catch(() => null);
             })
             .finally(() => startCamera().catch(() => {}));
         return result;
@@ -823,10 +837,7 @@
             const camera = await cameraPromise;
             if (location && location.message) {
                 reportLocationIssue(location.message);
-                const hinted = await applyWorkplaceHint(null).catch(() => null);
-                if (!(hinted && hinted.location_name)) {
-                    showLocationError(location.message);
-                }
+                await applyWorkplaceHint(null).catch(() => null);
             } else if (location && location.coords) {
                 await applyWorkplaceHint(location).catch(() => {
                     setLocationHint(MESSAGES.network, "error");
@@ -900,16 +911,18 @@
         checkBtn.disabled = true;
         showMessage(false);
         try {
-            let position = null;
-            let gpsError = null;
-            try {
-                position = await requestClientLocation();
-            } catch (error) {
-                gpsError = error && error.message;
-                reportLocationIssue(gpsError);
-            }
+            const locationAttempt = requestClientLocation().then(
+                (position) => ({ position: position, gpsError: null }),
+                (error) => {
+                    const gpsError = error && error.message;
+                    reportLocationIssue(gpsError);
+                    return { position: null, gpsError: gpsError };
+                }
+            );
             const faceImage = await requestClientPhoto();
-            const coords = position && position.coords;
+            const located = await locationAttempt;
+            const coords = located.position && located.position.coords;
+            const gpsError = located.gpsError;
             const result = await punchWithRetry({
                 event_type: eventType,
                 latitude: coords ? coords.latitude : false,
