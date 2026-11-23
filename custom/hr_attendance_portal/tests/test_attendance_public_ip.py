@@ -19,6 +19,13 @@ class TestAttendancePublicIp(AttendancePortalMixin, TransactionCase):
             client_ip=client_ip,
         )
 
+    def _enable_wifi(self, location, ips):
+        location.write({
+            "wifi_punch_enabled": True,
+            "allowed_public_ips": ips,
+        })
+        return location
+
     def _other_site(self, name="Other Lot", **vals):
         location = self.env["hr.attendance.location"].create({
             "name": name,
@@ -36,7 +43,7 @@ class TestAttendancePublicIp(AttendancePortalMixin, TransactionCase):
         return location, department
 
     def test_cidr_matches_address_inside_range(self):
-        self.location.allowed_public_ips = "203.0.113.0/24\n2001:db8::/32"
+        self._enable_wifi(self.location, "203.0.113.0/24\n2001:db8::/32")
         location, department, reason, _distance = self._match(
             False, False, client_ip="203.0.113.44"
         )
@@ -58,7 +65,7 @@ class TestAttendancePublicIp(AttendancePortalMixin, TransactionCase):
 
     def test_unique_site_ip_assigns_workplace_without_gps(self):
         other, other_department = self._other_site()
-        other.allowed_public_ips = "198.51.100.10"
+        self._enable_wifi(other, "198.51.100.10")
         location, department, reason, distance = self._match(
             False, False, client_ip="198.51.100.10"
         )
@@ -68,7 +75,7 @@ class TestAttendancePublicIp(AttendancePortalMixin, TransactionCase):
         self.assertFalse(distance)
 
     def test_no_ip_match_keeps_unknown_or_missing_gps(self):
-        self.location.allowed_public_ips = "203.0.113.10"
+        self._enable_wifi(self.location, "203.0.113.10")
         unknown, _department, reason, _distance = self._match(
             16.0, 108.0, client_ip="198.51.100.1"
         )
@@ -87,7 +94,7 @@ class TestAttendancePublicIp(AttendancePortalMixin, TransactionCase):
 
     def test_gps_inside_fence_wins_over_other_site_ip(self):
         other, _other_department = self._other_site()
-        other.allowed_public_ips = "203.0.113.10"
+        self._enable_wifi(other, "203.0.113.10")
         location, department, reason, _distance = self._match(
             self.location.latitude,
             self.location.longitude,
@@ -99,7 +106,7 @@ class TestAttendancePublicIp(AttendancePortalMixin, TransactionCase):
         self.assertFalse(reason)
 
     def test_inaccurate_gps_is_accepted_when_ip_matches_same_site(self):
-        self.location.allowed_public_ips = "203.0.113.10"
+        self._enable_wifi(self.location, "203.0.113.10")
         self.location.max_gps_accuracy_meters = 20
         flagged, _department, reason, _distance = self._match(
             self.location.latitude,
@@ -121,8 +128,8 @@ class TestAttendancePublicIp(AttendancePortalMixin, TransactionCase):
 
     def test_shared_ip_prefers_home_workplace(self):
         other, _other_department = self._other_site()
-        self.location.allowed_public_ips = "203.0.113.10"
-        other.allowed_public_ips = "203.0.113.10"
+        self._enable_wifi(self.location, "203.0.113.10")
+        self._enable_wifi(other, "203.0.113.10")
         location, department, reason, _distance = self._match(
             False, False, client_ip="203.0.113.10"
         )
@@ -133,8 +140,8 @@ class TestAttendancePublicIp(AttendancePortalMixin, TransactionCase):
     def test_ambiguous_ip_without_home_match_is_ignored(self):
         first, _first_department = self._other_site("Lot A")
         second, _second_department = self._other_site("Lot B")
-        first.allowed_public_ips = "203.0.113.10"
-        second.allowed_public_ips = "203.0.113.10"
+        self._enable_wifi(first, "203.0.113.10")
+        self._enable_wifi(second, "203.0.113.10")
         location, _department, reason, _distance = self._match(
             False, False, client_ip="203.0.113.10"
         )
@@ -146,7 +153,7 @@ class TestAttendancePublicIp(AttendancePortalMixin, TransactionCase):
             self.location.allowed_public_ips = "not-an-ip"
 
     def test_register_uses_client_ip_when_gps_is_missing(self):
-        self.location.allowed_public_ips = "203.0.113.0/24"
+        self._enable_wifi(self.location, "203.0.113.0/24")
         _, token = self._issue_token()
         with patch.object(type(self.portal), "_client_ip", return_value="203.0.113.44"):
             result = self._register(
@@ -171,7 +178,7 @@ class TestAttendancePublicIp(AttendancePortalMixin, TransactionCase):
 
     def test_register_gps_fallback_ignores_other_site_ip(self):
         other, _other_department = self._other_site()
-        other.allowed_public_ips = "198.51.100.10"
+        self._enable_wifi(other, "198.51.100.10")
         _, token = self._issue_token()
         with patch.object(type(self.portal), "_client_ip", return_value="198.51.100.10"):
             result = self._register(token, "check_in", request_id="gps-wins")
@@ -184,3 +191,66 @@ class TestAttendancePublicIp(AttendancePortalMixin, TransactionCase):
         self.assertNotEqual(attendance.in_location_id, other)
         event = self.env["hr.attendance.event"].search([("request_id", "=", "gps-wins")])
         self.assertEqual(event.ip_address, "198.51.100.10")
+
+    def test_wifi_punch_flag_off_ignores_ip(self):
+        self.location.allowed_public_ips = "203.0.113.10"
+        self.assertFalse(self.location.wifi_punch_enabled)
+
+        missing, _department, reason, _distance = self._match(
+            False, False, client_ip="203.0.113.10"
+        )
+        self.assertFalse(missing)
+        self.assertEqual(reason, "missing_gps")
+
+        unknown, _department, reason, _distance = self._match(
+            16.0, 108.0, client_ip="203.0.113.10"
+        )
+        self.assertFalse(unknown)
+        self.assertEqual(reason, "unknown_location")
+
+        self.location.max_gps_accuracy_meters = 20
+        flagged, _department, reason, _distance = self._match(
+            self.location.latitude,
+            self.location.longitude,
+            gps_accuracy=80,
+            client_ip="203.0.113.10",
+        )
+        self.assertEqual(flagged, self.location)
+        self.assertEqual(reason, "gps_inaccurate")
+
+        inside, department, reason, _distance = self._match(
+            self.location.latitude,
+            self.location.longitude,
+            gps_accuracy=12,
+            client_ip="203.0.113.10",
+        )
+        self.assertEqual(inside, self.location)
+        self.assertEqual(department, self.department)
+        self.assertFalse(reason)
+
+    def test_wifi_punch_on_without_ips_stays_gps_only(self):
+        self.location.wifi_punch_enabled = True
+        missing, _department, reason, _distance = self._match(
+            False, False, client_ip="203.0.113.10"
+        )
+        self.assertFalse(missing)
+        self.assertEqual(reason, "missing_gps")
+
+    def test_register_flag_off_ignores_matching_ip(self):
+        self.location.allowed_public_ips = "203.0.113.44"
+        _, token = self._issue_token()
+        with patch.object(type(self.portal), "_client_ip", return_value="203.0.113.44"):
+            result = self._register(
+                token,
+                "check_in",
+                request_id="flag-off",
+                latitude=False,
+                longitude=False,
+                gps_accuracy=False,
+            )
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["error"], "missing_gps")
+        self.assertFalse(self.env["hr.attendance"].search([("employee_id", "=", self.employee.id)]))
+        event = self.env["hr.attendance.event"].search([("request_id", "=", "flag-off")])
+        self.assertEqual(event.ip_address, "203.0.113.44")
+        self.assertFalse(event.location_id)

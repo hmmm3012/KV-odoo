@@ -11,6 +11,7 @@
                 <field name="longitude"/>
                 <field name="allowed_radius_meters"/>
                 <field name="max_gps_accuracy_meters"/>
+                <field name="wifi_punch_enabled" optional="hide"/>
                 <field name="allowed_public_ips" optional="hide"/>
                 <field name="company_id" groups="base.group_multi_company"/>
                 <field name="active"/>
@@ -41,14 +42,15 @@
                         <group>
                             <field name="active"/>
                             <field name="company_id" groups="base.group_multi_company"/>
-                            <field name="allowed_public_ips" widget="text" placeholder="203.0.113.10"/>
+                            <field name="wifi_punch_enabled" string="Cho phép chấm công qua WiFi"/>
+                            <field name="allowed_public_ips" widget="text" placeholder="203.0.113.10" invisible="not wifi_punch_enabled"/>
                         </group>
                     </group>
-                    <p class="text-muted">
+                    <p class="text-muted" invisible="not wifi_punch_enabled">
                         IP công cộng được phép: một dòng một IPv4, IPv6 hoặc dải CIDR.
-                        Chỉ dùng khi bãi xe / văn phòng có gói WiFi ISP riêng (IP WAN cố định, không dùng chung).
+                        Chỉ dùng khi bật Cho phép chấm công qua WiFi và bãi xe / văn phòng có gói WiFi ISP riêng (IP WAN cố định, không dùng chung).
                         Cách lấy IP: kết nối WiFi tại bãi, chấm thử, mở Chấm công → Exceptions &amp; Audit, xem Địa chỉ IP, rồi dán vào đây.
-                        Không dùng IP LAN (192.168.x). Không phải BSSID WiFi.
+                        Không dùng IP LAN (192.168.x). Không phải BSSID WiFi. Tắt cờ thì chấm công chỉ theo GPS.
                     </p>
                     <notebook>
                         <page string="Polygon zones">

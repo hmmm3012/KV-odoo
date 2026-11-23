@@ -38,7 +38,7 @@ Odoo Community stores `hr.employee.pin` in plaintext so the stock kiosk and POS 
 
 ## GPS and workplaces
 
-Workplaces (`hr.attendance.location`) hold coordinates and an allowed radius. A workplace may also list **allowed public IPs** (IPv4/IPv6/CIDR): when the punch client's public IP matches, that site is used even if GPS is missing or inaccurate. Do not put coordinates in controllers.
+Workplaces (`hr.attendance.location`) hold coordinates and an allowed radius. If **Allow WiFi punch** is enabled, a workplace may also list **allowed public IPs** (IPv4/IPv6/CIDR): when the punch client's public IP matches, that site is used even if GPS is missing or inaccurate. Flag off or empty IP list keeps GPS-only matching. Do not put coordinates in controllers.
 
 Default company policies (Attendances settings):
 

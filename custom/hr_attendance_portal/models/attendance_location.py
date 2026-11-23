@@ -62,10 +62,16 @@ class HrAttendanceLocation(models.Model):
         default=100,
         help="GPS readings less accurate than this are flagged for HR review.",
     )
+    wifi_punch_enabled = fields.Boolean(
+        string="Allow WiFi punch",
+        default=False,
+        help="When enabled, a matching public IP can identify this workplace if GPS is missing or inaccurate. "
+             "Off (default): GPS only, even if public IPs are listed.",
+    )
     allowed_public_ips = fields.Text(
         string="Allowed public IPs",
         help="One IPv4, IPv6, or CIDR per line (for example 203.0.113.10 or 203.0.113.0/24). "
-             "Use only when this workplace has its own static WAN/public IP. "
+             "Used only when Allow WiFi punch is enabled and this workplace has its own static WAN/public IP. "
              "Matching uses the client address after proxy_mode (remote_addr), not a raw X-Forwarded-For header.",
     )
     captain_ids = fields.Many2many(
@@ -448,7 +454,7 @@ class HrAttendanceLocation(models.Model):
 
     def _match_result(self, location, department, distance, gps_accuracy, client_ip=None):
         if gps_accuracy and location.max_gps_accuracy_meters and gps_accuracy > location.max_gps_accuracy_meters:
-            if location._contains_client_ip(client_ip):
+            if location._wifi_punch_matches_ip(client_ip):
                 return location, department, False, distance
             return location, department, "gps_inaccurate", distance
         return location, department, False, distance
@@ -501,6 +507,13 @@ class HrAttendanceLocation(models.Model):
             return False
         return any(ip in network for network in networks)
 
+    def _wifi_punch_matches_ip(self, client_ip):
+        """True only when WiFi punch is enabled and the client IP is allowlisted."""
+        self.ensure_one()
+        if not self.wifi_punch_enabled:
+            return False
+        return self._contains_client_ip(client_ip)
+
     def _department_for_ip_match(self, employee, location):
         Department = self.env["hr.department"].sudo()
         home = employee.department_id
@@ -523,12 +536,13 @@ class HrAttendanceLocation(models.Model):
         company_ids = [employee.company_id.id, False] if employee.company_id else [False]
         candidates = self.sudo().search([
             ("active", "=", True),
+            ("wifi_punch_enabled", "=", True),
             ("allowed_public_ips", "!=", False),
             ("company_id", "in", company_ids),
         ])
         matches = candidates.filtered(
             lambda location: self._company_location_ok(employee, location)
-            and location._contains_client_ip(client_ip)
+            and location._wifi_punch_matches_ip(client_ip)
         )
         if not matches:
             return empty
@@ -591,9 +605,11 @@ class HrAttendanceLocation(models.Model):
         inside if it lies in any of them.
 
         If GPS is missing or outside every fence, a unique public-IP allowlist
-        match assigns that workplace (success). GPS inside a fence still wins
-        over a different site's IP; inaccurate GPS is accepted when the same
-        workplace's IP also matches.
+        match assigns that workplace (success) only when WiFi punch is enabled
+        on that workplace. GPS inside a fence still wins over a different
+        site's IP; inaccurate GPS is accepted when the same workplace has
+        WiFi punch on and its IP also matches. Flag off or empty IP list
+        leaves the GPS path unchanged.
         """
         Department = self.env["hr.department"].sudo()
         has_gps = latitude not in (None, False) and longitude not in (None, False)
