@@ -248,7 +248,7 @@ class TestHrAttendanceKpi(TransactionCase):
         )
         self.assertIn("A_SAFETY", codes)
         self.assertIn("B_SKILL", codes)
-        self.assertEqual(len(codes), 12)
+        self.assertEqual(len(codes), 13)
 
     def test_daily_safety_rollup_group_a(self):
         self._daily_fail(self.month, self.criterion_safety)
