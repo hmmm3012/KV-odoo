@@ -59,6 +59,14 @@
         locationHintEl.className = "kv-location-hint";
         lastPunchEl.insertAdjacentElement("afterend", locationHintEl);
     }
+    let wifiHintEl = document.getElementById("kv-wifi-hint");
+    if (!wifiHintEl && locationHintEl) {
+        wifiHintEl = document.createElement("p");
+        wifiHintEl.id = "kv-wifi-hint";
+        wifiHintEl.className = "kv-wifi-subtext";
+        wifiHintEl.hidden = true;
+        locationHintEl.insertAdjacentElement("afterend", wifiHintEl);
+    }
     let videoEl = document.getElementById("kv-camera");
     let previewEl = document.getElementById("kv-camera-preview");
     let canvasEl = document.getElementById("kv-camera-canvas");
@@ -323,8 +331,21 @@
         statusSnapshot = null;
         document.getElementById("pin").value = "";
         setLocationHint("");
+        setWifiFallbackHint(false);
         stopCamera();
         setCameraHint("");
+    }
+
+    function setWifiFallbackHint(visible) {
+        if (!wifiHintEl) {
+            return;
+        }
+        if (!visible) {
+            wifiHintEl.hidden = true;
+            return;
+        }
+        wifiHintEl.hidden = false;
+        wifiHintEl.textContent = "(đang lấy vị trí qua wifi)";
     }
 
     function setLocationHint(text, kind) {
@@ -346,6 +367,7 @@
         || (/iPhone|iPad|iPod/i.test(USER_AGENT) && !/Safari\//i.test(USER_AGENT));
 
     function showLocationError(code) {
+        setWifiFallbackHint(false);
         const permissionIssue = code === "geolocation_timeout" || code === "geolocation_denied";
         if (IN_APP_BROWSER && permissionIssue) {
             setLocationHint("Chưa lấy được vị trí. Hãy tải lại trang hoặc mở bằng trình duyệt.", "error");
@@ -458,10 +480,12 @@
         if (gpsError && punchAccepted(result) && result.location_name) {
             const hint = wifiConfirmedHint(result);
             setLocationHint(hint.text, hint.kind);
+            setWifiFallbackHint(true);
             return;
         }
         if (gpsError && punchAccepted(result)) {
             setLocationHint("");
+            setWifiFallbackHint(true);
             return;
         }
         if (gpsError && punchRefusedForMissingGps(result)) {
@@ -472,15 +496,20 @@
             const hint = workplaceHintFromResult(result);
             setLocationHint(hint.text, hint.kind);
         }
+        if (gpsError) {
+            setWifiFallbackHint(true);
+        }
     }
 
     async function applyWorkplaceHint(position, options) {
         const quiet = options && options.quiet;
+        const hasCoords = Boolean(position && position.coords);
+        setWifiFallbackHint(!hasCoords);
         if (!quiet) {
             setLocationHint("Đang xác định vị trí…");
         }
         const payload = {};
-        if (position && position.coords) {
+        if (hasCoords) {
             payload.latitude = position.coords.latitude;
             payload.longitude = position.coords.longitude;
             payload.gps_accuracy = position.coords.accuracy;
@@ -507,6 +536,7 @@
         const quiet = options && options.quiet;
         const permission = await geolocationPermissionState();
         if (permission === "denied") {
+            setWifiFallbackHint(true);
             throw new Error("geolocation_denied");
         }
         if (!quiet) {
@@ -912,10 +942,14 @@
         showMessage(false);
         try {
             const locationAttempt = requestClientLocation().then(
-                (position) => ({ position: position, gpsError: null }),
+                (position) => {
+                    setWifiFallbackHint(false);
+                    return { position: position, gpsError: null };
+                },
                 (error) => {
                     const gpsError = error && error.message;
                     reportLocationIssue(gpsError);
+                    setWifiFallbackHint(true);
                     return { position: null, gpsError: gpsError };
                 }
             );

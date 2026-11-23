@@ -530,7 +530,8 @@ class TestAttendancePortalHttp(AttendancePortalMixin, HttpCase):
         response = self.url_open("/attendance")
         self.assertEqual(response.status_code, 200)
         self.assertIn("Chấm công", response.text)
-        self.assertIn("attendance_portal.js?v=20261123b", response.text)
+        self.assertIn("attendance_portal.js?v=20261123c", response.text)
+        self.assertIn("(đang lấy vị trí qua wifi)", response.text)
         self.assertIn("Bảng công", response.text)
 
     def test_http_login_sets_cookie_and_check_in(self):
