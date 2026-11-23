@@ -17,6 +17,7 @@
         geolocation_denied: "Trình duyệt đã từ chối quyền vị trí. Mở cài đặt trang → Quyền → Vị trí → Cho phép, rồi nhấn Chấm công lại.",
         geolocation_insecure: "Trình duyệt chỉ cho phép GPS trên HTTPS. Hãy mở trang bằng https://.",
         geolocation_timeout: "Chưa lấy được vị trí. Hãy tải lại trang hoặc mở bằng trình duyệt khác.",
+        wifi_location_confirmed: "Đã xác nhận vị trí qua WiFi",
         missing_photo: "Không chụp được ảnh. Hãy cho phép camera và thử lại.",
         no_face: "Không thấy khuôn mặt trong ảnh. Hãy nhìn thẳng vào camera và chấm công lại.",
         multiple_faces: "Có nhiều khuôn mặt trong ảnh. Hãy để một mình trong khung hình và chụp lại.",
@@ -432,6 +433,40 @@
             return { text: "Vị trí hiện tại: " + name, kind: "ok" };
         }
         return { text: "Đang nằm ngoài phạm vi đơn vị", kind: "warn" };
+    }
+
+    function wifiConfirmedHint(result) {
+        const name = result && result.location_name;
+        if (name) {
+            return { text: MESSAGES.wifi_location_confirmed + ": " + name, kind: "ok" };
+        }
+        return { text: MESSAGES.wifi_location_confirmed, kind: "ok" };
+    }
+
+    function punchConfirmedViaWifi(result) {
+        if (!result) {
+            return false;
+        }
+        if (result.result === "success") {
+            return true;
+        }
+        return result.result === "needs_review" && Boolean(result.location_name);
+    }
+
+    function applyPunchLocationHint(result, gpsError) {
+        if (gpsError && punchConfirmedViaWifi(result)) {
+            const hint = wifiConfirmedHint(result);
+            setLocationHint(hint.text, hint.kind);
+            return;
+        }
+        if (gpsError && !punchConfirmedViaWifi(result)) {
+            showLocationError(gpsError);
+            return;
+        }
+        if (result && (result.location_name || result.error)) {
+            const hint = workplaceHintFromResult(result);
+            setLocationHint(hint.text, hint.kind);
+        }
     }
 
     async function applyWorkplaceHint(position, options) {
@@ -866,11 +901,12 @@
         showMessage(false);
         try {
             let position = null;
+            let gpsError = null;
             try {
                 position = await requestClientLocation();
             } catch (error) {
-                showLocationError(error && error.message);
-                reportLocationIssue(error && error.message);
+                gpsError = error && error.message;
+                reportLocationIssue(gpsError);
             }
             const faceImage = await requestClientPhoto();
             const coords = position && position.coords;
@@ -891,10 +927,7 @@
             if (result.attendance_state) {
                 renderStatus(result);
             }
-            if (result.location_name || result.error) {
-                const hint = workplaceHintFromResult(result);
-                setLocationHint(hint.text, hint.kind);
-            }
+            applyPunchLocationHint(result, gpsError);
             if (result.result === "success") {
                 showMessage(result.event_type === "check_out" ? "Đã chấm công ra." : "Đã chấm công vào.", "ok");
             } else if (result.result === "needs_review") {
