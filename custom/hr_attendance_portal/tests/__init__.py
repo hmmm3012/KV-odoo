@@ -2,6 +2,7 @@
 
 from . import test_attendance_api
 from . import test_attendance_geofence
+from . import test_attendance_public_ip
 from . import test_attendance_security
 from . import test_attendance_concurrency
 from . import test_attendance_session

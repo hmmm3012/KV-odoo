@@ -44,6 +44,12 @@ class HrAttendancePortal(models.AbstractModel):
     _description = "Attendance Portal Service"
 
     def _client_ip(self):
+        """Public client IP as seen by Odoo after proxy_mode / ProxyFix.
+
+        Use remote_addr only. Do not read X-Forwarded-For from the request:
+        a client can spoof that header. With proxy_mode enabled, Werkzeug
+        ProxyFix already copies the trusted proxy hop into REMOTE_ADDR.
+        """
         if not request:
             return False
         return request.httprequest.remote_addr
@@ -562,10 +568,12 @@ class HrAttendancePortal(models.AbstractModel):
             if source == "kiosk" and not company.attendance_portal_kiosk_require_gps:
                 location = device.location_id if device else self._empty_location()
                 return location, self._empty_department(), False, None
-            return self._empty_location(), self._empty_department(), "missing_gps", None
-
         location, department, reason, distance = self.env["hr.attendance.location"].sudo()._match_for_employee(
-            employee, latitude, longitude, gps_accuracy=gps_accuracy
+            employee,
+            latitude,
+            longitude,
+            gps_accuracy=gps_accuracy,
+            client_ip=self._client_ip(),
         )
         return location, department, reason, distance
 

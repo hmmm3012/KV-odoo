@@ -435,18 +435,17 @@
     }
 
     async function applyWorkplaceHint(position, options) {
-        if (!position || !position.coords) {
-            return;
-        }
         const quiet = options && options.quiet;
         if (!quiet) {
             setLocationHint("Đang xác định vị trí…");
         }
-        const result = await rpc("/attendance/api/location", {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            gps_accuracy: position.coords.accuracy,
-        });
+        const payload = {};
+        if (position && position.coords) {
+            payload.latitude = position.coords.latitude;
+            payload.longitude = position.coords.longitude;
+            payload.gps_accuracy = position.coords.accuracy;
+        }
+        const result = await rpc("/attendance/api/location", payload);
         const hint = workplaceHintFromResult(result);
         setLocationHint(hint.text, hint.kind);
         return result;
@@ -477,7 +476,8 @@
             const position = await requestClientLocation({ quiet: true });
             await applyWorkplaceHint(position, { quiet: true });
         } catch (error) {
-            if (isStatusPanelVisible()) {
+            const result = await applyWorkplaceHint(null, { quiet: true }).catch(() => null);
+            if (isStatusPanelVisible() && !(result && result.location_name)) {
                 showLocationError(error && error.message);
             }
         } finally {
@@ -754,8 +754,12 @@
         requestClientLocation()
             .then((position) => applyWorkplaceHint(position))
             .catch((error) => {
-                showLocationError(error && error.message);
                 reportLocationIssue(error && error.message);
+                return applyWorkplaceHint(null).then((result) => {
+                    if (!(result && result.location_name)) {
+                        showLocationError(error && error.message);
+                    }
+                });
             })
             .finally(() => startCamera().catch(() => {}));
         return result;
@@ -783,8 +787,11 @@
             const location = await locationPromise;
             const camera = await cameraPromise;
             if (location && location.message) {
-                showLocationError(location.message);
                 reportLocationIssue(location.message);
+                const hinted = await applyWorkplaceHint(null).catch(() => null);
+                if (!(hinted && hinted.location_name)) {
+                    showLocationError(location.message);
+                }
             } else if (location && location.coords) {
                 await applyWorkplaceHint(location).catch(() => {
                     setLocationHint(MESSAGES.network, "error");
@@ -858,20 +865,20 @@
         checkBtn.disabled = true;
         showMessage(false);
         try {
-            let position;
+            let position = null;
             try {
                 position = await requestClientLocation();
             } catch (error) {
                 showLocationError(error && error.message);
                 reportLocationIssue(error && error.message);
-                return;
             }
             const faceImage = await requestClientPhoto();
+            const coords = position && position.coords;
             const result = await punchWithRetry({
                 event_type: eventType,
-                latitude: position.coords.latitude,
-                longitude: position.coords.longitude,
-                gps_accuracy: position.coords.accuracy,
+                latitude: coords ? coords.latitude : false,
+                longitude: coords ? coords.longitude : false,
+                gps_accuracy: coords ? coords.accuracy : false,
                 face_image: faceImage,
                 request_id: (crypto.randomUUID && crypto.randomUUID()) || String(Date.now()) + "-" + Math.random(),
                 source: "personal_web",
