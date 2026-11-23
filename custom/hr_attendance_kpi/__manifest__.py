@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     "name": "HR Attendance KPI",
-    "version": "18.0.1.1.6",
+    "version": "18.0.1.1.7",
     "category": "Human Resources/Attendances",
     "summary": "Parking-lot employee KPI: daily entry, monthly rollup, HR lock",
     "author": "Kien Viet",
@@ -15,6 +15,7 @@
         "security/security.xml",
         "security/ir.model.access.csv",
         "data/kpi_criterion_data.xml",
+        "data/kpi_criterion_deactivate_legacy.xml",
         "views/kpi_criterion_views.xml",
         "views/kpi_monthly_views.xml",
         "views/kpi_daily_views.xml",

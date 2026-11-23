@@ -96,3 +96,45 @@ class HrKpiCriterion(models.Model):
         if self.cap_percent:
             deduction = min(deduction, self.cap_percent)
         return deduction
+
+    _ACTIVE_DAILY_CRITERION_CODES = frozenset({
+        "A_SAFETY",
+        "B_SKILL",
+        "C_UNIFORM",
+        "D_LATE",
+        "E_SERIOUS",
+        "F_PHONE",
+    })
+
+    _LEGACY_DAILY_CRITERION_CODES = frozenset({
+        "UNIFORM",
+        "LATE",
+        "PHONE",
+        "C_HAIR",
+        "C_SHOES",
+        "C_HAT",
+        "C_POSTURE",
+        "D_SLEEP",
+        "D_RULES",
+        "E_SERIOUS_MAX",
+    })
+
+    @api.model
+    def _deactivate_legacy_daily_criteria(self):
+        """Ẩn tiêu chí con / mã cũ sau khi gom còn 6 nhóm A–F (18.0.1.1.7+)."""
+        active_codes = self._ACTIVE_DAILY_CRITERION_CODES
+        legacy = self.with_context(active_test=False).search([
+            ("code", "not in", list(active_codes)),
+            ("active", "=", True),
+        ])
+        to_hide = legacy.filtered(
+            lambda c: (
+                c.code in self._LEGACY_DAILY_CRITERION_CODES
+                or (
+                    (c.code.startswith("C_") or c.code.startswith("D_"))
+                    and c.code not in active_codes
+                )
+            )
+        )
+        if to_hide:
+            to_hide.write({"active": False})

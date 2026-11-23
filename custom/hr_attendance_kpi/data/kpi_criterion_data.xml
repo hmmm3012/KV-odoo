@@ -1,14 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo noupdate="0">
     <!--
-    Tiêu chí mặc định A–F (Minh 24/11/2026).
-    noupdate=0 cho bản mở rộng này để cập nhật 3 bản ghi demo và thêm tiêu chí mới khi nâng module.
-  Nhập tay tháng (manual_a/b_*) giữ trên tổng hợp; nhóm A/B dưới đây dùng cho tick KPI ngày.
+    Đúng 6 tiêu chí KPI ngày — một dòng mỗi nhóm A–F (Minh 24/11/2026).
+    Tên khớp bảng Ý nghĩa trong kpi-parking-lot-plan.md; chi tiết (trễ, ngủ, …) ghi ở ghi chú dòng ngày.
+    Nhập tay tháng (manual_a/b_*) giữ trên tổng hợp; tất cả nhóm dưới đây dùng cho dropdown KPI ngày.
     -->
-    <!-- A — An toàn, an ninh -->
     <record id="kpi_criterion_safety" model="hr.kpi.criterion">
         <field name="code">A_SAFETY</field>
-        <field name="name">A — An toàn, an ninh (mất phụ tùng, phụ kiện)</field>
+        <field name="name">A — An toàn, an ninh (mất phụ tùng / phụ kiện)</field>
         <field name="group_code">A</field>
         <field name="deduction_type">tiered</field>
         <field name="tier1_percent">20</field>
@@ -17,7 +16,6 @@
         <field name="cap_percent">50</field>
         <field name="sequence">10</field>
     </record>
-    <!-- B — Kỹ năng nghiệp vụ -->
     <record id="kpi_criterion_skill" model="hr.kpi.criterion">
         <field name="code">B_SKILL</field>
         <field name="name">B — Kỹ năng nghiệp vụ</field>
@@ -27,10 +25,9 @@
         <field name="cap_percent">10</field>
         <field name="sequence">20</field>
     </record>
-    <!-- C — Đồng phục / tác phong (tiered −5%/lỗi, ≥3 lần −20%) -->
     <record id="kpi_criterion_uniform" model="hr.kpi.criterion">
         <field name="code">C_UNIFORM</field>
-        <field name="name">C — Đồng phục đầy đủ</field>
+        <field name="name">C — Đồng phục / tác phong</field>
         <field name="group_code">C</field>
         <field name="deduction_type">tiered</field>
         <field name="tier1_percent">5</field>
@@ -39,54 +36,9 @@
         <field name="cap_percent">20</field>
         <field name="sequence">30</field>
     </record>
-    <record id="kpi_criterion_hair" model="hr.kpi.criterion">
-        <field name="code">C_HAIR</field>
-        <field name="name">C — Tóc gọn gàng</field>
-        <field name="group_code">C</field>
-        <field name="deduction_type">tiered</field>
-        <field name="tier1_percent">5</field>
-        <field name="tier2_percent">20</field>
-        <field name="tier_threshold">3</field>
-        <field name="cap_percent">20</field>
-        <field name="sequence">31</field>
-    </record>
-    <record id="kpi_criterion_shoes" model="hr.kpi.criterion">
-        <field name="code">C_SHOES</field>
-        <field name="name">C — Giày dép đúng quy định</field>
-        <field name="group_code">C</field>
-        <field name="deduction_type">tiered</field>
-        <field name="tier1_percent">5</field>
-        <field name="tier2_percent">20</field>
-        <field name="tier_threshold">3</field>
-        <field name="cap_percent">20</field>
-        <field name="sequence">32</field>
-    </record>
-    <record id="kpi_criterion_hat" model="hr.kpi.criterion">
-        <field name="code">C_HAT</field>
-        <field name="name">C — Đội nón (khi bắt buộc)</field>
-        <field name="group_code">C</field>
-        <field name="deduction_type">tiered</field>
-        <field name="tier1_percent">5</field>
-        <field name="tier2_percent">20</field>
-        <field name="tier_threshold">3</field>
-        <field name="cap_percent">20</field>
-        <field name="sequence">33</field>
-    </record>
-    <record id="kpi_criterion_posture" model="hr.kpi.criterion">
-        <field name="code">C_POSTURE</field>
-        <field name="name">C — Tư thế trực</field>
-        <field name="group_code">C</field>
-        <field name="deduction_type">tiered</field>
-        <field name="tier1_percent">5</field>
-        <field name="tier2_percent">20</field>
-        <field name="tier_threshold">3</field>
-        <field name="cap_percent">20</field>
-        <field name="sequence">34</field>
-    </record>
-    <!-- D — Nội quy công ty -->
     <record id="kpi_criterion_late" model="hr.kpi.criterion">
         <field name="code">D_LATE</field>
-        <field name="name">D — Đi trễ / về sớm</field>
+        <field name="name">D — Nội quy công ty (trễ ca, điện thoại, ngủ, …)</field>
         <field name="group_code">D</field>
         <field name="deduction_type">tiered</field>
         <field name="tier1_percent">20</field>
@@ -95,29 +47,6 @@
         <field name="cap_percent">50</field>
         <field name="sequence">40</field>
     </record>
-    <record id="kpi_criterion_sleep" model="hr.kpi.criterion">
-        <field name="code">D_SLEEP</field>
-        <field name="name">D — Ngủ khi trực</field>
-        <field name="group_code">D</field>
-        <field name="deduction_type">tiered</field>
-        <field name="tier1_percent">20</field>
-        <field name="tier2_percent">50</field>
-        <field name="tier_threshold">3</field>
-        <field name="cap_percent">50</field>
-        <field name="sequence">41</field>
-    </record>
-    <record id="kpi_criterion_rules" model="hr.kpi.criterion">
-        <field name="code">D_RULES</field>
-        <field name="name">D — Vi phạm nội quy khác</field>
-        <field name="group_code">D</field>
-        <field name="deduction_type">tiered</field>
-        <field name="tier1_percent">20</field>
-        <field name="tier2_percent">50</field>
-        <field name="tier_threshold">3</field>
-        <field name="cap_percent">50</field>
-        <field name="sequence">42</field>
-    </record>
-    <!-- E — Vi phạm nghiêm trọng -->
     <record id="kpi_criterion_serious" model="hr.kpi.criterion">
         <field name="code">E_SERIOUS</field>
         <field name="name">E — Vi phạm nghiêm trọng</field>
@@ -127,19 +56,9 @@
         <field name="cap_percent">50</field>
         <field name="sequence">50</field>
     </record>
-    <record id="kpi_criterion_serious_max" model="hr.kpi.criterion">
-        <field name="code">E_SERIOUS_MAX</field>
-        <field name="name">E — Vi phạm nghiêm trọng (trừ 100%)</field>
-        <field name="group_code">E</field>
-        <field name="deduction_type">fixed_once</field>
-        <field name="fixed_percent">100</field>
-        <field name="cap_percent">100</field>
-        <field name="sequence">51</field>
-    </record>
-    <!-- F — Điện thoại (tách trên tổng hợp TH) -->
     <record id="kpi_criterion_phone" model="hr.kpi.criterion">
         <field name="code">F_PHONE</field>
-        <field name="name">F — Dùng điện thoại khi trực</field>
+        <field name="name">F — Sử dụng điện thoại khi trực</field>
         <field name="group_code">F</field>
         <field name="deduction_type">per_hit</field>
         <field name="per_hit_percent">20</field>
