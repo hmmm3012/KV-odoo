@@ -14,8 +14,10 @@
     }
 
     .o_hr_attendance_chat_panel {
-        width: min(24rem, calc(100vw - 2.5rem));
-        height: min(32rem, calc(100vh - 6rem));
+        width: 24rem;
+        max-width: calc(100vw - 2.5rem);
+        height: 32rem;
+        max-height: calc(100vh - 6rem);
         display: flex;
         flex-direction: column;
         background: var(--o-view-background-color, #fff);
