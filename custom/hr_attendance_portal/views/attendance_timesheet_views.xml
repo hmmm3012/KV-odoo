@@ -21,8 +21,22 @@
                             <field name="date_to"/>
                         </group>
                     </group>
-                    <separator string="Timesheet"/>
-                    <field name="preview_html" widget="kv_timesheet_preview" nolabel="1" colspan="2"/>
+                    <notebook>
+                        <page string="Bảng công" name="timesheet">
+                            <field name="preview_html" widget="kv_timesheet_preview" nolabel="1"/>
+                            <separator string="Phụ cấp trong ngày"/>
+                            <group>
+                                <group>
+                                    <field name="allowance_date"/>
+                                </group>
+                                <group/>
+                            </group>
+                            <field name="allowance_grid_html" widget="kv_timesheet_preview" nolabel="1"/>
+                        </page>
+                        <page string="Phụ cấp" name="allowance">
+                            <field name="allowance_summary_html" widget="kv_timesheet_preview" nolabel="1"/>
+                        </page>
+                    </notebook>
                 </sheet>
             </form>
         </field>

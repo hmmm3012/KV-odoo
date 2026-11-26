@@ -324,6 +324,89 @@
     border-radius: 0.5rem;
 }
 
+.kv-allowance-grid,
+.kv-allowance-summary {
+    max-width: 40rem;
+}
+
+.kv-allowance-table,
+.kv-allowance-counts {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.25rem 0 0.75rem;
+}
+
+.kv-allowance-table td,
+.kv-allowance-counts th,
+.kv-allowance-counts td {
+    border-bottom: 1px solid #eaecf0;
+    padding: 0.35rem 0.5rem;
+    vertical-align: middle;
+}
+
+.kv-allowance-counts th {
+    text-align: left;
+    font-size: 0.75rem;
+    color: #475467;
+}
+
+.kv-allowance-counts td.kv-num,
+.kv-allowance-counts th:last-child {
+    text-align: right;
+    width: 6rem;
+}
+
+.kv-allowance-name {
+    font-weight: 600;
+}
+
+.kv-allowance-stale {
+    display: inline-block;
+    margin-left: 0.35rem;
+    color: #b54708;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.kv-allowance-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.kv-allowance-status {
+    color: #067647;
+    font-size: 0.8125rem;
+}
+
+.kv-allowance-status.is-error {
+    color: #b42318;
+}
+
+.kv-allowance-detail-title {
+    margin: 1rem 0 0.5rem;
+    font-size: 1rem;
+}
+
+.kv-allowance-day {
+    padding: 0.35rem 0;
+    border-bottom: 1px solid #eaecf0;
+}
+
+.kv-allowance-day-head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.kv-allowance-day ul {
+    margin: 0.15rem 0 0.35rem 1.1rem;
+}
+
+.kv-allowance-empty {
+    color: #667085;
+}
+
 @media (max-width: 767.98px) {
     .kv-timesheet-scroll {
         max-height: min(65vh, 560px);

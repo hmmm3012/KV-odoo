@@ -6,5 +6,6 @@ from . import test_attendance_security
 from . import test_attendance_concurrency
 from . import test_attendance_session
 from . import test_attendance_timesheet
+from . import test_daily_allowance
 from . import test_department_structure
 from . import test_face_pipeline
