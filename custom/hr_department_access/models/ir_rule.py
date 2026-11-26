@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from odoo import models
-from odoo.osv import expression
+from odoo.fields import Domain
 
 
 class IrRule(models.Model):
@@ -20,4 +20,4 @@ class IrRule(models.Model):
         extra = self.env["res.users"]._hr_department_access_domain(model_name)
         if not extra:
             return domain
-        return expression.AND([domain, extra])
+        return Domain(domain) & Domain(extra)

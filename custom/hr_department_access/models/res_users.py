@@ -76,9 +76,10 @@ class ResUsers(models.Model):
             "hr.employee.public": own_employee,
             "hr.department": [("id", "child_of", department_ids)],
             "hr.attendance": own_or_employee,
-            "hr.attendance.overtime": own_or_employee,
-            "hr.contract": own_or_employee,
-            "hr.contract.history": own_or_employee,
+            # Odoo 19: hr.attendance.overtime -> hr.attendance.overtime.line,
+            # hr.contract (+ hr.contract.history) -> hr.version.
+            "hr.attendance.overtime.line": own_or_employee,
+            "hr.version": own_or_employee,
             "hr.attendance.event": [
                 "|",
                 "|",

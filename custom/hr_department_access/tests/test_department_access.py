@@ -31,7 +31,7 @@ class TestHrDepartmentAccess(TransactionCase):
         cls.hr_user = new_test_user(
             cls.env,
             login="dept_hr_site_a",
-            groups="hr_contract.group_hr_contract_manager,hr_attendance.group_hr_attendance_manager",
+            groups="hr.group_hr_manager,hr_attendance.group_hr_attendance_manager",
         )
         cls.hr_user.sudo().write({
             "hr_authorized_department_ids": [(6, 0, [cls.site.id])],
@@ -86,17 +86,19 @@ class TestHrDepartmentAccess(TransactionCase):
         ])
         self.assertEqual(visible, inside_attendance)
         with self.assertRaises(AccessError):
-            self.env["hr.contract"].with_user(self.hr_user).create({
+            self.env["hr.version"].with_user(self.hr_user).create({
                 "name": "Outside contract",
                 "employee_id": self.outside.id,
                 "wage": 1,
-                "date_start": Date.today(),
+                "date_version": Date.today(),
+                "contract_date_start": Date.today(),
             })
-        contract = self.env["hr.contract"].with_user(self.hr_user).create({
+        contract = self.env["hr.version"].with_user(self.hr_user).create({
             "name": "Inside contract",
             "employee_id": self.inside.id,
             "wage": 1,
-            "date_start": Date.today(),
+            "date_version": Date.add(Date.today(), days=1),
+            "contract_date_start": Date.today(),
         })
         self.assertEqual(contract.employee_id, self.inside)
 
