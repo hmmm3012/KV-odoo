@@ -9,7 +9,7 @@ from markupsafe import Markup
 from odoo import api, fields, models
 from odoo.exceptions import AccessError, UserError
 from odoo.tools import float_compare, float_is_zero, float_round, html_escape
-from odoo.tools.misc import xlsxwriter
+import xlsxwriter  # Odoo 19: no longer re-exported by odoo.tools.misc
 
 WEEKDAYS = ("T2", "T3", "T4", "T5", "T6", "T7", "CN")
 MAX_EXPORT_DAYS = 62

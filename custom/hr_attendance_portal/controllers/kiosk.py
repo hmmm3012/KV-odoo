@@ -21,8 +21,11 @@ class HrAttendanceKioskPortal(HrAttendance):
             source="kiosk",
         )
 
-    @http.route("/hr_attendance/attendance_barcode_scanned", type="json", auth="public")
-    def scan_barcode(self, token, barcode):
+    # Odoo 19 swapped the kiosk method names: the barcode route is now
+    # scan_barcode_with_geolocation (scan_barcode is a plain helper) and the
+    # PIN route is manual_selection. Override the routed methods by name.
+    @http.route("/hr_attendance/attendance_barcode_scanned", type="jsonrpc", auth="public")
+    def scan_barcode_with_geolocation(self, token, barcode, latitude=False, longitude=False):
         company = self._get_company(token)
         if not company:
             return {}
@@ -32,13 +35,13 @@ class HrAttendanceKioskPortal(HrAttendance):
         ], limit=1)
         if not employee:
             return {}
-        result = self._register_kiosk(employee)
+        result = self._register_kiosk(employee, latitude=latitude, longitude=longitude)
         if not result.get("ok") and result.get("result") != "needs_review":
             return {}
         return self._get_employee_info_response(employee)
 
-    @http.route("/hr_attendance/manual_selection", type="json", auth="public")
-    def manual_selection_with_geolocation(self, token, employee_id, pin_code, latitude=False, longitude=False):
+    @http.route("/hr_attendance/manual_selection", type="jsonrpc", auth="public")
+    def manual_selection(self, token, employee_id, pin_code, latitude=False, longitude=False):
         company = self._get_company(token)
         if not company:
             return {}

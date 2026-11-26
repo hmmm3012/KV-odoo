@@ -9,7 +9,7 @@ from dateutil.relativedelta import relativedelta
 
 from odoo import api, fields, models
 from odoo.exceptions import AccessError, UserError, ValidationError
-from odoo.tools.misc import xlsxwriter
+import xlsxwriter  # Odoo 19: no longer re-exported by odoo.tools.misc
 
 SHIFT_SELECTION = [("day", "Ca ngày"), ("night", "Ca đêm")]
 MAX_EXPORT_DAYS = 62
@@ -56,13 +56,10 @@ class HrDepartmentOff(models.Model):
     )
     note = fields.Char("Ghi chú")
 
-    _sql_constraints = [
-        (
-            "employee_date_unique",
-            "unique(employee_id, date)",
-            "Nhân viên này đã có lịch OFF trong ngày đó.",
-        ),
-    ]
+    _employee_date_unique = models.Constraint(
+        "unique(employee_id, date)",
+        "Nhân viên này đã có lịch OFF trong ngày đó.",
+    )
 
     @api.depends("employee_id")
     def _compute_department_id(self):

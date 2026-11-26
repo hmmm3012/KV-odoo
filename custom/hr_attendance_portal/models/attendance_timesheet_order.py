@@ -24,10 +24,7 @@ class HrAttendanceTimesheetRowOrder(models.Model):
     )
     sequence = fields.Integer(string="Sequence", default=10, required=True)
 
-    _sql_constraints = [
-        (
-            "department_employee_uniq",
-            "unique(department_id, employee_id)",
-            "Each employee can only have one timesheet row order per parking lot.",
-        ),
-    ]
+    _department_employee_uniq = models.Constraint(
+        "unique(department_id, employee_id)",
+        "Each employee can only have one timesheet row order per parking lot.",
+    )

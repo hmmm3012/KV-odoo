@@ -75,7 +75,7 @@
                 <separator/>
                 <filter name="shift_day" string="Ca ngày" domain="[('shift', '=', 'day')]"/>
                 <filter name="shift_night" string="Ca đêm" domain="[('shift', '=', 'night')]"/>
-                <group expand="0" string="Nhóm theo">
+                <group>
                     <filter name="group_date" string="Ngày" context="{'group_by': 'date:day'}"/>
                     <filter name="group_department" string="Phòng ban" context="{'group_by': 'department_id'}"/>
                     <filter name="group_shift" string="Ca" context="{'group_by': 'shift'}"/>

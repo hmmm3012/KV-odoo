@@ -20,23 +20,23 @@ class AttendancePortalController(http.Controller):
             "csrf_token": request.csrf_token(),
         })
 
-    @http.route("/attendance/api/login", type="json", auth="public", methods=["POST"])
+    @http.route("/attendance/api/login", type="jsonrpc", auth="public", methods=["POST"])
     def api_login(self, employee_code, pin, source="personal_web"):
         return self._portal().login(employee_code, pin, source="personal_web")
 
-    @http.route("/attendance/api/logout", type="json", auth="public", methods=["POST"])
+    @http.route("/attendance/api/logout", type="jsonrpc", auth="public", methods=["POST"])
     def api_logout(self):
         return self._portal().logout()
 
-    @http.route("/attendance/api/status", type="json", auth="public", methods=["POST"])
+    @http.route("/attendance/api/status", type="jsonrpc", auth="public", methods=["POST"])
     def api_status(self):
         return self._portal().session_status()
 
-    @http.route("/attendance/api/sheet", type="json", auth="public", methods=["POST"])
+    @http.route("/attendance/api/sheet", type="jsonrpc", auth="public", methods=["POST"])
     def api_sheet(self, year=False, month=False):
         return self._portal().attendance_sheet(year=year, month=month)
 
-    @http.route("/attendance/api/location", type="json", auth="public", methods=["POST"])
+    @http.route("/attendance/api/location", type="jsonrpc", auth="public", methods=["POST"])
     def api_location(self, latitude=False, longitude=False, gps_accuracy=False):
         return self._portal().resolve_location(
             latitude=latitude,
@@ -44,15 +44,15 @@ class AttendancePortalController(http.Controller):
             gps_accuracy=gps_accuracy,
         )
 
-    @http.route("/attendance/api/client_issue", type="json", auth="public", methods=["POST"])
+    @http.route("/attendance/api/client_issue", type="jsonrpc", auth="public", methods=["POST"])
     def api_client_issue(self, issue_code=False):
         return self._portal().report_client_issue(issue_code=issue_code)
 
-    @http.route("/attendance/api/face_preview", type="json", auth="public", methods=["POST"])
+    @http.route("/attendance/api/face_preview", type="jsonrpc", auth="public", methods=["POST"])
     def api_face_preview(self, face_image=False):
         return self._portal().preview_face(face_image=face_image)
 
-    @http.route("/attendance/api/check", type="json", auth="public", methods=["POST"])
+    @http.route("/attendance/api/check", type="jsonrpc", auth="public", methods=["POST"])
     def api_check(self, event_type, latitude=False, longitude=False, gps_accuracy=False,
                   request_id=False, source="personal_web", device_identifier=False,
                   face_image=False):

@@ -120,7 +120,7 @@ class ResUsers(models.Model):
         return domain
 
     @api.model
-    @tools.ormcache("self._uid")
+    @tools.ormcache("self.env.uid")
     def context_get(self):
         context = dict(super().context_get())
         user = self.env.user

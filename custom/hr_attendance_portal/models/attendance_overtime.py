@@ -64,13 +64,10 @@ class HrAttendanceOvertimeCase(models.Model):
         string="Decisions",
     )
 
-    _sql_constraints = [
-        (
-            "attendance_uniq",
-            "unique(attendance_id)",
-            "Each session has one overtime case.",
-        ),
-    ]
+    _attendance_uniq = models.Constraint(
+        "unique(attendance_id)",
+        "Each session has one overtime case.",
+    )
 
     @api.model
     def _ensure_case(self, attendance, candidate):

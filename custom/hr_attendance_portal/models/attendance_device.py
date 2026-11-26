@@ -27,13 +27,10 @@ class HrAttendanceDevice(models.Model):
     revoked_at = fields.Datetime(string="Revoked At", readonly=True)
     notes = fields.Char()
 
-    _sql_constraints = [
-        (
-            "device_identifier_uniq",
-            "unique(device_identifier)",
-            "Device identifier must be unique.",
-        ),
-    ]
+    _device_identifier_uniq = models.Constraint(
+        "unique(device_identifier)",
+        "Device identifier must be unique.",
+    )
 
     def action_revoke(self):
         self.write({"revoked_at": fields.Datetime.now(), "active": False})

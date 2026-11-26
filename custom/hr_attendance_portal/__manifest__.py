@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 {
     "name": "HR Attendance Portal",
-    "version": "18.0.1.19.4",
+    "version": "19.0.1.0.0",
     "category": "Human Resources/Attendances",
     "summary": "PIN-based attendance portal for employees without Odoo user accounts",
     "description": """
-Personal-device and shared-kiosk attendance on Odoo 18 Community.
+Personal-device and shared-kiosk attendance on Odoo 19 Community.
 
 Employees authenticate with employee code + PIN. Attendance is stored on
 the standard hr.attendance model. GPS, workplace geofences, and punch-photo face presence are validated

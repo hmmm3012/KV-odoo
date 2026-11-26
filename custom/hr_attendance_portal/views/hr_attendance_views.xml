@@ -5,12 +5,13 @@
         <field name="model">hr.attendance</field>
         <field name="inherit_id" ref="hr_attendance.hr_attendance_view_form"/>
         <field name="arch" type="xml">
-            <xpath expr="//div[@name='in_location_info']" position="after">
+            <!-- Odoo 19: in_location_info div removed; anchor on in_location (ex in_city) -->
+            <xpath expr="//group[@name='check_in_group']//field[@name='in_location']" position="after">
                 <field name="in_location_id"/>
                 <field name="in_department_id"/>
                 <field name="in_gps_accuracy"/>
             </xpath>
-            <xpath expr="//div[@name='out_location_info']" position="after">
+            <xpath expr="//group[@name='check_out_group']//field[@name='out_location']" position="after">
                 <field name="out_location_id"/>
                 <field name="out_department_id"/>
                 <field name="out_gps_accuracy"/>

@@ -7,7 +7,11 @@ class IrUiMenu(models.Model):
     _inherit = "ir.ui.menu"
 
     @api.model
-    @tools.ormcache("frozenset(self.env.user.groups_id.ids)", "debug")
+    def _kv_vi_lang_active(self):
+        return "vi_VN" in dict(self.env["res.lang"].get_installed())
+
+    @api.model
+    @tools.ormcache("frozenset(self.env.user._get_group_ids())", "debug")
     def _visible_menu_ids(self, debug=False):
         visible = super()._visible_menu_ids(debug=debug)
         user = self.env.user
@@ -62,6 +66,8 @@ class IrUiMenu(models.Model):
         Module upgrades do not overwrite an existing translation, so the old
         name would stay on screen.
         """
+        if not self._kv_vi_lang_active():
+            return  # Odoo 19 raises on inactive lang in context
         labels = {
             "hr_attendance_portal.menu_site_captain_attendance": "Lượt hợp lệ",
             "hr_attendance_portal.action_site_captain_attendance": "Lượt hợp lệ",
@@ -86,6 +92,8 @@ class IrUiMenu(models.Model):
     @api.model
     def _sync_session_vietnamese_labels(self):
         """Fill Vietnamese labels that a normal upgrade leaves in English."""
+        if not self._kv_vi_lang_active():
+            return  # Odoo 19 raises on inactive lang in context
         field_labels = {
             "hr_attendance_portal.field_hr_attendance__work_status": "Làm việc",
             "hr_attendance_portal.field_hr_attendance__recognized_regular_hours": "Giờ được công nhận",
@@ -150,6 +158,8 @@ class IrUiMenu(models.Model):
     @api.model
     def _sync_edge_case_vietnamese_labels(self):
         """Vietnamese labels for the captain session, overtime, and correction dialogs."""
+        if not self._kv_vi_lang_active():
+            return  # Odoo 19 raises on inactive lang in context
         field_labels = {
             ("hr.attendance.hour.wizard", "decision_type"): "Loại quyết định",
             ("hr.attendance.hour.wizard", "hours"): "Giờ được công nhận",

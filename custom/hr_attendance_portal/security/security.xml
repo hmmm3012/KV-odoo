@@ -2,7 +2,7 @@
 <odoo>
     <record id="group_hr_attendance_site_captain" model="res.groups">
         <field name="name">Department Captain</field>
-        <field name="category_id" ref="base.module_category_human_resources_attendances"/>
+        <field name="privilege_id" ref="hr_attendance.res_groups_privilege_attendances"/>
         <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
         <field name="comment">Read employees and attendance in Authorized Departments only. No create, edit, or delete.</field>
     </record>

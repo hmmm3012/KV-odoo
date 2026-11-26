@@ -61,6 +61,6 @@
         groups="base.group_no_one"/>
 
     <record id="menu_hr_attendance_device" model="ir.ui.menu">
-        <field name="groups_id" eval="[(6, 0, [ref('base.group_no_one')])]"/>
+        <field name="group_ids" eval="[(6, 0, [ref('base.group_no_one')])]"/>
     </record>
 </odoo>

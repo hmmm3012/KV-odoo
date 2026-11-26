@@ -110,13 +110,10 @@ class HrAttendanceEvent(models.Model):
     reviewed_at = fields.Datetime(string="Reviewed At", readonly=True)
     review_note = fields.Text(string="Note")
 
-    _sql_constraints = [
-        (
-            "request_id_uniq",
-            "unique(request_id)",
-            "Duplicate attendance request.",
-        ),
-    ]
+    _request_id_uniq = models.Constraint(
+        "unique(request_id)",
+        "Duplicate attendance request.",
+    )
 
     @api.model
     def _log(self, values):

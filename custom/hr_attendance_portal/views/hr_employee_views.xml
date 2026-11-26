@@ -12,9 +12,7 @@
             <xpath expr="//button[@name='action_timesheet_from_employee']" position="attributes">
                 <attribute name="groups">hr.group_hr_user</attribute>
             </xpath>
-            <xpath expr="//div[field[@name='resource_calendar_id']]/widget[@name='contract_warning_tooltip']" position="attributes">
-                <attribute name="groups">hr.group_hr_user</attribute>
-            </xpath>
+            <!-- Odoo 19: contract_warning_tooltip widget no longer exists -->
             <xpath expr="//field[@name='job_id']" position="after">
                 <field name="pin" password="True" string="Attendance PIN"/>
                 <field name="attendance_face_image" widget="image" class="o_kv_face_thumb" options="{'zoom': true, 'zoom_delay': 200}"/>

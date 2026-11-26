@@ -19,9 +19,10 @@ class HrAttendanceAuthAttempt(models.Model):
     window_start = fields.Datetime(required=True)
     locked_until = fields.Datetime(index=True)
 
-    _sql_constraints = [
-        ("key_uniq", "unique(key)", "Auth attempt key must be unique."),
-    ]
+    _key_uniq = models.Constraint(
+        "unique(key)",
+        "Auth attempt key must be unique.",
+    )
 
     @api.model
     def _hash_identifier(self, value):
