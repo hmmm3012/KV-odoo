@@ -361,36 +361,44 @@ class HrAttendance(models.Model):
         return (end - start).total_seconds() / 3600.0
 
     @api.model
-    def _round_seconds_to_whole_hour(self, total_seconds):
-        """Snap worked duration to whole hours.
+    def _round_seconds_to_payroll_hours(self, total_seconds):
+        """Snap worked duration to payroll hours with half-hour steps.
 
-        Trong mỗi khối giờ: phần dư >= 45 phút làm tròn lên giờ kế tiếp;
-        phần dư < 45 phút làm tròn xuống (floor) giờ trước.
+        Lấy H = floor(tổng phút / 60), R = phần dư phút trong khối giờ cuối:
+        R < 25 → 0; 25 ≤ R ≤ 30 → +30 phút; 31 ≤ R < 50 → 0; 50 ≤ R ≤ 59 → +60 phút.
 
-        Per hour block: remainder >= 45 minutes rounds up to the next full
-        hour; remainder < 45 minutes floors to the previous hour.
+        Take H = floor(total minutes / 60), R = remainder minutes in the last
+        hour block: R < 25 → 0; 25 ≤ R ≤ 30 → +30 min; 31 ≤ R < 50 → 0;
+        50 ≤ R ≤ 59 → +60 min.
         """
         if not total_seconds or total_seconds <= 0:
             return 0
         total_seconds = int(total_seconds)
-        one_hour = 60 * 60
-        remainder = total_seconds % one_hour
-        if remainder >= 45 * 60:
-            return total_seconds + (one_hour - remainder)
-        return total_seconds - remainder
+        total_minutes = total_seconds // 60
+        whole_hours = total_minutes // 60
+        remainder_minutes = total_minutes % 60
+        if remainder_minutes < 25:
+            rounded_minutes = whole_hours * 60
+        elif remainder_minutes <= 30:
+            rounded_minutes = whole_hours * 60 + 30
+        elif remainder_minutes < 50:
+            rounded_minutes = whole_hours * 60
+        else:
+            rounded_minutes = whole_hours * 60 + 60
+        return rounded_minutes * 60
 
     @api.model
     def _round_elapsed_hours(self, start, end):
         if not start or not end or end < start:
             return 0.0
-        seconds = self._round_seconds_to_whole_hour((end - start).total_seconds())
+        seconds = self._round_seconds_to_payroll_hours((end - start).total_seconds())
         return seconds / 3600.0
 
     @api.model
     def _round_worked_hours(self, hours):
         if not hours or hours <= 0:
             return 0.0
-        seconds = self._round_seconds_to_whole_hour(round(hours * 3600.0))
+        seconds = self._round_seconds_to_payroll_hours(round(hours * 3600.0))
         return seconds / 3600.0
 
     def _compute_worked_hours(self):
