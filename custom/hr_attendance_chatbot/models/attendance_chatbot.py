@@ -497,25 +497,59 @@ class HrAttendanceChatbot(models.AbstractModel):
                 "Cannot reach LiteLLM on the server. Check URL, model, and API key."
             )) from exc
 
-    def _message_proposals_from_round(self, tool_results):
-        """Collect proposal ids created in this assistant turn."""
-        ids = []
-        for result in tool_results:
-            if isinstance(result, dict) and result.get("proposal_id"):
-                ids.append(result["proposal_id"])
-        return ids
+    def _call_litellm_narration_stream(self, messages):
+        """Final assistant narrative without tools (stream=True)."""
+        base, model, api_key = self._litellm_config()
+        url = f"{base}/v1/chat/completions"
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "text/event-stream",
+        }
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+        payload = {
+            "model": model,
+            "messages": [{"role": "system", "content": self._system_prompt()}] + messages,
+            "stream": True,
+        }
+        try:
+            with requests.post(
+                url, headers=headers, json=payload, stream=True, timeout=120
+            ) as response:
+                response.raise_for_status()
+                for raw_line in response.iter_lines(decode_unicode=True):
+                    if not raw_line or not raw_line.startswith("data: "):
+                        continue
+                    data = raw_line[6:].strip()
+                    if data == "[DONE]":
+                        break
+                    try:
+                        chunk = json.loads(data)
+                    except json.JSONDecodeError:
+                        continue
+                    for choice in chunk.get("choices") or []:
+                        delta = (choice.get("delta") or {}).get("content")
+                        if delta:
+                            yield delta
+        except requests.RequestException as exc:
+            _logger.warning("LiteLLM stream failed: %s", exc)
+            raise UserError(self.env._(
+                "Cannot reach LiteLLM on the server. Check URL, model, and API key."
+            )) from exc
 
     @api.model
-    def chat_send(self, text):
-        self._check_chat_access()
-        text = (text or "").strip()
-        if not text:
-            raise UserError(self.env._("Message cannot be empty."))
-        Message = self.env["hr.attendance.chat.message"]
-        Message.create({"role": "user", "body": text})
-        messages = self._load_llm_messages()
+    def _chunk_text_for_stream(self, text, size=14):
+        text = text or ""
+        for index in range(0, len(text), size):
+            yield text[index:index + size]
+
+    def _complete_chat_stream(self, messages):
+        """Tool rounds are non-streaming; yields token events then _final."""
         created_proposals = []
+        had_tool_rounds = False
         assistant_text = ""
+        last_content = ""
+
         for _round in range(MAX_LLM_ROUNDS):
             data = self._call_litellm(messages)
             choices = data.get("choices") or []
@@ -524,6 +558,7 @@ class HrAttendanceChatbot(models.AbstractModel):
             message = choices[0].get("message") or {}
             tool_calls = message.get("tool_calls") or []
             if tool_calls:
+                had_tool_rounds = True
                 messages.append(message)
                 round_proposals = []
                 for call in tool_calls:
@@ -545,7 +580,8 @@ class HrAttendanceChatbot(models.AbstractModel):
                     })
                 if round_proposals and not message.get("content"):
                     continue
-            assistant_text = (message.get("content") or "").strip()
+            last_content = (message.get("content") or "").strip()
+            assistant_text = last_content
             if not assistant_text and created_proposals:
                 summaries = self.env["hr.attendance.chat.proposal"].browse(
                     created_proposals
@@ -556,8 +592,41 @@ class HrAttendanceChatbot(models.AbstractModel):
             raise UserError(self.env._("The assistant took too many steps. Try a simpler question."))
 
         if not assistant_text:
-            assistant_text = self.env._("Done. Please review the proposal and confirm in the chat.")
+            assistant_text = self.env._(
+                "Done. Please review the proposal and confirm in the chat."
+            )
 
+        use_api_stream = (
+            had_tool_rounds and not last_content and not created_proposals
+        )
+        if use_api_stream:
+            assistant_text = ""
+            for delta in self._call_litellm_narration_stream(messages):
+                assistant_text += delta
+                yield {"type": "token", "delta": delta}
+        else:
+            for delta in self._chunk_text_for_stream(assistant_text):
+                yield {"type": "token", "delta": delta}
+
+        yield {
+            "type": "_final",
+            "text": assistant_text,
+            "proposals": created_proposals,
+        }
+
+    @api.model
+    def _complete_chat(self, messages):
+        assistant_text = ""
+        created_proposals = []
+        for event in self._complete_chat_stream(messages):
+            if event.get("type") == "_final":
+                assistant_text = event["text"]
+                created_proposals = event["proposals"]
+        return assistant_text, created_proposals
+
+    @api.model
+    def _save_assistant_turn(self, assistant_text, created_proposals):
+        Message = self.env["hr.attendance.chat.message"]
         msg = Message.create({"role": "assistant", "body": assistant_text})
         if created_proposals:
             for pid in created_proposals:
@@ -565,6 +634,55 @@ class HrAttendanceChatbot(models.AbstractModel):
                 if proposal.exists():
                     msg.proposal_id = proposal.id
                     break
+        return msg
+
+    @api.model
+    def message_prepare(self, text):
+        """Persist the user message and return id for the streaming route."""
+        self._check_chat_access()
+        text = (text or "").strip()
+        if not text:
+            raise UserError(self.env._("Message cannot be empty."))
+        msg = self.env["hr.attendance.chat.message"].create({
+            "role": "user",
+            "body": text,
+        })
+        return {"user_message_id": msg.id}
+
+    @api.model
+    def iter_stream_turn(self, user_message_id):
+        """SSE generator: token events, then done with history or error."""
+        self._check_chat_access()
+        msg = self.env["hr.attendance.chat.message"].browse(int(user_message_id))
+        if not msg.exists() or msg.user_id.id != self.env.uid or msg.role != "user":
+            raise AccessError(self.env._("Message not found."))
+        messages = self._load_llm_messages()
+        try:
+            assistant_text = ""
+            created_proposals = []
+            for event in self._complete_chat_stream(messages):
+                if event.get("type") == "token":
+                    yield event
+                elif event.get("type") == "_final":
+                    assistant_text = event["text"]
+                    created_proposals = event["proposals"]
+            self._save_assistant_turn(assistant_text, created_proposals)
+            yield {"type": "done", "history": self.chat_history()}
+        except (UserError, AccessError) as exc:
+            yield {"type": "error", "message": str(exc)}
+
+    @api.model
+    def chat_send(self, text):
+        """Non-streaming fallback (same completion logic as stream)."""
+        self._check_chat_access()
+        text = (text or "").strip()
+        if not text:
+            raise UserError(self.env._("Message cannot be empty."))
+        Message = self.env["hr.attendance.chat.message"]
+        Message.create({"role": "user", "body": text})
+        messages = self._load_llm_messages()
+        assistant_text, created_proposals = self._complete_chat(messages)
+        self._save_assistant_turn(assistant_text, created_proposals)
         return self.chat_history()
 
     @api.model
@@ -585,6 +703,7 @@ class HrAttendanceChatbot(models.AbstractModel):
                 "id": line.id,
                 "role": line.role,
                 "body": line.body,
+                "created_at": fields.Datetime.to_string(line.create_date),
                 "proposal": False,
             }
             pid = line.proposal_id.id

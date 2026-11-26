@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     "name": "HR Attendance Chatbot (LiteLLM)",
-    "version": "18.0.1.0.1",
+    "version": "18.0.1.2.0",
     "category": "Human Resources/Attendances",
     "summary": "Floating attendance assistant for captains and HR (LiteLLM, server-side)",
     "description": """
@@ -29,7 +29,9 @@ Until litellm_model is set, the widget stays hidden for everyone.
     ],
     "assets": {
         "web.assets_backend": [
+            "web/static/lib/dompurify/DOMpurify.js",
             "hr_attendance_chatbot/static/src/attendance_chat/attendance_chat.scss",
+            "hr_attendance_chatbot/static/src/attendance_chat/markdown_safe.js",
             "hr_attendance_chatbot/static/src/attendance_chat/attendance_chat.xml",
             "hr_attendance_chatbot/static/src/attendance_chat/attendance_chat.js",
             "hr_attendance_chatbot/static/src/attendance_chat/attendance_chat_service.js",
