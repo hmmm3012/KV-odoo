@@ -53,8 +53,12 @@ class AttendanceChatbotController(http.Controller):
                 status=400,
             )
 
+        # Bind env before the generator: request.env is a LocalProxy and breaks
+        # when Werkzeug resumes iteration outside the dispatch frame.
+        env = request.env
+
         def generate():
-            chatbot = request.env["hr.attendance.chatbot"]
+            chatbot = env["hr.attendance.chatbot"]
             for event in chatbot.iter_stream_turn(int(user_message_id)):
                 yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
 
