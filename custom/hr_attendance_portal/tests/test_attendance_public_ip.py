@@ -92,6 +92,50 @@ class TestAttendancePublicIp(AttendancePortalMixin, TransactionCase):
         self.assertFalse(none)
         self.assertEqual(reason, "missing_gps")
 
+    def test_untrusted_gps_falls_through_to_unique_ip(self):
+        other, other_department = self._other_site()
+        self._enable_wifi(other, "198.51.100.10")
+        self.location.max_gps_accuracy_meters = 20
+        location, department, reason, distance = self._match(
+            self.location.latitude,
+            self.location.longitude,
+            gps_accuracy=80,
+            client_ip="198.51.100.10",
+        )
+        self.assertEqual(location, other)
+        self.assertEqual(department, other_department)
+        self.assertFalse(reason)
+        self.assertFalse(distance)
+
+        near_edge_lat = self.location.latitude + (230.0 / 111320.0)
+        self.location.max_gps_accuracy_meters = 80
+        self.assertLess(
+            self.location._distance_meters(near_edge_lat, self.location.longitude),
+            self.location.allowed_radius_meters,
+        )
+        self.assertFalse(self.location._accuracy_circle_inside(
+            near_edge_lat, self.location.longitude, 40,
+        ))
+        edged, edged_department, reason, _distance = self._match(
+            near_edge_lat,
+            self.location.longitude,
+            gps_accuracy=40,
+            client_ip="198.51.100.10",
+        )
+        self.assertEqual(edged, other)
+        self.assertEqual(edged_department, other_department)
+        self.assertFalse(reason)
+
+        self.location.max_gps_accuracy_meters = 20
+        flagged, _department, reason, _distance = self._match(
+            self.location.latitude,
+            self.location.longitude,
+            gps_accuracy=80,
+            client_ip="203.0.113.10",
+        )
+        self.assertEqual(flagged, self.location)
+        self.assertEqual(reason, "gps_inaccurate")
+
     def test_gps_inside_fence_wins_over_other_site_ip(self):
         other, _other_department = self._other_site()
         self._enable_wifi(other, "203.0.113.10")
