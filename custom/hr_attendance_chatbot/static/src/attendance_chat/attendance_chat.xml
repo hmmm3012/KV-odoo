@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="hr_attendance_chatbot.AttendanceChat">
+        <div class="o_hr_attendance_chat_root" t-att-class="{ 'o_open': state.open }">
+            <div t-if="state.open" class="o_hr_attendance_chat_panel shadow-lg border rounded">
+                <header class="o_hr_attendance_chat_header d-flex align-items-center justify-content-between px-3 py-2 border-bottom">
+                    <strong>Trợ lý chấm công</strong>
+                    <button type="button" class="btn btn-link btn-sm text-muted p-0" title="Đóng" t-on-click="toggle">
+                        <i class="fa fa-times"/>
+                    </button>
+                </header>
+                <t t-if="!state.enabled">
+                    <div class="p-3 text-muted small" t-esc="state.offlineReason"/>
+                </t>
+                <t t-else="">
+                    <div class="o_hr_attendance_chat_messages flex-grow-1 overflow-auto p-3" t-ref="messages">
+                        <t t-if="state.loading">
+                            <div class="text-center text-muted small py-4">
+                                <i class="fa fa-spinner fa-spin"/> Đang tải...
+                            </div>
+                        </t>
+                        <t t-foreach="state.messages" t-as="msg" t-key="msg.id">
+                            <div t-att-class="'o_chat_bubble mb-3 o_chat_' + msg.role">
+                                <div class="o_chat_text" t-esc="msg.body"/>
+                                <t t-if="msg.proposal and msg.proposal.state === 'pending'">
+                                    <div class="o_chat_proposal border rounded p-2 mt-2 bg-light">
+                                        <pre class="small mb-2 o_chat_proposal_summary" t-esc="msg.proposal.summary_vi"/>
+                                        <div class="d-flex gap-2">
+                                            <button type="button" class="btn btn-primary btn-sm"
+                                                    t-att-disabled="state.busy"
+                                                    t-on-click="() => this.onConfirm(msg.proposal.id)">
+                                                Xác nhận
+                                            </button>
+                                            <button type="button" class="btn btn-secondary btn-sm"
+                                                    t-att-disabled="state.busy"
+                                                    t-on-click="() => this.onDismiss(msg.proposal.id)">
+                                                Hủy
+                                            </button>
+                                        </div>
+                                    </div>
+                                </t>
+                            </t>
+                        </t>
+                        <t t-foreach="state.pendingProposals" t-as="prop" t-key="prop.id">
+                            <div class="o_chat_bubble mb-3 o_chat_assistant">
+                                <div class="o_chat_proposal border rounded p-2 bg-light">
+                                    <pre class="small mb-2 o_chat_proposal_summary" t-esc="prop.summary_vi"/>
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="btn btn-primary btn-sm"
+                                                t-att-disabled="state.busy"
+                                                t-on-click="() => this.onConfirm(prop.id)">
+                                            Xác nhận
+                                        </button>
+                                        <button type="button" class="btn btn-secondary btn-sm"
+                                                t-att-disabled="state.busy"
+                                                t-on-click="() => this.onDismiss(prop.id)">
+                                            Hủy
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </t>
+                    </div>
+                    <footer class="o_hr_attendance_chat_footer border-top p-2 d-flex gap-2">
+                        <input type="text" class="form-control form-control-sm"
+                               placeholder="Nhập câu hỏi hoặc yêu cầu..."
+                               t-att-disabled="state.busy"
+                               t-model="state.draft"
+                               t-on-keydown="onKeydown"/>
+                        <button type="button" class="btn btn-primary btn-sm"
+                                t-att-disabled="state.busy or !state.draft.trim()"
+                                t-on-click="onSend">
+                            <t t-if="state.busy"><i class="fa fa-spinner fa-spin"/></t>
+                            <t t-else="">Gửi</t>
+                        </button>
+                    </footer>
+                </t>
+            </div>
+            <button type="button"
+                    class="o_hr_attendance_chat_fab btn btn-primary rounded-circle shadow"
+                    title="Trợ lý chấm công"
+                    t-on-click="toggle">
+                <i class="fa fa-comments"/>
+            </button>
+        </div>
+    </t>
+
+</templates>

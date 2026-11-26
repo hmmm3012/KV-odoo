@@ -1,0 +1,5 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_hr_attendance_chat_message_officer,hr.attendance.chat.message officer,model_hr_attendance_chat_message,hr_attendance.group_hr_attendance_officer,1,1,1,1
+access_hr_attendance_chat_message_captain,hr.attendance.chat.message captain,model_hr_attendance_chat_message,hr_attendance_portal.group_hr_attendance_site_captain,1,1,1,1
+access_hr_attendance_chat_proposal_officer,hr.attendance.chat.proposal officer,model_hr_attendance_chat_proposal,hr_attendance.group_hr_attendance_officer,1,1,1,1
+access_hr_attendance_chat_proposal_captain,hr.attendance.chat.proposal captain,model_hr_attendance_chat_proposal,hr_attendance_portal.group_hr_attendance_site_captain,1,1,1,1

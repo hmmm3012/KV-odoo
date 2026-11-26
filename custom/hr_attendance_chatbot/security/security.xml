@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="rule_chat_message_own" model="ir.rule">
+        <field name="name">Attendance chat message: own user</field>
+        <field name="model_id" ref="model_hr_attendance_chat_message"/>
+        <field name="domain_force">[('user_id', '=', user.id)]</field>
+    </record>
+    <record id="rule_chat_proposal_own" model="ir.rule">
+        <field name="name">Attendance chat proposal: own user</field>
+        <field name="model_id" ref="model_hr_attendance_chat_proposal"/>
+        <field name="domain_force">[('user_id', '=', user.id)]</field>
+    </record>
+</odoo>
