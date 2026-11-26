@@ -75,3 +75,15 @@
 .o_datetime_picker {
     max-width: min(100vw - 1.5rem, 24rem);
 }
+
+.o_dialog .modal .kv_attendance_wizard .kv_hour_nudge {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0 0 0.75rem;
+}
+
+.o_dialog .modal .kv_attendance_wizard .kv_hour_nudge > .btn {
+    flex: 1 1 calc(50% - 0.5rem);
+    min-height: 2.5rem;
+}

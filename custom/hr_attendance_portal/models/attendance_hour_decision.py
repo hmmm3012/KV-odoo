@@ -34,7 +34,7 @@ class HrAttendanceHourDecision(models.Model):
     decision_type = fields.Selection(
         [
             ("deny_session", "Deny Session"),
-            ("reduce_regular", "Reduce Hours"),
+            ("reduce_regular", "Adjust Work Hours"),
             ("restore_session", "Restore Session"),
             ("confirm_checkout", "Confirm Checkout"),
         ],

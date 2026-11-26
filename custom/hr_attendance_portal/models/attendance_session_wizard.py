@@ -2,6 +2,7 @@
 
 from odoo import api, fields, models
 from odoo.exceptions import UserError
+from odoo.tools.float_utils import float_compare
 
 
 class HrAttendanceHourWizard(models.TransientModel):
@@ -12,7 +13,7 @@ class HrAttendanceHourWizard(models.TransientModel):
     decision_type = fields.Selection(
         [
             ("deny_session", "Deny Session"),
-            ("reduce_regular", "Reduce Hours"),
+            ("reduce_regular", "Adjust Work Hours"),
             ("restore_session", "Restore Session"),
         ],
         required=True,
@@ -212,21 +213,128 @@ class HrAttendanceCorrectionBulkLine(models.TransientModel):
 
 class HrAttendanceCorrectionWizard(models.TransientModel):
     _name = "hr.attendance.correction.wizard"
-    _description = "Attendance Time Correction Wizard"
+    _description = "Adjust Work Hours Wizard"
 
     attendance_id = fields.Many2one("hr.attendance", required=True)
-    correction_type = fields.Selection(
-        [("check_in", "Check-in"), ("check_out", "Check-out")],
-        string="Boundary",
+    adjustment_mode = fields.Selection(
+        [
+            ("punch", "Edit check-in / check-out"),
+            ("recognized", "Enter recognized total"),
+        ],
+        string="Adjustment",
         required=True,
-        default="check_out",
+        default="punch",
     )
-    proposed_value = fields.Datetime(string="Proposed Time", required=True)
-    reason = fields.Text(string="Reason", required=True)
+    proposed_check_in = fields.Datetime(string="Check-in")
+    proposed_check_out = fields.Datetime(string="Check-out")
+    recognized_hours = fields.Float(string="Recognized Hours", digits=(16, 4))
+    elapsed_hours = fields.Float(string="Shift Duration", digits=(16, 4))
+    can_set_recognized_hours = fields.Boolean()
+    reason = fields.Text(string="Reason")
+
+    @api.model
+    def default_get(self, fields_list):
+        res = super().default_get(fields_list)
+        attendance = self.env["hr.attendance"].browse(
+            res.get("attendance_id") or self.env.context.get("default_attendance_id")
+        )
+        if not attendance:
+            return res
+        res.setdefault(
+            "proposed_check_in",
+            attendance.effective_check_in or attendance.check_in,
+        )
+        res.setdefault(
+            "proposed_check_out",
+            attendance.effective_check_out
+            or attendance.check_out
+            or attendance._suggested_checkout(),
+        )
+        res.setdefault("recognized_hours", attendance._current_recognized_total())
+        res["elapsed_hours"] = (
+            attendance._session_duration() if attendance._session_bounds()[1] else 0.0
+        )
+        res["can_set_recognized_hours"] = attendance._can_set_recognized_hours()
+        mode = res.get("adjustment_mode") or self.env.context.get(
+            "default_adjustment_mode", "punch"
+        )
+        if not res.get("can_set_recognized_hours"):
+            mode = "punch"
+        res["adjustment_mode"] = mode
+        return res
+
+    def _reload(self):
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "name": self.env._("Adjust Work Hours"),
+            "res_model": self._name,
+            "res_id": self.id,
+            "view_mode": "form",
+            "target": "new",
+            "context": dict(self.env.context),
+        }
+
+    def action_nudge_recognized(self):
+        """Shift recognized hours by the button delta and stay in the dialog."""
+        self.ensure_one()
+        if not self.can_set_recognized_hours:
+            raise UserError(self.env._(
+                "Recognized hours cannot be changed on this session."
+            ))
+        delta = float(self.env.context.get("nudge_hours") or 0.0)
+        hours = (self.recognized_hours or 0.0) + delta
+        if float_compare(hours, 0.0, precision_digits=4) < 0:
+            hours = 0.0
+        elapsed = self.elapsed_hours or 0.0
+        if elapsed and float_compare(hours, elapsed, precision_digits=4) > 0:
+            hours = elapsed
+        self.write({
+            "adjustment_mode": "recognized",
+            "recognized_hours": hours,
+        })
+        return self._reload()
+
+    def _apply_punch_corrections(self):
+        attendance = self.attendance_id
+        current_in = attendance.effective_check_in or attendance.check_in
+        current_out = attendance.effective_check_out or attendance.check_out
+        new_in = self.proposed_check_in
+        new_out = self.proposed_check_out
+        if new_in and new_out and new_out <= new_in:
+            raise UserError(self.env._(
+                "The proposed end cannot be earlier than the start."
+            ))
+        change_in = bool(new_in) and new_in != current_in
+        change_out = bool(new_out) and new_out != current_out
+        if not change_in and not change_out:
+            raise UserError(self.env._(
+                "Change check-in, check-out, or recognized hours."
+            ))
+        reason = self.reason
+        apply_out_first = (
+            change_in
+            and change_out
+            and current_out
+            and new_in >= current_out
+        )
+        if apply_out_first:
+            attendance.action_request_correction("check_out", new_out, reason)
+            attendance.action_request_correction("check_in", new_in, reason)
+            return
+        if change_in:
+            attendance.action_request_correction("check_in", new_in, reason)
+        if change_out:
+            attendance.action_request_correction("check_out", new_out, reason)
 
     def action_apply(self):
         self.ensure_one()
-        self.attendance_id.action_request_correction(
-            self.correction_type, self.proposed_value, self.reason
-        )
+        if self.adjustment_mode == "recognized":
+            if not self.can_set_recognized_hours:
+                raise UserError(self.env._(
+                    "Recognized hours cannot be changed on this session."
+                ))
+            self.attendance_id.action_reduce_regular(self.recognized_hours, self.reason)
+        else:
+            self._apply_punch_corrections()
         return {"type": "ir.actions.act_window_close"}

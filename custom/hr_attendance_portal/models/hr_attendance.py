@@ -795,6 +795,24 @@ class HrAttendance(models.Model):
         if self.session_state == "closed":
             raise UserError(self.env._("A closed session cannot be changed."))
 
+    def _can_set_recognized_hours(self):
+        """Captain/HR may set a recognized total on open, non-denied shifts with an end."""
+        self.ensure_one()
+        return (
+            self.session_state not in ("closed", "denied")
+            and bool(self._session_bounds()[1])
+        )
+
+    def _current_recognized_total(self):
+        """Hours currently counted for payroll, else elapsed duration."""
+        self.ensure_one()
+        total = (self.payroll_regular_hours or 0.0) + (self.payroll_overtime_hours or 0.0)
+        if float_compare(total, 0.0, precision_digits=4) > 0:
+            return total
+        if self._session_bounds()[1]:
+            return self._session_duration()
+        return self.recognized_regular_hours or 0.0
+
     def _session_actor_role(self):
         user = self.env.user
         if user.has_group("hr_attendance.group_hr_attendance_officer"):
@@ -976,12 +994,16 @@ class HrAttendance(models.Model):
         self._check_session_visible()
         self._ensure_session_open()
         if self.session_state == "denied":
-            raise UserError(self.env._("A denied session has no hours to reduce."))
+            raise UserError(self.env._(
+                "A denied session cannot have recognized hours changed."
+            ))
         role = self._session_actor_role()
         reason = self._require_reason(reason)
         _start, end = self._session_bounds()
         if not end:
-            raise UserError(self.env._("Confirm checkout before reducing hours."))
+            raise UserError(self.env._(
+                "Confirm checkout before setting recognized hours."
+            ))
         duration = self._session_duration()
         company = self.employee_id.company_id or self.env.company
         standard = self.standard_hours or company.attendance_standard_hours or 8.0
@@ -1184,14 +1206,16 @@ class HrAttendance(models.Model):
         return self.action_request_correction("check_out", check_out, reason)
 
     def action_open_confirm_checkout_wizard(self):
-        """Deprecated: captains should use Request Time Correction instead."""
+        """Deprecated: captains should use Adjust Work Hours instead."""
         return self.action_open_correction_wizard()
 
     def action_open_deny_wizard(self):
         return self._open_hour_wizard("deny_session")
 
     def action_open_reduce_wizard(self):
-        return self._open_hour_wizard("reduce_regular")
+        return self.with_context(
+            default_adjustment_mode="recognized",
+        ).action_open_correction_wizard()
 
     def action_open_restore_wizard(self):
         return self._open_hour_wizard("restore_session")
@@ -1202,7 +1226,7 @@ class HrAttendance(models.Model):
         self._ensure_session_open()
         default_hours = self.recognized_regular_hours
         if decision_type == "reduce_regular" and self._session_bounds()[1]:
-            default_hours = self._session_duration()
+            default_hours = self._current_recognized_total()
         return {
             "type": "ir.actions.act_window",
             "name": self.env._("Session Decision"),
@@ -1378,20 +1402,30 @@ class HrAttendance(models.Model):
         self.ensure_one()
         self._check_session_visible()
         self._ensure_session_open()
-        proposed = (
-            self.check_out
-            or self.effective_check_out
+        proposed_out = (
+            self.effective_check_out
+            or self.check_out
             or self._suggested_checkout()
         )
+        proposed_in = self.effective_check_in or self.check_in
+        mode = self.env.context.get("default_adjustment_mode") or "punch"
+        if not self._can_set_recognized_hours():
+            mode = "punch"
         return {
             "type": "ir.actions.act_window",
-            "name": self.env._("Request Time Correction"),
+            "name": self.env._("Adjust Work Hours"),
             "res_model": "hr.attendance.correction.wizard",
             "view_mode": "form",
             "target": "new",
             "context": {
                 "default_attendance_id": self.id,
-                "default_correction_type": "check_out",
-                "default_proposed_value": proposed,
+                "default_adjustment_mode": mode,
+                "default_proposed_check_in": proposed_in,
+                "default_proposed_check_out": proposed_out,
+                "default_recognized_hours": self._current_recognized_total(),
+                "default_elapsed_hours": (
+                    self._session_duration() if self._session_bounds()[1] else 0.0
+                ),
+                "default_can_set_recognized_hours": self._can_set_recognized_hours(),
             },
         }

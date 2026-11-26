@@ -565,3 +565,90 @@ class TestAttendanceSession(AttendancePortalMixin, TransactionCase):
         self.assertEqual(len(attendance.hour_decision_ids), 2)
         self.assertAlmostEqual(attendance.recognized_regular_hours, 5, places=2)
         self.assertAlmostEqual(attendance.payroll_regular_hours, 5, places=2)
+
+    def _open_hours_wizard(self, attendance, **extra):
+        action = attendance.with_user(self.captain).action_open_correction_wizard()
+        values = dict(extra)
+        values.setdefault("reason", "adjust hours")
+        return self.env["hr.attendance.correction.wizard"].with_user(
+            self.captain
+        ).with_context(**action["context"]).create(values)
+
+    def test_reduce_hours_buttons_removed_from_views(self):
+        portal = self.env.ref("hr_attendance_portal.view_hr_attendance_form_portal")
+        captain = self.env.ref("hr_attendance_portal.view_hr_attendance_form_captain")
+        sessions = self.env.ref("hr_attendance_portal.view_attendance_tree_captain_session")
+        self.assertNotIn("action_open_reduce_wizard", portal.arch)
+        self.assertNotIn("action_open_bulk_reduce_wizard", sessions.arch)
+        self.assertIn("Adjust Work Hours", portal.arch)
+        self.assertIn("Adjust Work Hours", captain.arch)
+        self.assertIn("action_open_correction_wizard", captain.arch)
+
+    def test_adjust_work_hours_wizard_punch_recomputes_total(self):
+        attendance = self._session(11)
+        action = attendance.with_user(self.captain).action_open_correction_wizard()
+        self.assertEqual(action["res_model"], "hr.attendance.correction.wizard")
+        proposed = attendance.check_in + timedelta(hours=8)
+        wizard = self._open_hours_wizard(
+            attendance,
+            adjustment_mode="punch",
+            proposed_check_out=proposed,
+            reason="align checkout",
+        )
+        wizard.action_apply()
+        self.assertEqual(attendance.effective_check_out, proposed)
+        self.assertAlmostEqual(attendance.payroll_regular_hours, 8, places=2)
+        self.assertEqual(attendance.payroll_overtime_hours, 0)
+
+    def test_adjust_work_hours_wizard_sets_recognized_total_up_or_down(self):
+        attendance = self._session(11)
+        attendance.with_user(self.captain).action_reduce_regular(6, "left early")
+        self.assertAlmostEqual(attendance.payroll_regular_hours, 6, places=2)
+        action = attendance.with_user(self.captain).action_open_reduce_wizard()
+        self.assertEqual(action["context"]["default_adjustment_mode"], "recognized")
+        wizard = self.env["hr.attendance.correction.wizard"].with_user(self.captain).with_context(
+            **action["context"]
+        ).create({"reason": "stayed longer", "recognized_hours": 9})
+        self.assertEqual(wizard.adjustment_mode, "recognized")
+        wizard.action_apply()
+        self.assertAlmostEqual(attendance.payroll_regular_hours, 8, places=2)
+        self.assertAlmostEqual(attendance.payroll_overtime_hours, 1, places=2)
+        self.assertEqual(attendance.overtime_state, "captain_reviewed")
+
+    def test_adjust_work_hours_quick_buttons_clamp_to_duration(self):
+        attendance = self._session(11)
+        action = attendance.with_user(self.captain).action_open_correction_wizard()
+        wizard = self.env["hr.attendance.correction.wizard"].with_user(self.captain).with_context(
+            **action["context"]
+        ).create({"reason": "nudge", "recognized_hours": 8})
+        wizard.with_context(nudge_hours=1).action_nudge_recognized()
+        self.assertAlmostEqual(wizard.recognized_hours, 9, places=4)
+        self.assertEqual(wizard.adjustment_mode, "recognized")
+        wizard.with_context(nudge_hours=5).action_nudge_recognized()
+        self.assertAlmostEqual(wizard.recognized_hours, wizard.elapsed_hours, places=4)
+        wizard.with_context(nudge_hours=-50).action_nudge_recognized()
+        self.assertAlmostEqual(wizard.recognized_hours, 0, places=4)
+
+    def test_adjust_work_hours_hidden_on_denied_and_closed(self):
+        denied = self._session(11)
+        denied.with_user(self.captain).action_deny_session("wrong person")
+        action = denied.with_user(self.captain).action_open_correction_wizard()
+        self.assertEqual(action["context"]["default_adjustment_mode"], "punch")
+        self.assertFalse(action["context"]["default_can_set_recognized_hours"])
+        wizard = self.env["hr.attendance.correction.wizard"].with_user(self.captain).with_context(
+            **action["context"]
+        ).create({
+            "reason": "cannot change hours",
+            "adjustment_mode": "recognized",
+            "recognized_hours": 4,
+        })
+        self.assertFalse(wizard.can_set_recognized_hours)
+        with self.assertRaises(UserError):
+            wizard.action_apply()
+
+        closed = self._session(6)
+        closed.with_user(self.officer).action_close_session()
+        with self.assertRaises(UserError):
+            closed.with_user(self.captain).action_open_correction_wizard()
+        with self.assertRaises(UserError):
+            closed.with_user(self.captain).action_open_reduce_wizard()
