@@ -964,6 +964,13 @@ msgstr "Xin điều chỉnh giờ"
 #. module: hr_attendance_portal
 #. odoo-python
 #: code:addons/hr_attendance_portal/models/hr_attendance.py:0
+#: code:addons/hr_attendance_portal/models/attendance_session_wizard.py:0
+msgid "Adjust Work Hours"
+msgstr "Điều chỉnh giờ công"
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/hr_attendance.py:0
 msgid "No selected shift can be sent for a time correction."
 msgstr "Không có ca nào trong các dòng đã chọn có thể xin điều chỉnh giờ."
 
@@ -982,8 +989,8 @@ msgstr "Ca đã chốt không thể sửa."
 #. module: hr_attendance_portal
 #. odoo-python
 #: code:addons/hr_attendance_portal/models/hr_attendance.py:0
-msgid "A denied session has no hours to reduce."
-msgstr "Ca đã từ chối không còn giờ để giảm."
+msgid "A denied session cannot have recognized hours changed."
+msgstr "Ca đã từ chối không thể đổi tổng giờ công nhận."
 
 #. module: hr_attendance_portal
 #. odoo-python
@@ -1000,8 +1007,20 @@ msgstr "Giờ được công nhận không được vượt quá thời gian th�
 #. module: hr_attendance_portal
 #. odoo-python
 #: code:addons/hr_attendance_portal/models/hr_attendance.py:0
-msgid "Confirm checkout before reducing hours."
-msgstr "Hãy xác nhận giờ ra trước khi giảm giờ."
+msgid "Confirm checkout before setting recognized hours."
+msgstr "Hãy xác nhận giờ ra trước khi nhập tổng giờ công nhận."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/attendance_session_wizard.py:0
+msgid "Recognized hours cannot be changed on this session."
+msgstr "Ca này không thể đổi tổng giờ công nhận."
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/attendance_session_wizard.py:0
+msgid "Change check-in, check-out, or recognized hours."
+msgstr "Hãy sửa giờ vào, giờ ra, hoặc tổng giờ công nhận."
 
 #. module: hr_attendance_portal
 #. odoo-python
