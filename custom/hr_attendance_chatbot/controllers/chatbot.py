@@ -1,9 +1,14 @@
 # -*- coding: utf-8 -*-
 
 import json
+import logging
 
 from odoo import http
+from odoo.api import Environment
 from odoo.http import request
+from odoo.modules.registry import Registry
+
+_logger = logging.getLogger(__name__)
 
 
 class AttendanceChatbotController(http.Controller):
@@ -53,14 +58,25 @@ class AttendanceChatbotController(http.Controller):
                 status=400,
             )
 
-        # Bind env before the generator: request.env is a LocalProxy and breaks
-        # when Werkzeug resumes iteration outside the dispatch frame.
-        env = request.env
+        # Request cursor is closed before Werkzeug drains the generator body.
+        dbname = request.env.cr.dbname
+        uid = request.env.uid
+        context = dict(request.env.context or {})
+        user_msg_id = int(user_message_id)
 
         def generate():
-            chatbot = env["hr.attendance.chatbot"]
-            for event in chatbot.iter_stream_turn(int(user_message_id)):
-                yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
+            with Registry(dbname).cursor() as cr:
+                try:
+                    env = Environment(cr, uid, context)
+                    chatbot = env["hr.attendance.chatbot"]
+                    for event in chatbot.iter_stream_turn(user_msg_id):
+                        yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
+                    cr.commit()
+                except Exception as exc:
+                    cr.rollback()
+                    _logger.exception("Attendance chatbot SSE failed")
+                    payload = {"type": "error", "message": str(exc)}
+                    yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
 
         headers = {
             "Content-Type": "text/event-stream; charset=utf-8",
