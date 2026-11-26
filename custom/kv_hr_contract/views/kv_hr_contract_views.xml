@@ -9,14 +9,17 @@
         <field name="arch" type="xml">
             <xpath expr="//header" position="inside">
                 <button name="action_kv_print_contract" string="IN HĐ" type="object"
-                        class="oe_highlight" groups="hr.group_hr_manager" invisible="not id"/>
+                        class="oe_highlight" groups="hr.group_hr_manager" invisible="not id or not kv_contract_number"/>
             </xpath>
             <xpath expr="//div[@name='contract_dates']" position="before">
                 <label for="kv_contract_name"/>
                 <div class="o_row" name="kv_contract_name">
-                    <field name="kv_contract_name" placeholder="HD.2026.001"/>
+                    <field name="kv_contract_name" placeholder="Tự cấp khi có ngày bắt đầu HĐ"/>
+                    <field name="kv_contract_number" invisible="1"/>
+                    <!-- Fallback only: numbering is automatic when contract_date_start is saved -->
                     <button name="action_kv_assign_contract_number" type="object"
-                            string="Cấp số HĐ" class="btn btn-link" invisible="not id"/>
+                            string="Cấp số HĐ" class="btn btn-link"
+                            invisible="not id or not contract_date_start or kv_contract_number"/>
                 </div>
             </xpath>
         </field>
