@@ -110,6 +110,75 @@ function rowFromPoint(clientX, clientY, section) {
     return null;
 }
 
+function enableAllowanceEditor(root, { onSave, onOpenDay }) {
+    const grid = root.querySelector(".kv-allowance-grid");
+    const summary = root.querySelector(".kv-allowance-summary");
+    if (!grid && !summary) {
+        return () => {};
+    }
+
+    let saving = false;
+
+    const setStatus = (message, isError = false) => {
+        const statusEl = root.querySelector(".kv-allowance-status");
+        if (!statusEl) {
+            return;
+        }
+        statusEl.textContent = message || "";
+        statusEl.classList.toggle("is-error", Boolean(isError));
+    };
+
+    const onClick = async (event) => {
+        const openButton = event.target.closest(".kv-allowance-open-day");
+        if (openButton) {
+            event.preventDefault();
+            event.stopPropagation();
+            const date = openButton.dataset.date;
+            if (date) {
+                await onOpenDay(date);
+            }
+            return;
+        }
+        const saveButton = event.target.closest(".kv-allowance-save");
+        if (!saveButton || saving || !grid) {
+            return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        const departmentId = Number(grid.dataset.departmentId || 0);
+        const date = grid.dataset.date;
+        const lines = Array.from(grid.querySelectorAll(".kv-allowance-row")).map((row) => ({
+            employee_id: Number(row.dataset.employeeId),
+            allowance_type: row.querySelector("select")?.value || false,
+        }));
+        if (!departmentId || !date) {
+            setStatus("Thiếu bãi xe hoặc ngày.", true);
+            return;
+        }
+        saving = true;
+        saveButton.disabled = true;
+        setStatus("Đang lưu…");
+        try {
+            await onSave({
+                departmentId,
+                date,
+                lines,
+                dateFrom: grid.dataset.dateFrom || false,
+                dateTo: grid.dataset.dateTo || false,
+            });
+            setStatus("Đã lưu");
+        } catch (error) {
+            setStatus(error?.data?.message || error?.message || "Không lưu được phụ cấp.", true);
+        } finally {
+            saving = false;
+            saveButton.disabled = false;
+        }
+    };
+
+    root.addEventListener("click", onClick);
+    return () => root.removeEventListener("click", onClick);
+}
+
 function enableRowReorder(root, { onReorder, onReset }) {
     const wrap = root.querySelector(".kv-timesheet-wrap");
     const tbody = root.querySelector(".kv-timesheet tbody");
@@ -288,6 +357,61 @@ export class TimesheetPreviewField extends Component {
                     scroller.style.minWidth = "0";
                     cleanups.push(enableDragScroll(scroller));
                 }
+                const summaryEl = root.querySelector(".kv-allowance-summary");
+                if (summaryEl?.dataset.departmentId && summaryEl.dataset.dateFrom && summaryEl.dataset.dateTo) {
+                    let cancelled = false;
+                    this.orm.call(
+                        "hr.attendance.timesheet.wizard",
+                        "render_allowance_summary",
+                        [
+                            Number(summaryEl.dataset.departmentId),
+                            summaryEl.dataset.dateFrom,
+                            summaryEl.dataset.dateTo,
+                        ]
+                    ).then((html) => {
+                        if (cancelled || !root.isConnected || typeof html !== "string" || !html) {
+                            return;
+                        }
+                        const host = root.querySelector(".kv-allowance-summary");
+                        if (!host) {
+                            return;
+                        }
+                        host.insertAdjacentHTML("beforebegin", html);
+                        host.remove();
+                    }).catch(() => {});
+                    cleanups.push(() => {
+                        cancelled = true;
+                    });
+                }
+                cleanups.push(
+                    enableAllowanceEditor(root, {
+                        onSave: (payload) =>
+                            this.orm.call(
+                                "hr.attendance.timesheet.wizard",
+                                "save_daily_allowances",
+                                [
+                                    payload.departmentId,
+                                    payload.date,
+                                    payload.lines,
+                                    payload.dateFrom,
+                                    payload.dateTo,
+                                ]
+                            ),
+                        onOpenDay: async (date) => {
+                            await this.props.record.update({ allowance_date: date });
+                            const form = root.closest(".o_form_view");
+                            const tab = form?.querySelector(
+                                '.o_notebook .nav-link[name="timesheet"]'
+                            );
+                            tab?.click();
+                            window.setTimeout(() => {
+                                form?.querySelector(".kv-allowance-grid")?.scrollIntoView({
+                                    block: "start",
+                                });
+                            }, 60);
+                        },
+                    })
+                );
                 cleanups.push(
                     enableRowReorder(root, {
                         onReorder: (departmentId, employeeIds) =>

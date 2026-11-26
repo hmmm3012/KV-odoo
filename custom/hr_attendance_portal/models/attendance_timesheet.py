@@ -35,6 +35,15 @@ class HrAttendanceTimesheetWizard(models.TransientModel):
         sanitize=False,
         readonly=True,
     )
+    allowance_date = fields.Date(string="Ngày")
+    allowance_grid_html = fields.Html(
+        string="Phụ cấp trong ngày",
+        sanitize=False,
+    )
+    allowance_summary_html = fields.Html(
+        string="Phụ cấp",
+        sanitize=False,
+    )
 
     @api.model
     def _department_domain(self):
@@ -49,6 +58,12 @@ class HrAttendanceTimesheetWizard(models.TransientModel):
         today = fields.Date.context_today(self)
         values.setdefault("date_from", today.replace(day=1))
         values.setdefault("date_to", today)
+        if "allowance_date" in fields_list:
+            values["allowance_date"] = self._coerce_allowance_date(
+                values.get("date_from"),
+                values.get("date_to"),
+                values.get("allowance_date"),
+            )
         if "department_id" in fields_list and not values.get("department_id"):
             department_ids = self.env.user._hr_site_captain_department_ids()
             departments = self.env["hr.department"].browse(department_ids).exists()
@@ -56,15 +71,37 @@ class HrAttendanceTimesheetWizard(models.TransientModel):
             if len(roots) == 1:
                 values["department_id"] = roots.id
         if values.get("department_id") and values.get("date_from") and values.get("date_to"):
+            wizard = self.new(values)
             try:
-                values["preview_html"] = self.new(values)._render_preview_html()
+                values["preview_html"] = wizard._render_preview_html()
             except (AccessError, UserError):
                 values["preview_html"] = False
+            values["allowance_grid_html"] = wizard._safe_allowance_html(wizard._render_allowance_grid_html)
+            values["allowance_summary_html"] = wizard._safe_allowance_html(wizard._render_allowance_summary_html)
         return values
+
+    @api.model
+    def _coerce_allowance_date(self, date_from, date_to, current=None):
+        """Keep the edited day inside the timesheet filter, preferring today."""
+        today = fields.Date.context_today(self)
+        current = fields.Date.to_date(current) if current else False
+        date_from = fields.Date.to_date(date_from) if date_from else False
+        date_to = fields.Date.to_date(date_to) if date_to else False
+        if not date_from or not date_to or date_from > date_to:
+            return current or today
+        if current and date_from <= current <= date_to:
+            return current
+        if date_from <= today <= date_to:
+            return today
+        return date_to
 
     @api.onchange("department_id", "date_from", "date_to")
     def _onchange_timesheet_filters(self):
+        self.allowance_date = self._coerce_allowance_date(
+            self.date_from, self.date_to, self.allowance_date
+        )
         self.preview_html = False
+        self._assign_allowance_html()
         if not (self.department_id and self.date_from and self.date_to):
             return
         if self.date_from > self.date_to:
@@ -76,9 +113,20 @@ class HrAttendanceTimesheetWizard(models.TransientModel):
         except (AccessError, UserError):
             self.preview_html = False
 
+    @api.onchange("allowance_date")
+    def _onchange_allowance_date(self):
+        if not self.department_id:
+            self.allowance_grid_html = False
+            return
+        self.allowance_grid_html = self._safe_allowance_html(self._render_allowance_grid_html)
+
     def action_preview(self):
         self.ensure_one()
+        self.allowance_date = self._coerce_allowance_date(
+            self.date_from, self.date_to, self.allowance_date
+        )
         self.preview_html = self._render_preview_html()
+        self._assign_allowance_html()
         return {
             "type": "ir.actions.act_window",
             "res_model": self._name,
@@ -238,7 +286,7 @@ class HrAttendanceTimesheetWizard(models.TransientModel):
         Day/night sections follow the employee Property "Ca làm việc"
         (missing value defaults to day). A day cell only sums hours from
         shifts that actually happened at this lot (regular + approved
-        overtime). Allowance stays empty.
+        overtime). Daily allowances are edited on the day grid, not here.
         """
         self.ensure_one()
         self._check_export()
@@ -593,6 +641,272 @@ class HrAttendanceTimesheetWizard(models.TransientModel):
             "worked_days": worked_days,
             "people_count": len([person for person in people if not float_is_zero(person.get("total") or 0.0, precision_digits=2)]),
         }
+
+    def _ensure_allowance_department(self, department):
+        """Captains may record allowances only on lots they already run."""
+        department = self._check_row_order_department(department)
+        user = self.env.user
+        if user.has_group("hr_attendance.group_hr_attendance_officer") or user.has_group("base.group_system"):
+            return department
+        if department.id not in set(user._hr_site_captain_department_ids()):
+            raise AccessError(self.env._("Bạn không được ghi phụ cấp cho bãi này."))
+        return department
+
+    def _safe_allowance_html(self, renderer):
+        try:
+            return renderer()
+        except (AccessError, UserError) as error:
+            message = error.args[0] if error.args else ""
+            return Markup(
+                '<div class="alert alert-warning mb-0">%s</div>' % html_escape(message)
+            )
+
+    def _assign_allowance_html(self):
+        self.allowance_grid_html = self._safe_allowance_html(self._render_allowance_grid_html)
+        self.allowance_summary_html = self._safe_allowance_html(self._render_allowance_summary_html)
+
+    def _employees_with_hours_on(self, work_date):
+        """Employees with payroll hours at this lot on ``work_date``."""
+        self.ensure_one()
+        departments = self._timesheet_departments()
+        department_ids = set(departments.ids)
+        location_ids = set(departments.mapped("attendance_location_id").ids)
+        employees = self.env["hr.employee"]
+        for attendance in self._timesheet_attendances(department_ids, location_ids):
+            regular, overtime = self._timesheet_hours(attendance)
+            if float_is_zero(regular, precision_digits=2) and float_is_zero(overtime, precision_digits=2):
+                continue
+            if self._timesheet_date(attendance) != work_date:
+                continue
+            employees |= attendance.employee_id
+        return employees
+
+    def _allowance_model(self):
+        return self.env["hr.attendance.daily.allowance"]
+
+    def _render_allowance_grid_html(self):
+        self.ensure_one()
+        self._ensure_allowance_department(self.department_id)
+        self._check_export()
+        day = self.allowance_date
+        if not day or day < self.date_from or day > self.date_to:
+            return Markup(
+                '<div class="alert alert-info mb-0">Chọn một ngày trong khoảng đang lọc.</div>'
+            )
+        Allowance = self._allowance_model()
+        worked = self._employees_with_hours_on(day)
+        existing = Allowance.search([
+            ("department_id", "=", self.department_id.id),
+            ("date", "=", day),
+        ])
+        by_employee = {record.employee_id.id: record for record in existing}
+        employees = (worked | existing.employee_id).sorted(
+            lambda employee: ((employee.sudo().name or "").casefold(), employee.id)
+        )
+        allowed = Allowance._allowed_type_keys(self.department_id)
+        parts = [
+            '<div class="kv-allowance-grid" data-department-id="%s" data-date="%s" data-date-from="%s" data-date-to="%s">'
+            % (
+                int(self.department_id.id),
+                html_escape(fields.Date.to_string(day)),
+                html_escape(fields.Date.to_string(self.date_from)),
+                html_escape(fields.Date.to_string(self.date_to)),
+            ),
+            '<p class="kv-timesheet-hint">Một phụ cấp cho mỗi người trong ngày. Để trống nếu không có. Bấm Lưu một lần.</p>',
+        ]
+        if not employees:
+            parts.append(
+                '<div class="alert alert-info mb-0">Không có nhân viên có giờ tại bãi này trong ngày %s.</div>'
+                % html_escape(day.strftime("%d/%m/%Y"))
+            )
+            parts.append("</div>")
+            return Markup("".join(parts))
+        parts.append('<table class="kv-allowance-table"><tbody>')
+        for employee in employees:
+            current = by_employee.get(employee.id)
+            current_type = current.allowance_type if current else ""
+            stale = employee not in worked
+            name = employee.sudo().name or ""
+            parts.append(
+                '<tr class="kv-allowance-row" data-employee-id="%s">' % int(employee.id)
+            )
+            parts.append('<td class="kv-allowance-name">%s' % html_escape(name))
+            if stale:
+                parts.append(
+                    ' <span class="kv-allowance-stale">Không còn giờ</span>'
+                )
+            parts.append("</td><td>")
+            parts.append(
+                '<select class="form-select form-select-sm" aria-label="%s">'
+                % html_escape(name)
+            )
+            parts.append('<option value="">—</option>')
+            option_keys = list(allowed)
+            if current_type and current_type not in option_keys:
+                option_keys.append(current_type)
+            labels = dict(Allowance._fields["allowance_type"].selection)
+            for key in option_keys:
+                selected = ' selected="selected"' if key == current_type else ""
+                label = labels.get(key, key)
+                parts.append(
+                    '<option value="%s"%s>%s</option>'
+                    % (html_escape(key), selected, html_escape(label))
+                )
+            parts.append("</select></td></tr>")
+        parts.extend([
+            "</tbody></table>",
+            '<div class="kv-allowance-actions">',
+            '<button type="button" class="btn btn-primary btn-sm kv-allowance-save">Lưu</button>',
+            '<span class="kv-allowance-status" aria-live="polite"></span>',
+            "</div></div>",
+        ])
+        return Markup("".join(parts))
+
+    def _render_allowance_summary_html(self):
+        self.ensure_one()
+        self._ensure_allowance_department(self.department_id)
+        self._check_export()
+        Allowance = self._allowance_model()
+        records = Allowance.search([
+            ("department_id", "=", self.department_id.id),
+            ("date", ">=", self.date_from),
+            ("date", "<=", self.date_to),
+        ], order="date, employee_id")
+        allowed = Allowance._allowed_type_keys(self.department_id)
+        counts = {key: 0 for key in allowed}
+        for record in records:
+            counts[record.allowance_type] = counts.get(record.allowance_type, 0) + 1
+        parts = [
+            '<div class="kv-allowance-summary" data-department-id="%s" data-date-from="%s" data-date-to="%s">'
+            % (
+                int(self.department_id.id),
+                html_escape(fields.Date.to_string(self.date_from)),
+                html_escape(fields.Date.to_string(self.date_to)),
+            ),
+            '<p class="kv-timesheet-hint">Xem lại trong khoảng đã lọc. Bấm Mở để sửa ngày đó trên tab Bảng công.</p>',
+            '<table class="kv-allowance-counts">',
+            "<thead><tr><th>Loại phụ cấp</th><th>Số lượt</th></tr></thead><tbody>",
+        ]
+        labels = dict(Allowance._fields["allowance_type"].selection)
+        seen = []
+        for key in list(allowed) + [key for key in counts if key not in allowed]:
+            if key in seen:
+                continue
+            seen.append(key)
+            parts.append(
+                "<tr><td>%s</td><td class=\"kv-num\">%s</td></tr>"
+                % (html_escape(labels.get(key, key)), counts.get(key, 0))
+            )
+        parts.append("</tbody></table>")
+        parts.append('<h3 class="kv-allowance-detail-title">Chi tiết theo ngày</h3>')
+        if not records:
+            parts.append('<p class="kv-allowance-empty">Chưa ghi phụ cấp trong khoảng này.</p></div>')
+            return Markup("".join(parts))
+        grouped = {}
+        for record in records.sorted(
+            lambda item: (item.date, (item.employee_id.sudo().name or "").casefold(), item.id)
+        ):
+            grouped.setdefault(item_date := record.date, []).append(record)
+        for day, rows in grouped.items():
+            parts.append('<div class="kv-allowance-day">')
+            parts.append('<div class="kv-allowance-day-head">')
+            parts.append("<strong>%s</strong>" % html_escape(day.strftime("%d/%m/%Y")))
+            parts.append(
+                '<button type="button" class="btn btn-link btn-sm kv-allowance-open-day" data-date="%s">Mở</button>'
+                % html_escape(fields.Date.to_string(day))
+            )
+            parts.append("</div><ul>")
+            for record in rows:
+                parts.append(
+                    "<li>%s — %s</li>"
+                    % (
+                        html_escape(record.employee_id.sudo().name or ""),
+                        html_escape(labels.get(record.allowance_type, record.allowance_type)),
+                    )
+                )
+            parts.append("</ul></div>")
+        parts.append("</div>")
+        return Markup("".join(parts))
+
+    @api.model
+    def save_daily_allowances(self, department_id, work_date, lines, date_from=False, date_to=False):
+        """Replace the day's allowances for this lot. Empty type clears the row.
+
+        Returns the read-only summary HTML for ``date_from``..``date_to`` when
+        those bounds are passed, so the Phụ cấp tab can refresh without a reload.
+        """
+        department = self._ensure_allowance_department(
+            self.env["hr.department"].browse(int(department_id))
+        )
+        work_date = fields.Date.to_date(work_date)
+        if not work_date:
+            raise UserError(self.env._("Chọn ngày cần ghi phụ cấp."))
+        if not isinstance(lines, list):
+            raise UserError(self.env._("Danh sách phụ cấp không hợp lệ."))
+        probe = self.new({
+            "department_id": department.id,
+            "date_from": work_date,
+            "date_to": work_date,
+            "allowance_date": work_date,
+        })
+        worked = probe._employees_with_hours_on(work_date)
+        Allowance = self.env["hr.attendance.daily.allowance"].sudo()
+        existing = {
+            record.employee_id.id: record
+            for record in Allowance.search([
+                ("department_id", "=", department.id),
+                ("date", "=", work_date),
+            ])
+        }
+        allowed_ids = set(worked.ids) | set(existing)
+        seen = set()
+        for line in lines:
+            if not isinstance(line, dict):
+                raise UserError(self.env._("Danh sách phụ cấp không hợp lệ."))
+            employee_id = int(line.get("employee_id") or 0)
+            if not employee_id or employee_id in seen:
+                raise UserError(self.env._("Mỗi nhân viên chỉ một phụ cấp."))
+            seen.add(employee_id)
+            if employee_id not in allowed_ids:
+                raise UserError(self.env._("Chỉ ghi phụ cấp cho người có giờ trong ngày này."))
+            allowance_type = line.get("allowance_type") or False
+            current = existing.get(employee_id)
+            if not allowance_type:
+                if current:
+                    current.unlink()
+                continue
+            if employee_id not in set(worked.ids):
+                raise UserError(self.env._("Chỉ ghi phụ cấp cho người có giờ trong ngày này."))
+            self.env["hr.attendance.daily.allowance"]._check_type_for_department(
+                allowance_type, department
+            )
+            if current:
+                if current.allowance_type != allowance_type:
+                    current.allowance_type = allowance_type
+            else:
+                Allowance.create({
+                    "employee_id": employee_id,
+                    "department_id": department.id,
+                    "date": work_date,
+                    "allowance_type": allowance_type,
+                })
+        if not (date_from and date_to):
+            return True
+        return self.render_allowance_summary(department.id, date_from, date_to)
+
+    @api.model
+    def render_allowance_summary(self, department_id, date_from, date_to):
+        """Read-only Phụ cấp tab for one lot and period. Used when the tab opens."""
+        department = self._ensure_allowance_department(
+            self.env["hr.department"].browse(int(department_id))
+        )
+        summary = self.new({
+            "department_id": department.id,
+            "date_from": fields.Date.to_date(date_from),
+            "date_to": fields.Date.to_date(date_to),
+            "allowance_date": fields.Date.to_date(date_from),
+        })
+        return str(summary._render_allowance_summary_html())
 
     def _render_preview_html(self):
         self.ensure_one()

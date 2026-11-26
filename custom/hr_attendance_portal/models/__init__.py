@@ -11,6 +11,7 @@ from . import attendance_hour_decision
 from . import attendance_overtime
 from . import attendance_correction
 from . import attendance_session_wizard
+from . import attendance_daily_allowance
 from . import attendance_timesheet
 from . import attendance_timesheet_order
 from . import attendance_session

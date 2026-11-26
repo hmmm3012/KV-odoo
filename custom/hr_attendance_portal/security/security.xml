@@ -106,6 +106,24 @@
         <field name="perm_unlink" eval="True"/>
     </record>
 
+    <record id="hr_attendance_daily_allowance_captain_rule" model="ir.rule">
+        <field name="name">Site captain: daily allowances for authorized lots</field>
+        <field name="model_id" ref="model_hr_attendance_daily_allowance"/>
+        <field name="groups" eval="[(4, ref('group_hr_attendance_site_captain'))]"/>
+        <field name="domain_force">[('department_id', 'child_of', user._hr_site_captain_department_ids())]</field>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+
+    <record id="hr_attendance_daily_allowance_company_rule" model="ir.rule">
+        <field name="name">Daily allowance: multi-company</field>
+        <field name="model_id" ref="model_hr_attendance_daily_allowance"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+
     <record id="hr_attendance_hour_decision_company_rule" model="ir.rule">
         <field name="name">Hour decision: multi-company</field>
         <field name="model_id" ref="model_hr_attendance_hour_decision"/>
