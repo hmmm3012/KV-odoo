@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="hr_attendance_chatbot.AttendanceChat">
+        <div class="o_hr_attendance_chat_root" t-att-class="{ 'o_open': state.open }">
+            <div t-if="state.open" class="o_hr_attendance_chat_panel shadow">
+                <header class="o_hr_attendance_chat_header">
+                    <div class="o_hr_attendance_chat_header_title">
+                        <i class="fa fa-robot text-primary me-2"/>
+                        <strong>Trợ lý chấm công</strong>
+                    </div>
+                    <button type="button" class="btn btn-link btn-sm text-muted p-0" title="Đóng" t-on-click="toggle">
+                        <i class="fa fa-times"/>
+                    </button>
+                </header>
+                <t t-if="!state.enabled">
+                    <div class="p-3 text-muted small" t-esc="state.offlineReason"/>
+                </t>
+                <t t-else="">
+                    <div class="o_hr_attendance_chat_messages" t-ref="messages">
+                        <t t-if="state.loadingHistory and !state.messages.length">
+                            <div class="text-center text-muted small py-4">
+                                <i class="fa fa-spinner fa-spin"/> Đang tải...
+                            </div>
+                        </t>
+                        <t t-foreach="state.messages" t-as="msg" t-key="msg.id">
+                            <div t-att-class="'o_chat_row o_chat_' + msg.role + (msg.error ? ' o_chat_error' : '')">
+                                <div class="o_chat_avatar" t-att-title="msg.role === 'user' ? userName : 'Trợ lý'">
+                                    <t t-if="msg.role === 'user'">
+                                        <i class="fa fa-user"/>
+                                    </t>
+                                    <t t-else="">
+                                        <i class="fa fa-robot"/>
+                                    </t>
+                                </div>
+                                <div class="o_chat_body">
+                                    <t t-if="msg.status === 'typing'">
+                                        <div class="o_chat_bubble o_chat_typing">
+                                            <span class="o_dot"/><span class="o_dot"/><span class="o_dot"/>
+                                        </div>
+                                    </t>
+                                    <t t-else="">
+                                        <div t-att-class="'o_chat_bubble o_markdown' + (msg.status === 'streaming' ? ' o_streaming' : '')">
+                                            <div class="o_chat_text" t-out="messageMarkup(msg)"/>
+                                        </div>
+                                    </t>
+                                    <t t-if="msg.proposal and msg.proposal.state === 'pending'">
+                                        <div class="o_chat_proposal">
+                                            <pre class="o_chat_proposal_summary" t-esc="msg.proposal.summary_vi"/>
+                                            <div class="o_chat_proposal_actions">
+                                                <button type="button" class="btn btn-primary btn-sm"
+                                                        t-att-disabled="state.sending"
+                                                        t-on-click="() => this.onConfirm(msg.proposal.id)">
+                                                    Xác nhận
+                                                </button>
+                                                <button type="button" class="btn btn-outline-secondary btn-sm"
+                                                        t-att-disabled="state.sending"
+                                                        t-on-click="() => this.onDismiss(msg.proposal.id)">
+                                                    Hủy
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </t>
+                                    <t t-if="msg.created_at">
+                                        <small class="o_chat_time text-muted" t-esc="formatTime(msg.created_at)"/>
+                                    </t>
+                                </div>
+                            </div>
+                        </t>
+                        <t t-foreach="state.pendingProposals" t-as="prop" t-key="prop.id">
+                            <div class="o_chat_row o_chat_assistant">
+                                <div class="o_chat_avatar"><i class="fa fa-robot"/></div>
+                                <div class="o_chat_body">
+                                    <div class="o_chat_proposal">
+                                        <pre class="o_chat_proposal_summary" t-esc="prop.summary_vi"/>
+                                        <div class="o_chat_proposal_actions">
+                                            <button type="button" class="btn btn-primary btn-sm"
+                                                    t-att-disabled="state.sending"
+                                                    t-on-click="() => this.onConfirm(prop.id)">
+                                                Xác nhận
+                                            </button>
+                                            <button type="button" class="btn btn-outline-secondary btn-sm"
+                                                    t-att-disabled="state.sending"
+                                                    t-on-click="() => this.onDismiss(prop.id)">
+                                                Hủy
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </t>
+                    </div>
+                    <footer class="o_hr_attendance_chat_footer">
+                        <textarea class="form-control o_chat_textarea"
+                                  rows="2"
+                                  placeholder="Nhập câu hỏi... (Enter gửi, Shift+Enter xuống dòng)"
+                                  t-att-disabled="state.sending"
+                                  t-model="state.draft"
+                                  t-ref="textarea"
+                                  t-on-keydown="onKeydown"/>
+                        <button type="button"
+                                class="btn btn-primary o_chat_send_btn"
+                                t-att-disabled="!canSend"
+                                title="Gửi"
+                                t-on-click="onSend">
+                            <t t-if="state.sending"><i class="fa fa-spinner fa-spin"/></t>
+                            <t t-else=""><i class="fa fa-paper-plane"/></t>
+                        </button>
+                    </footer>
+                </t>
+            </div>
+            <button type="button"
+                    class="o_hr_attendance_chat_fab btn btn-primary rounded-circle shadow"
+                    title="Trợ lý chấm công"
+                    t-on-click="toggle">
+                <i class="fa fa-comments"/>
+            </button>
+        </div>
+    </t>
+
+</templates>
