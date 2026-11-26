@@ -9,9 +9,9 @@
             <xpath expr="//field[@name='country_id']" position="after">
                 <field name="intro_letter_template"/>
                 <field name="employee_code_prefix" 
-                       string="Employee Code Prefix"
-                       placeholder="e.g., KV, TN, ZM"
-                       help="Prefix used for generating employee codes. Leave empty to disable employee code generation for this company."/>
+                       string="Tiền tố mã nhân viên"
+                       placeholder="vd: KV, TN, ZM"
+                       help="Tiền tố dùng để sinh mã nhân viên. Để trống nếu công ty này không tự cấp mã."/>
             </xpath>
         </field>
     </record>

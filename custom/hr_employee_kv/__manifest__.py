@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     "name": "HR Employee Kien Viet",
-    "version": "19.0.1.0.0",
+    "version": "19.0.1.1.0",
     "summary": "Adds custom fields to Employees",
     "author": "Kien Viet",
     "depends": ["hr"],
@@ -17,6 +17,8 @@
     "assets": {
         "web.assets_backend": [
             "hr_employee_kv/static/src/employee_thumbs.css",
+            "hr_employee_kv/static/src/versions_timeline_patch.js",
+            "hr_employee_kv/static/src/versions_timeline_patch.xml",
         ],
     },
     "external_dependencies": {

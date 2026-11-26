@@ -1,0 +1,285 @@
+# Vietnamese overrides for official HR UI strings (Odoo 19).
+# Do not edit odoo-19.0/addons/*/i18n/vi.po — those would be lost on core updates.
+# This file is loaded by hr_employee_kv (see migrations/19.0.1.1.0) with
+# force_overwrite so stale or incorrect official terms are replaced.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: KV HR Employee Vietnamese overrides 19.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-11-27 05:10+0000\n"
+"PO-Revision-Date: 2026-11-27 05:10+0000\n"
+"Last-Translator: Kiến Việt\n"
+"Language-Team: Vietnamese\n"
+"Language: vi\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#. module: hr
+#: model_terms:ir.ui.view,arch_db:hr.view_employee_form
+msgid "<span>Contract Overview</span>"
+msgstr "<span>Tổng quan hợp đồng</span>"
+
+#. module: hr
+#: model_terms:ir.ui.view,arch_db:hr.hr_contract_template_form_view
+#: model_terms:ir.ui.view,arch_db:hr.view_employee_form
+msgid "Pay Category"
+msgstr "Nhóm lương"
+
+#. module: hr
+#: model_terms:ir.ui.view,arch_db:hr.hr_contract_template_form_view
+#: model_terms:ir.ui.view,arch_db:hr.view_employee_form
+msgid "Employee will be excluded from Pay Runs"
+msgstr "Nhân viên sẽ không nằm trong đợt trả lương"
+
+#. module: hr
+#: model_terms:ir.ui.view,arch_db:hr.view_employee_form
+msgid "<span invisible=\"not contract_date_start\">to</span>"
+msgstr "<span invisible=\"not contract_date_start\">đến</span>"
+
+#. module: hr
+#: model_terms:ir.ui.view,arch_db:hr.view_employee_form
+msgid "Documents"
+msgstr "Tài liệu"
+
+#. module: hr
+#: model:ir.model.fields,field_description:hr.field_account_setup_bank_manual_config__employee_salary_amount
+#: model:ir.model.fields,field_description:hr.field_res_partner_bank__employee_salary_amount
+#: model_terms:ir.ui.view,arch_db:hr.view_employee_form
+#: model_terms:ir.ui.view,arch_db:hr.view_partner_bank_form_inherit_hr
+msgid "Salary Allocation"
+msgstr "Phân bổ lương"
+
+#. module: hr
+#: model_terms:ir.ui.view,arch_db:hr.view_employee_form
+msgid ""
+"<span class=\"d-flex w-50\">\n"
+"                                                    <span "
+"invisible=\"is_trusted_bank_account\" class=\"text-muted\">Untrusted</span>\n"
+"                                                    <span invisible=\"not "
+"is_trusted_bank_account\" class=\"text-success\">Trusted</span>\n"
+"                                                </span>"
+msgstr ""
+"<span class=\"d-flex w-50\">\n"
+"                                                    <span "
+"invisible=\"is_trusted_bank_account\" class=\"text-muted\">Chưa xác minh</span>\n"
+"                                                    <span invisible=\"not "
+"is_trusted_bank_account\" class=\"text-success\">Đáng tin cậy</span>\n"
+"                                                </span>"
+
+#. module: hr
+#: model:ir.actions.server,name:hr.action_hr_employee_create_users
+#: model:ir.actions.server,name:hr.action_hr_employee_create_users_confirmation
+#: model_terms:ir.ui.view,arch_db:hr.view_employee_form
+msgid "Create User"
+msgstr "Tạo người dùng"
+
+#. module: hr
+#: model:ir.ui.menu,name:hr.menu_hr_employee
+msgid "Directory"
+msgstr "Danh bạ"
+
+#. module: hr
+#: model_terms:ir.ui.view,arch_db:hr.view_employee_form
+msgid "Visa & Work Permit"
+msgstr "Thị thực & Giấy phép lao động"
+
+#. module: hr
+#: model_terms:ir.ui.view,arch_db:hr.view_employee_form
+msgid "No user linked"
+msgstr "Chưa liên kết người dùng"
+
+#. module: hr
+#: model_terms:ir.ui.view,arch_db:hr.view_employee_form
+msgid "Provide additional information about this version..."
+msgstr "Nhập thêm thông tin về phiên bản này..."
+
+#. module: hr
+#: model_terms:ir.ui.view,arch_db:hr.view_employee_form
+msgid "e.g. Founder, Motorized, Building B, ..."
+msgstr "vd: Sáng lập, Xe máy, Tòa B, ..."
+
+#. module: hr
+#: model_terms:ir.ui.view,arch_db:hr.view_employee_form
+msgid ""
+"<span invisible=\"not user_id or is_user_active\">\n"
+"                                                (User is Inactive)\n"
+"                                            </span>"
+msgstr ""
+"<span invisible=\"not user_id or is_user_active\">\n"
+"                                                (Người dùng đang tắt)\n"
+"                                            </span>"
+
+#. module: hr
+#: model_terms:ir.ui.view,arch_db:hr.res_users_view_form
+#: model_terms:ir.ui.view,arch_db:hr.res_users_view_form_preferences
+msgid "Main Work Location"
+msgstr "Nơi làm việc chính"
+
+#. module: hr
+#: model_terms:ir.ui.view,arch_db:hr.res_users_view_form_preferences
+msgid "Attendance PIN"
+msgstr "Mã PIN chấm công"
+
+#. module: hr
+#: model:ir.actions.act_window,name:hr.action_bank_account_allocation_wizard
+#: model_terms:ir.ui.view,arch_db:hr.view_bank_account_allocation_wizard
+msgid "Bank Account Allocation"
+msgstr "Phân bổ tài khoản ngân hàng"
+
+#. module: hr
+#: model:ir.model.fields,field_description:hr.field_hr_employee__is_trusted_bank_account
+msgid "Is Trusted Bank Account"
+msgstr "Tài khoản ngân hàng đáng tin cậy"
+
+#. module: hr
+#: model:ir.model.fields,field_description:hr.field_hr_employee__passport_expiration_date
+#: model:ir.model.fields,field_description:hr.field_hr_version__passport_expiration_date
+msgid "Passport Expiration Date"
+msgstr "Ngày hết hạn hộ chiếu"
+
+#. module: hr
+#: model:ir.model.fields,field_description:hr.field_hr_employee__version_revision
+msgid "Version Revision"
+msgstr "Số sửa đổi phiên bản"
+
+#. module: hr
+#: model:ir.actions.act_window,name:hr.action_hr_version
+#: model_terms:ir.ui.view,arch_db:hr.hr_version_graph_view
+#: model_terms:ir.ui.view,arch_db:hr.hr_version_pivot_view
+msgid "Employee Records"
+msgstr "Phiên bản nhân sự"
+
+#. module: hr
+#: model_terms:ir.actions.act_window,help:hr.hr_employee_public_action
+#: model_terms:ir.actions.act_window,help:hr.open_view_employee_list_my
+msgid "Ready to start your experience?"
+msgstr "Sẵn sàng bắt đầu?"
+
+#. module: hr
+#: model_terms:ir.ui.view,arch_db:hr.hr_version_search_view
+msgid "Show all records whose next activity date is past"
+msgstr "Hiện tất cả bản ghi có hoạt động quá hạn"
+
+#. module: hr
+#: model_terms:ir.ui.view,arch_db:hr.hr_version_list_view
+msgid "View"
+msgstr "Xem"
+
+#. module: hr
+#: model_terms:ir.ui.view,arch_db:hr.view_hr_job_form
+msgid "Hiring Process"
+msgstr "Quy trình tuyển dụng"
+
+#. module: hr
+#. odoo-javascript
+#: code:addons/hr/static/src/components/avatar_card/avatar_card_popover_patch.xml:0
+msgid "View Profile"
+msgstr "Xem hồ sơ"
+
+#. module: hr
+#. odoo-javascript
+#: code:addons/hr/static/src/components/avatar_card/avatar_card_popover_patch.xml:0
+msgid "Open Contact Profile"
+msgstr "Mở hồ sơ liên hệ"
+
+#. module: hr
+#. odoo-javascript
+#: code:addons/hr/static/src/components/avatar_card/avatar_card_popover_patch.xml:0
+msgid "Open Employee Profile (activates company)"
+msgstr "Mở hồ sơ nhân viên (kích hoạt công ty)"
+
+#. module: hr
+#. odoo-python
+#: code:addons/hr/models/res_partner.py:0
+msgid "Go to contact"
+msgstr "Đến liên hệ"
+
+#. module: hr
+#. odoo-python
+#: code:addons/hr/models/hr_employee.py:0
+msgid "Employees profile"
+msgstr "Hồ sơ nhân viên"
+
+#. module: hr
+#. odoo-python
+#: code:addons/hr/models/hr_version.py:0
+msgid "Before creating a new contract, close the current one by setting an end date."
+msgstr "Trước khi tạo hợp đồng mới, hãy đóng hợp đồng hiện tại bằng cách nhập ngày kết thúc."
+
+#. module: hr_homeworking
+#: model_terms:ir.ui.view,arch_db:hr_homeworking.view_employee_form
+msgid "Usual Work Location"
+msgstr "Địa điểm làm việc thường xuyên"
+
+#. module: hr_attendance
+#: model_terms:ir.ui.view,arch_db:hr_attendance.view_employee_form_inherit_hr_attendance
+msgid ""
+"<span class=\"o_stat_text\">\n"
+"                            Monthly Hours\n"
+"                        </span>"
+msgstr ""
+"<span class=\"o_stat_text\">\n"
+"                            Giờ làm trong tháng\n"
+"                        </span>"
+
+#. module: hr_attendance
+#: model_terms:ir.ui.view,arch_db:hr_attendance.hr_employee_public_view_form
+msgid ""
+"<span class=\"o_stat_text\">\n"
+"                                Monthly Hours\n"
+"                            </span>"
+msgstr ""
+"<span class=\"o_stat_text\">\n"
+"                                Giờ làm trong tháng\n"
+"                            </span>"
+
+#. module: hr_attendance
+#: model_terms:ir.ui.view,arch_db:hr_attendance.view_employee_form_inherit_hr_attendance
+msgid "Overtime Ruleset"
+msgstr "Bộ quy tắc tăng ca"
+
+#. module: hr_attendance
+#: model_terms:ir.ui.view,arch_db:hr_attendance.view_employee_form_inherit_hr_attendance
+msgid "Select a ruleset to manage overtime."
+msgstr "Chọn bộ quy tắc để tính tăng ca."
+
+#. module: hr_attendance
+#: model_terms:ir.ui.view,arch_db:hr_attendance.view_employee_form_inherit_hr_attendance
+msgid "Read a badge"
+msgstr "Đọc thẻ"
+
+#. module: hr_attendance
+#: model_terms:ir.ui.view,arch_db:hr_attendance.view_employee_form_inherit_hr_attendance
+msgid "RFID/Badge Number"
+msgstr "Số thẻ RFID"
+
+#. module: hr_skills
+#: model:ir.ui.menu,name:hr_skills.menu_human_resources_configuration_resume
+#: model_terms:ir.ui.view,arch_db:hr_skills.hr_employee_public_view_form_inherit
+#: model_terms:ir.ui.view,arch_db:hr_skills.hr_employee_public_view_search
+#: model_terms:ir.ui.view,arch_db:hr_skills.hr_employee_view_form
+#: model_terms:ir.ui.view,arch_db:hr_skills.hr_employee_view_search
+#: model_terms:ir.ui.view,arch_db:hr_skills.resume_line_view_form
+msgid "Resume"
+msgstr "Hồ sơ (CV)"
+
+#. module: hr_skills
+#: model:ir.actions.act_window,name:hr_skills.hr_resume_lines_training_action
+#: model:ir.ui.menu,name:hr_skills.menu_learnings_training_attendances
+msgid "Training Attendances"
+msgstr "Chấm công đào tạo"
+
+#. module: hr_employee_kv
+#. odoo-javascript
+#: code:addons/hr_employee_kv/static/src/versions_timeline_patch.js:0
+msgid "New Employee Record"
+msgstr "Tạo phiên bản nhân sự mới"
+
+#. module: hr_employee_kv
+#. odoo-javascript
+#: code:addons/hr_employee_kv/static/src/versions_timeline_patch.js:0
+msgid "No contract"
+msgstr "Chưa có hợp đồng"

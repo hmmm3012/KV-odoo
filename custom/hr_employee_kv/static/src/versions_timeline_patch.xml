@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-inherit="hr.VersionsTimeline" t-inherit-mode="extension">
+        <xpath expr="//button[@t-ref='datetime-picker-target-version']" position="replace">
+            <button
+                t-ref="datetime-picker-target-version"
+                t-att-title="newRecordTitle"
+                t-on-click="onClickDateTimePickerBtn"
+                class="btn btn-primary">
+                <i class="fa fa-plus"/>
+            </button>
+        </xpath>
+    </t>
+</templates>

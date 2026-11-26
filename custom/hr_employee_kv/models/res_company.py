@@ -18,9 +18,9 @@ class ResCompany(models.Model):
     )
 
     employee_code_prefix = fields.Char(
-        string='Employee Code Prefix',
+        string="Tiền tố mã nhân viên",
         size=10,
-        help='Prefix for employee codes (e.g., KV, TN, ZM). This will be used to generate unique employee codes per company.'
+        help="Tiền tố mã nhân viên (vd: KV, TN, ZM), dùng để sinh mã nhân viên duy nhất theo từng công ty."
     )
 
     def _create_employee_code_sequence(self):

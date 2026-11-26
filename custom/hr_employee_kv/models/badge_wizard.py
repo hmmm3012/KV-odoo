@@ -17,7 +17,7 @@ class HrEmployeeBadgeWizard(models.TransientModel):
         "wizard_id",
         string="Nhân viên",
     )
-    file_data = fields.Binary(string="File", readonly=True, attachment=False)
+    file_data = fields.Binary(string="Tệp", readonly=True, attachment=False)
     file_name = fields.Char(string="Tên file", readonly=True)
 
     @api.model

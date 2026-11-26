@@ -7,6 +7,9 @@
         <field name="model">hr.employee</field>
         <field name="inherit_id" ref="hr.view_employee_form"/>
         <field name="arch" type="xml">
+            <xpath expr="//page[@name='payroll_information']" position="attributes">
+                <attribute name="string">Hợp đồng &amp; Lương</attribute>
+            </xpath>
             <xpath expr="//header" position="inside">
                 <button name="action_kv_print_contract" string="IN HĐ" type="object"
                         class="oe_highlight" groups="hr.group_hr_manager" invisible="not id or not kv_contract_number"/>

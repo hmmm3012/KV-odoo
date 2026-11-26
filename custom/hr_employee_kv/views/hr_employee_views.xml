@@ -52,7 +52,7 @@
       <!-- Make country_id readonly and ensure it shows Vietnam -->
       <xpath expr="//field[@name='country_id']" position="attributes">
         <attribute name="readonly">1</attribute>
-        <attribute name="help">Country is set to Vietnam and cannot be changed</attribute>
+        <attribute name="help">Quốc tịch được đặt là Việt Nam và không thể thay đổi</attribute>
       </xpath>
 
       <!-- Hide distance_home_work field -->
@@ -196,7 +196,7 @@
       
       <!-- Add mobile_phone field to the list -->
       <xpath expr="//field[@name='work_phone']" position="after">
-        <field name="mobile_phone" string="Mobile Phone" optional="show"/>
+        <field name="mobile_phone" string="Số điện thoại di động" optional="show"/>
       </xpath>
       
       <!-- Set default visibility for existing fields -->

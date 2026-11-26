@@ -68,7 +68,7 @@ class HrEmployee(models.Model):
         max_height=1920,
         copy=False,
         groups="hr.group_hr_user",
-        help="Front of the citizen ID. The QR on either side fills the card fields. Printed place of origin is read from this photo.",
+        help="Ảnh mặt trước CCCD. Mã QR ở một trong hai mặt sẽ điền các trường trên thẻ. Quê quán in trên CCCD được đọc từ ảnh này.",
     )
     id_card_back = fields.Image(
         string="CCCD mặt sau",
@@ -76,7 +76,7 @@ class HrEmployee(models.Model):
         max_height=1920,
         copy=False,
         groups="hr.group_hr_user",
-        help="Back of the citizen ID. Used when the QR is on this side instead of the front.",
+        help="Ảnh mặt sau CCCD. Dùng khi mã QR nằm ở mặt sau thay vì mặt trước.",
     )
 
     # Date of import
