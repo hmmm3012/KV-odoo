@@ -143,7 +143,7 @@
         <field name="name">hr.attendance.correction.wizard.form</field>
         <field name="model">hr.attendance.correction.wizard</field>
         <field name="arch" type="xml">
-            <form class="kv_attendance_wizard">
+            <form class="kv_attendance_wizard" edit="1">
                 <field name="attendance_id" invisible="1"/>
                 <field name="elapsed_hours" invisible="1"/>
                 <field name="can_set_recognized_hours" invisible="1"/>
@@ -159,12 +159,7 @@
                 </group>
                 <group invisible="adjustment_mode != 'recognized' or not can_set_recognized_hours" string="Recognized total">
                     <field name="recognized_hours" widget="float_time"/>
-                    <div class="kv_hour_nudge" colspan="2">
-                        <button name="action_nudge_recognized" type="object" string="-0.5h" class="btn btn-secondary" context="{'nudge_hours': -0.5}"/>
-                        <button name="action_nudge_recognized" type="object" string="-1h" class="btn btn-secondary" context="{'nudge_hours': -1}"/>
-                        <button name="action_nudge_recognized" type="object" string="+0.5h" class="btn btn-secondary" context="{'nudge_hours': 0.5}"/>
-                        <button name="action_nudge_recognized" type="object" string="+1h" class="btn btn-secondary" context="{'nudge_hours': 1}"/>
-                    </div>
+                    <field name="elapsed_hours" widget="kv_hour_nudge" nolabel="1" colspan="2"/>
                 </group>
                 <group>
                     <field name="reason" placeholder="Reason"/>

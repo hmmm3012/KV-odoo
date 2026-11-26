@@ -329,11 +329,7 @@ class HrAttendance(models.Model):
             attendance.can_review_overtime = (
                 open_session
                 and attendance.session_state != "denied"
-                and attendance.overtime_state in (
-                    "pending_captain",
-                    "pending_hr_review",
-                    "captain_reviewed",
-                )
+                and attendance.overtime_state == "pending_captain"
                 and bool(attendance.overtime_case_ids)
                 and (is_captain or is_hr)
             )
@@ -804,11 +800,20 @@ class HrAttendance(models.Model):
         )
 
     def _current_recognized_total(self):
-        """Hours currently counted for payroll, else elapsed duration."""
+        """Hours currently counted for payroll, else elapsed duration.
+
+        Pending overtime has payroll OT of 0, so use elapsed (or regular +
+        candidate) rather than showing only the standard regular hours.
+        """
         self.ensure_one()
-        total = (self.payroll_regular_hours or 0.0) + (self.payroll_overtime_hours or 0.0)
-        if float_compare(total, 0.0, precision_digits=4) > 0:
-            return total
+        payroll = (self.payroll_regular_hours or 0.0) + (self.payroll_overtime_hours or 0.0)
+        if self.overtime_state in ("pending_captain", "pending_hr_review"):
+            if self._session_bounds()[1]:
+                return self._session_duration()
+            candidate = self.overtime_candidate_hours or 0.0
+            return (self.payroll_regular_hours or 0.0) + candidate
+        if float_compare(payroll, 0.0, precision_digits=4) > 0:
+            return payroll
         if self._session_bounds()[1]:
             return self._session_duration()
         return self.recognized_regular_hours or 0.0
@@ -1007,6 +1012,7 @@ class HrAttendance(models.Model):
         duration = self._session_duration()
         company = self.employee_id.company_id or self.env.company
         standard = self.standard_hours or company.attendance_standard_hours or 8.0
+        hours = self._round_worked_hours(hours)
         if float_compare(hours, 0.0, precision_digits=4) < 0:
             raise UserError(self.env._("Recognized hours cannot be negative."))
         if float_compare(hours, duration, precision_digits=4) > 0:

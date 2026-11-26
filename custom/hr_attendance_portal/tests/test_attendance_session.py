@@ -581,8 +581,16 @@ class TestAttendanceSession(AttendancePortalMixin, TransactionCase):
         self.assertNotIn("action_open_reduce_wizard", portal.arch)
         self.assertNotIn("action_open_bulk_reduce_wizard", sessions.arch)
         self.assertIn("Adjust Work Hours", portal.arch)
-        self.assertIn("Adjust Work Hours", captain.arch)
-        self.assertIn("action_open_correction_wizard", captain.arch)
+        self.assertNotIn("action_open_correction_wizard", captain.arch)
+        arch, _view = self.env["hr.attendance"]._get_view(
+            view_id=captain.id, view_type="form"
+        )
+        correction = arch.xpath("//button[@name='action_open_correction_wizard']")
+        self.assertEqual(
+            len(correction),
+            2,
+            "header + phone sheet only; captain inherit must not duplicate portal buttons",
+        )
 
     def test_adjust_work_hours_wizard_punch_recomputes_total(self):
         attendance = self._session(11)
@@ -622,12 +630,49 @@ class TestAttendanceSession(AttendancePortalMixin, TransactionCase):
             **action["context"]
         ).create({"reason": "nudge", "recognized_hours": 8})
         wizard.with_context(nudge_hours=1).action_nudge_recognized()
+        self.assertFalse(wizard._fields["reason"].readonly)
         self.assertAlmostEqual(wizard.recognized_hours, 9, places=4)
         self.assertEqual(wizard.adjustment_mode, "recognized")
+        wizard.write({"reason": "typed after nudge"})
+        self.assertEqual(wizard.reason, "typed after nudge")
         wizard.with_context(nudge_hours=5).action_nudge_recognized()
         self.assertAlmostEqual(wizard.recognized_hours, wizard.elapsed_hours, places=4)
         wizard.with_context(nudge_hours=-50).action_nudge_recognized()
         self.assertAlmostEqual(wizard.recognized_hours, 0, places=4)
+
+    def test_recognized_total_on_pending_ot_uses_elapsed_and_settles(self):
+        """12h30 on a 12h standard must not stay chờ duyệt làm thêm."""
+        self.company.attendance_standard_hours = 12.0
+        self.company.attendance_overtime_cap_hours = 7.0
+        attendance = self._session(12.5)
+        self.assertEqual(attendance.overtime_state, "pending_captain")
+        self.assertAlmostEqual(attendance._current_recognized_total(), 12.5, places=2)
+        wizard = self.env["hr.attendance.correction.wizard"].with_user(self.captain).with_context(
+            default_attendance_id=attendance.id,
+            default_adjustment_mode="recognized",
+        ).create({"reason": "set twelve thirty", "recognized_hours": 12.5})
+        wizard.action_apply()
+        self.assertNotIn(attendance.overtime_state, ("pending_captain", "pending_hr_review"))
+        self.assertEqual(attendance.overtime_state, "captain_reviewed")
+        self.assertAlmostEqual(attendance.payroll_regular_hours, 12, places=2)
+        self.assertAlmostEqual(attendance.payroll_overtime_hours, 0.5, places=2)
+        self.assertEqual(attendance.session_state, "validated")
+
+        under = self._session(12.5)
+        under.with_user(self.captain).action_reduce_regular(12.0, "cap at standard")
+        self.assertEqual(under.overtime_state, "not_required")
+        self.assertEqual(under.payroll_overtime_hours, 0)
+        self.assertIn(under.session_state, ("validated", "corrected"))
+
+    def test_review_overtime_hidden_after_captain_approved(self):
+        attendance = self._session(11)
+        captain = attendance.with_user(self.captain)
+        self.assertTrue(captain.can_review_overtime)
+        self.assertTrue(captain.can_decide_session)
+        captain.action_captain_overtime(2, "approved")
+        self.assertEqual(attendance.overtime_state, "captain_reviewed")
+        self.assertFalse(captain.can_review_overtime)
+        self.assertTrue(captain.can_decide_session)
 
     def test_adjust_work_hours_hidden_on_denied_and_closed(self):
         denied = self._session(11)

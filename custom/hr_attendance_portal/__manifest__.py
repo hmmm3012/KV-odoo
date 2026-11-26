@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     "name": "HR Attendance Portal",
-    "version": "18.0.1.19.0",
+    "version": "18.0.1.19.4",
     "category": "Human Resources/Attendances",
     "summary": "PIN-based attendance portal for employees without Odoo user accounts",
     "description": """
@@ -48,6 +48,8 @@ routed through the same business logic.
             "hr_attendance_portal/static/src/attendance_fence_map.xml",
             "hr_attendance_portal/static/src/attendance_fence_map.css",
             "hr_attendance_portal/static/src/session_mobile_actions.css",
+            "hr_attendance_portal/static/src/hour_nudge_field.js",
+            "hr_attendance_portal/static/src/hour_nudge_field.xml",
             "hr_attendance_portal/static/src/list_mobile_selectors.js",
             "hr_attendance_portal/static/src/timesheet_preview_field.js",
             "hr_attendance_portal/static/src/timesheet_preview_field.xml",
