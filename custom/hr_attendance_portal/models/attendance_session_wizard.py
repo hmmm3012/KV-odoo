@@ -263,20 +263,13 @@ class HrAttendanceCorrectionWizard(models.TransientModel):
         res["adjustment_mode"] = mode
         return res
 
-    def _reload(self):
-        self.ensure_one()
-        return {
-            "type": "ir.actions.act_window",
-            "name": self.env._("Adjust Work Hours"),
-            "res_model": self._name,
-            "res_id": self.id,
-            "view_mode": "form",
-            "target": "new",
-            "context": dict(self.env.context),
-        }
-
     def action_nudge_recognized(self):
-        """Shift recognized hours by the button delta and stay in the dialog."""
+        """Shift recognized hours by the button delta and stay in the dialog.
+
+        Return False so Odoo keeps this wizard open in edit mode. Returning a
+        new act_window on the same res_id remounts the dialog read-only, which
+        blocked typing the reason after ±0.5h / ±1h.
+        """
         self.ensure_one()
         if not self.can_set_recognized_hours:
             raise UserError(self.env._(
@@ -293,7 +286,7 @@ class HrAttendanceCorrectionWizard(models.TransientModel):
             "adjustment_mode": "recognized",
             "recognized_hours": hours,
         })
-        return self._reload()
+        return False
 
     def _apply_punch_corrections(self):
         attendance = self.attendance_id
@@ -334,7 +327,10 @@ class HrAttendanceCorrectionWizard(models.TransientModel):
                 raise UserError(self.env._(
                     "Recognized hours cannot be changed on this session."
                 ))
-            self.attendance_id.action_reduce_regular(self.recognized_hours, self.reason)
+            self.attendance_id.action_reduce_regular(
+                self.attendance_id._round_worked_hours(self.recognized_hours),
+                self.reason,
+            )
         else:
             self._apply_punch_corrections()
         return {"type": "ir.actions.act_window_close"}

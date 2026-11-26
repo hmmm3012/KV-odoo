@@ -143,7 +143,7 @@
         <field name="name">hr.attendance.correction.wizard.form</field>
         <field name="model">hr.attendance.correction.wizard</field>
         <field name="arch" type="xml">
-            <form class="kv_attendance_wizard">
+            <form class="kv_attendance_wizard" edit="1">
                 <field name="attendance_id" invisible="1"/>
                 <field name="elapsed_hours" invisible="1"/>
                 <field name="can_set_recognized_hours" invisible="1"/>
