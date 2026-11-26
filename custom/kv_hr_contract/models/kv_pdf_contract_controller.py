@@ -129,8 +129,8 @@ def create_pdf(contract):
     _register_pdf_fonts()
     contract_name = contract.name
     employee_name = contract.employee_id.name
-    date_start = contract.date_start
-    date_end = contract.date_end
+    date_start = contract.contract_date_start
+    date_end = contract.contract_date_end
     job_id = contract.job_id.name
     temp_address = contract.employee_id.emp_temporary_address
     perm_address = contract.employee_id.emp_permanent_address
@@ -295,7 +295,7 @@ def create_pdf(contract):
             444.7340087890625 - 12,
             1,
         )
-        period = contract.date_end.year - contract.date_start.year
+        period = contract.contract_date_end.year - contract.contract_date_start.year
         if period == 0:
             period = 1
         add_text_to_page(
@@ -366,11 +366,11 @@ def create_pdf(contract):
 class ContractPDFController(http.Controller):
     @http.route(["/contracts/pdf/<int:contract_id>"], type="http", auth="user")
     def download_pdf(self, contract_id, **kwargs):
-        contract = request.env["hr.contract"].browse(contract_id)
+        contract = request.env["hr.version"].browse(contract_id)
         
         # Ensure the user has access to the contract
         if not contract.exists() or not request.env.user.has_group(
-            "hr_contract.group_hr_contract_manager"
+            "hr.group_hr_manager"
         ):
             return request.not_found()
         pdf_res = create_pdf(contract)

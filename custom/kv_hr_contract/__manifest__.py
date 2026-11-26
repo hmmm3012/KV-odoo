@@ -1,18 +1,16 @@
 {
     "name": "KV HR Contract",
-    "version": "0.1",
+    "version": "19.0.1.0.0",
     "license": "LGPL-3",
-    "description": "A Custom Module for HR Contracts",
+    "description": "A Custom Module for HR Contracts (Odoo 19: contracts live on hr.version)",
     "summary": "A Custom Module for HR Contracts",
     "category": "Human Resources",
-    "depends": ["hr_contract", "base"],
+    # Odoo 19 merged hr_contract into hr: hr.contract became hr.version.
+    "depends": ["hr"],
     "author": "Hoang Minh",
     "data": [
-        # XML files containing your views, actions, menus, etc.
         "views/kv_hr_contract_views.xml",
-        # "report/report.xml",
     ],
-
     "installable": True,
     "application": False,
     "auto_install": False,

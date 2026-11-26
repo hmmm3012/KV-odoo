@@ -1,32 +1,24 @@
-<!-- hr_contract_view_extension.xml -->
-<!-- <odoo>
-    <record id="view_hr_contract_form_inherit" model="ir.ui.view">
-        <field name="name">hr.contract.form.inherit</field>
-        <field name="model">hr.contract</field>
-        <field name="inherit_id" ref="hr_contract.hr_contract_view_form"/>
-        <field name="arch" type="xml">
-            <xpath expr="//header" position="inside">
-                <button name="%(kv_hr_contract.action_hr_contract_report)d"
-                        string="In"
-                        type="action"
-                        class="oe_highlight"/>
-            </xpath>
-        </field>
-    </record>
-</odoo>  -->
-<!-- views/hr_contract_form_extension.xml -->
+<?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <record id="view_hr_contract_form_inherit" model="ir.ui.view">
-        <field name="name">hr.contract.form.inherit</field>
-        <field name="model">hr.contract</field>
-        <field name="inherit_id" ref="hr_contract.hr_contract_view_form"/>
+    <!-- Odoo 19: no hr.contract form any more; contracts are edited on the
+         employee form (Payroll tab) through the employee's hr.version. -->
+    <record id="view_hr_employee_form_kv_contract" model="ir.ui.view">
+        <field name="name">hr.employee.form.kv.contract</field>
+        <field name="model">hr.employee</field>
+        <field name="inherit_id" ref="hr.view_employee_form"/>
         <field name="arch" type="xml">
             <xpath expr="//header" position="inside">
-                <button name="generate_pdf_action" string="IN" type="object" class="oe_highlight"/>
+                <button name="action_kv_print_contract" string="IN HĐ" type="object"
+                        class="oe_highlight" groups="hr.group_hr_manager" invisible="not id"/>
             </xpath>
-            <!-- <xpath expr="//field[@name='contract_type_id']" position="before">
-                <field name="contract_period"/>
-            </xpath> -->
+            <xpath expr="//div[@name='contract_dates']" position="before">
+                <label for="kv_contract_name"/>
+                <div class="o_row" name="kv_contract_name">
+                    <field name="kv_contract_name" placeholder="HD.2026.001"/>
+                    <button name="action_kv_assign_contract_number" type="object"
+                            string="Cấp số HĐ" class="btn btn-link" invisible="not id"/>
+                </div>
+            </xpath>
         </field>
     </record>
 </odoo>
