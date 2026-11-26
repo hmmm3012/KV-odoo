@@ -40,7 +40,7 @@
                                         </div>
                                     </div>
                                 </t>
-                            </t>
+                            </div>
                         </t>
                         <t t-foreach="state.pendingProposals" t-as="prop" t-key="prop.id">
                             <div class="o_chat_bubble mb-3 o_chat_assistant">
