@@ -2,7 +2,8 @@
 
 import json
 
-from odoo import http
+import odoo
+from odoo import api, http
 from odoo.http import request
 
 
@@ -53,10 +54,33 @@ class AttendanceChatbotController(http.Controller):
                 status=400,
             )
 
+        # The HTTP transaction cursor closes before Werkzeug drains the iterable;
+        # open a dedicated cursor for the whole SSE response instead.
+        dbname = request.db
+        uid = request.env.uid
+        ctx = dict(request.env.context)
+        try:
+            msg_id = int(user_message_id)
+        except (TypeError, ValueError):
+            return request.make_response(
+                "Invalid user_message_id",
+                headers=[("Content-Type", "text/plain; charset=utf-8")],
+                status=400,
+            )
+
         def generate():
-            chatbot = request.env["hr.attendance.chatbot"]
-            for event in chatbot.iter_stream_turn(int(user_message_id)):
-                yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
+            registry = odoo.modules.registry.Registry(dbname)
+            with registry.cursor() as cr:
+                env = api.Environment(cr, uid, ctx)
+                chatbot = env["hr.attendance.chatbot"]
+                try:
+                    for event in chatbot.iter_stream_turn(msg_id):
+                        yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
+                    cr.commit()
+                except Exception as exc:
+                    cr.rollback()
+                    payload = {"type": "error", "message": str(exc)}
+                    yield f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
 
         headers = {
             "Content-Type": "text/event-stream; charset=utf-8",

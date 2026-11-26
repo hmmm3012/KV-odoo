@@ -15,8 +15,8 @@ http_interface = 0.0.0.0
 admin_passwd = ${ODOO_ADMIN_PASSWD}
 
 list_db = False
-db_name = odoo
-dbfilter = ^odoo$
+db_name = odoo_staging
+dbfilter = ^odoo_staging$
 
 ; Production (docker-compose.prod.yml): workers >= 1, proxy_mode True, gevent on 8072
 workers = ${ODOO_WORKERS}

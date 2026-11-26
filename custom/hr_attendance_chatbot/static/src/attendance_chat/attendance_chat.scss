@@ -14,8 +14,11 @@
     }
 
     .o_hr_attendance_chat_panel {
-        width: min(28rem, calc(100vw - 2rem));
-        height: min(36rem, calc(100vh - 5rem));
+        // Libsass treats min() as Sass math; use max-* + calc for Odoo asset compile.
+        width: 28rem;
+        max-width: calc(100vw - 2rem);
+        height: 36rem;
+        max-height: calc(100vh - 5rem);
         display: flex;
         flex-direction: column;
         background: var(--o-view-background-color, #fff);

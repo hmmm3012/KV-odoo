@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     "name": "HR Attendance Chatbot (LiteLLM)",
-    "version": "18.0.1.2.0",
+    "version": "18.0.1.2.3",
     "category": "Human Resources/Attendances",
     "summary": "Floating attendance assistant for captains and HR (LiteLLM, server-side)",
     "description": """
