@@ -581,8 +581,16 @@ class TestAttendanceSession(AttendancePortalMixin, TransactionCase):
         self.assertNotIn("action_open_reduce_wizard", portal.arch)
         self.assertNotIn("action_open_bulk_reduce_wizard", sessions.arch)
         self.assertIn("Adjust Work Hours", portal.arch)
-        self.assertIn("Adjust Work Hours", captain.arch)
-        self.assertIn("action_open_correction_wizard", captain.arch)
+        self.assertNotIn("action_open_correction_wizard", captain.arch)
+        arch, _view = self.env["hr.attendance"]._get_view(
+            view_id=captain.id, view_type="form"
+        )
+        correction = arch.xpath("//button[@name='action_open_correction_wizard']")
+        self.assertEqual(
+            len(correction),
+            2,
+            "header + phone sheet only; captain inherit must not duplicate portal buttons",
+        )
 
     def test_adjust_work_hours_wizard_punch_recomputes_total(self):
         attendance = self._session(11)
