@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import ipaddress
 import json
 from math import atan2, cos, hypot, pi, radians, sin, sqrt
 
@@ -60,6 +61,18 @@ class HrAttendanceLocation(models.Model):
         string="Max GPS Accuracy (m)",
         default=100,
         help="GPS readings less accurate than this are flagged for HR review.",
+    )
+    wifi_punch_enabled = fields.Boolean(
+        string="Allow WiFi punch",
+        default=False,
+        help="When enabled, a matching public IP can identify this workplace if GPS is missing or inaccurate. "
+             "Off (default): GPS only, even if public IPs are listed.",
+    )
+    allowed_public_ips = fields.Text(
+        string="Allowed public IPs",
+        help="One IPv4, IPv6, or CIDR per line (for example 203.0.113.10 or 203.0.113.0/24). "
+             "Used only when Allow WiFi punch is enabled and this workplace has its own static WAN/public IP. "
+             "Matching uses the client address after proxy_mode (remote_addr), not a raw X-Forwarded-For header.",
     )
     captain_ids = fields.Many2many(
         "res.users",
@@ -297,6 +310,11 @@ class HrAttendanceLocation(models.Model):
             if not -180 <= location.longitude <= 180:
                 raise ValidationError(self.env._("Longitude must be between -180 and 180."))
 
+    @api.constrains("allowed_public_ips")
+    def _check_allowed_public_ips(self):
+        for location in self:
+            location._parse_allowed_public_networks()
+
     def _distance_meters(self, latitude, longitude):
         self.ensure_one()
         return self._haversine_meters(
@@ -434,26 +452,122 @@ class HrAttendanceLocation(models.Model):
             return False
         return True
 
-    def _match_result(self, location, department, distance, gps_accuracy):
+    def _match_result(self, location, department, distance, gps_accuracy, client_ip=None):
         if gps_accuracy and location.max_gps_accuracy_meters and gps_accuracy > location.max_gps_accuracy_meters:
+            if location._wifi_punch_matches_ip(client_ip):
+                return location, department, False, distance
             return location, department, "gps_inaccurate", distance
         return location, department, False, distance
 
-    def _match_for_employee(self, employee, latitude, longitude, gps_accuracy=None):
-        """Return (location, department, reason_code, distance).
+    def _iter_allowed_public_ip_lines(self):
+        self.ensure_one()
+        text = self.allowed_public_ips or ""
+        for chunk in text.replace(",", "\n").splitlines():
+            line = chunk.split("#", 1)[0].strip()
+            if line:
+                yield line
 
-        Prefer the workplace of the employee's department when the GPS point
-        is inside it. Otherwise use the workplace whose containing zone is
-        smallest. A workplace may have several polygon zones; the point is
-        inside if it lies in any of them.
-        """
+    def _parse_allowed_public_networks(self):
+        self.ensure_one()
+        networks = []
+        invalid = []
+        for line in self._iter_allowed_public_ip_lines():
+            try:
+                networks.append(ipaddress.ip_network(line, strict=False))
+            except ValueError:
+                invalid.append(line)
+        if invalid:
+            raise ValidationError(self.env._(
+                "Each line of allowed public IPs must be an IPv4, IPv6, or CIDR "
+                "(for example 203.0.113.10 or 203.0.113.0/24). Invalid: %(value)s",
+                value=", ".join(invalid),
+            ))
+        return networks
+
+    @staticmethod
+    def _normalize_client_ip(client_ip):
+        if not client_ip:
+            return None
+        try:
+            ip = ipaddress.ip_address(str(client_ip).strip())
+        except ValueError:
+            return None
+        if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
+            return ip.ipv4_mapped
+        return ip
+
+    def _contains_client_ip(self, client_ip):
+        self.ensure_one()
+        ip = self._normalize_client_ip(client_ip)
+        if ip is None or not (self.allowed_public_ips or "").strip():
+            return False
+        try:
+            networks = self._parse_allowed_public_networks()
+        except ValidationError:
+            return False
+        return any(ip in network for network in networks)
+
+    def _wifi_punch_matches_ip(self, client_ip):
+        """True only when WiFi punch is enabled and the client IP is allowlisted."""
+        self.ensure_one()
+        if not self.wifi_punch_enabled:
+            return False
+        return self._contains_client_ip(client_ip)
+
+    def _department_for_ip_match(self, employee, location):
+        Department = self.env["hr.department"].sudo()
+        home = employee.department_id
+        if home and self._resolved_workplace(home) == location:
+            return home
+        linked = location.linked_department_ids[:1]
+        if linked:
+            return linked
+        return Department.search([
+            ("active", "=", True),
+            ("attendance_location_id", "=", location.id),
+        ], limit=1)
+
+    def _match_unique_public_ip(self, employee, client_ip):
+        """Return (location, department) when the client public IP identifies a workplace."""
+        Department = self.env["hr.department"].sudo()
+        empty = (self.browse(), Department.browse())
+        if not self._normalize_client_ip(client_ip):
+            return empty
+        company_ids = [employee.company_id.id, False] if employee.company_id else [False]
+        candidates = self.sudo().search([
+            ("active", "=", True),
+            ("wifi_punch_enabled", "=", True),
+            ("allowed_public_ips", "!=", False),
+            ("company_id", "in", company_ids),
+        ])
+        matches = candidates.filtered(
+            lambda location: self._company_location_ok(employee, location)
+            and location._wifi_punch_matches_ip(client_ip)
+        )
+        if not matches:
+            return empty
+        home = employee.department_id
+        home_location = self._resolved_workplace(home) if home else self.browse()
+        if len(matches) > 1:
+            if home_location and home_location in matches:
+                location = home_location
+            else:
+                return empty
+        else:
+            location = matches
+        return location, self._department_for_ip_match(employee, location)
+
+    def _match_gps_for_employee(self, employee, latitude, longitude, gps_accuracy=None, client_ip=None):
+        """GPS geofence match. Public IP only waives gps_inaccurate on the same workplace."""
         Department = self.env["hr.department"].sudo()
         home = employee.department_id
         home_location = self._resolved_workplace(home) if home else self.browse()
         if self._company_location_ok(employee, home_location):
             distance = home_location._distance_meters(latitude, longitude)
             if home_location._contains_gps(latitude, longitude):
-                return self._match_result(home_location, home, distance, gps_accuracy)
+                return self._match_result(
+                    home_location, home, distance, gps_accuracy, client_ip=client_ip
+                )
 
         company_ids = [employee.company_id.id, False] if employee.company_id else [False]
         candidates = Department.search([
@@ -477,7 +591,40 @@ class HrAttendanceLocation(models.Model):
                 best = (rank, location, department, distance)
         if best:
             _rank, location, department, distance = best
-            return self._match_result(location, department, distance, gps_accuracy)
+            return self._match_result(
+                location, department, distance, gps_accuracy, client_ip=client_ip
+            )
+        return self.browse(), Department.browse(), "unknown_location", None
+
+    def _match_for_employee(self, employee, latitude, longitude, gps_accuracy=None, client_ip=None):
+        """Return (location, department, reason_code, distance).
+
+        Prefer the workplace of the employee's department when the GPS point
+        is inside it. Otherwise use the workplace whose containing zone is
+        smallest. A workplace may have several polygon zones; the point is
+        inside if it lies in any of them.
+
+        If GPS is missing or outside every fence, a unique public-IP allowlist
+        match assigns that workplace (success) only when WiFi punch is enabled
+        on that workplace. GPS inside a fence still wins over a different
+        site's IP; inaccurate GPS is accepted when the same workplace has
+        WiFi punch on and its IP also matches. Flag off or empty IP list
+        leaves the GPS path unchanged.
+        """
+        Department = self.env["hr.department"].sudo()
+        has_gps = latitude not in (None, False) and longitude not in (None, False)
+        if has_gps:
+            location, department, reason, distance = self._match_gps_for_employee(
+                employee, latitude, longitude, gps_accuracy=gps_accuracy, client_ip=client_ip
+            )
+            if location:
+                return location, department, reason, distance
+
+        location, department = self._match_unique_public_ip(employee, client_ip)
+        if location:
+            return location, department, False, None
+        if not has_gps:
+            return self.browse(), Department.browse(), "missing_gps", None
         return self.browse(), Department.browse(), "unknown_location", None
 
 

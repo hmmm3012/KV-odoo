@@ -648,6 +648,65 @@ msgid "Max GPS Accuracy (m)"
 msgstr "Sai số GPS tối đa (m)"
 
 #. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance_location__wifi_punch_enabled
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.view_hr_attendance_location_form
+msgid "Allow WiFi punch"
+msgstr "Cho phép chấm công qua WiFi"
+
+#. module: hr_attendance_portal
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.view_hr_attendance_location_form
+msgid "Cho phép chấm công qua WiFi"
+msgstr "Cho phép chấm công qua WiFi"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,help:hr_attendance_portal.field_hr_attendance_location__wifi_punch_enabled
+msgid ""
+"When enabled, a matching public IP can identify this workplace if GPS is missing or inaccurate. "
+"Off (default): GPS only, even if public IPs are listed."
+msgstr ""
+"Khi bật, IP công cộng khớp có thể gán workplace nếu GPS thiếu hoặc kém chính xác. "
+"Tắt (mặc định): chỉ GPS, dù đã nhập IP."
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance_location__allowed_public_ips
+msgid "Allowed public IPs"
+msgstr "IP công cộng được phép"
+
+#. module: hr_attendance_portal
+#. odoo-python
+#: code:addons/hr_attendance_portal/models/attendance_location.py:0
+msgid ""
+"Each line of allowed public IPs must be an IPv4, IPv6, or CIDR "
+"(for example 203.0.113.10 or 203.0.113.0/24). Invalid: %(value)s"
+msgstr ""
+"Mỗi dòng IP công cộng phải là IPv4, IPv6 hoặc CIDR "
+"(ví dụ 203.0.113.10 hoặc 203.0.113.0/24). Không hợp lệ: %(value)s"
+
+#. module: hr_attendance_portal
+#: model:ir.model.fields,help:hr_attendance_portal.field_hr_attendance_location__allowed_public_ips
+msgid ""
+"One IPv4, IPv6, or CIDR per line (for example 203.0.113.10 or 203.0.113.0/24). "
+"Used only when Allow WiFi punch is enabled and this workplace has its own static WAN/public IP. "
+"Matching uses the client address after proxy_mode (remote_addr), not a raw X-Forwarded-For header."
+msgstr ""
+"Một dòng một IPv4, IPv6 hoặc dải CIDR (ví dụ 203.0.113.10 hoặc 203.0.113.0/24). "
+"Chỉ dùng khi bật Cho phép chấm công qua WiFi và địa điểm có IP WAN/công cộng tĩnh riêng. "
+"Hệ thống khớp địa chỉ client sau proxy_mode (remote_addr), không tin header X-Forwarded-For thô từ máy khách."
+
+#. module: hr_attendance_portal
+#: model_terms:ir.ui.view,arch_db:hr_attendance_portal.view_hr_attendance_location_form
+msgid ""
+"IP công cộng được phép: một dòng một IPv4, IPv6 hoặc dải CIDR. "
+"Chỉ dùng khi bật Cho phép chấm công qua WiFi và bãi xe / văn phòng có gói WiFi ISP riêng (IP WAN cố định, không dùng chung). "
+"Cách lấy IP: kết nối WiFi tại bãi, chấm thử, mở Chấm công → Exceptions &amp; Audit, xem Địa chỉ IP, rồi dán vào đây. "
+"Không dùng IP LAN (192.168.x). Không phải BSSID WiFi. Tắt cờ thì chấm công chỉ theo GPS."
+msgstr ""
+"IP công cộng được phép: một dòng một IPv4, IPv6 hoặc dải CIDR. "
+"Chỉ dùng khi bật Cho phép chấm công qua WiFi và bãi xe / văn phòng có gói WiFi ISP riêng (IP WAN cố định, không dùng chung). "
+"Cách lấy IP: kết nối WiFi tại bãi, chấm thử, mở Chấm công → Exceptions &amp; Audit, xem Địa chỉ IP, rồi dán vào đây. "
+"Không dùng IP LAN (192.168.x). Không phải BSSID WiFi. Tắt cờ thì chấm công chỉ theo GPS."
+
+#. module: hr_attendance_portal
 #: model:ir.model.fields,field_description:hr_attendance_portal.field_hr_attendance_location__employee_ids
 msgid "Restricted Employees"
 msgstr "Nhân viên được phép"

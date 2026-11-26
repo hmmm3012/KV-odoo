@@ -17,6 +17,7 @@
         geolocation_denied: "Trình duyệt đã từ chối quyền vị trí. Mở cài đặt trang → Quyền → Vị trí → Cho phép, rồi nhấn Chấm công lại.",
         geolocation_insecure: "Trình duyệt chỉ cho phép GPS trên HTTPS. Hãy mở trang bằng https://.",
         geolocation_timeout: "Chưa lấy được vị trí. Hãy tải lại trang hoặc mở bằng trình duyệt khác.",
+        wifi_location_confirmed: "Đã xác nhận vị trí qua WiFi",
         missing_photo: "Không chụp được ảnh. Hãy cho phép camera và thử lại.",
         no_face: "Không thấy khuôn mặt trong ảnh. Hãy nhìn thẳng vào camera và chấm công lại.",
         multiple_faces: "Có nhiều khuôn mặt trong ảnh. Hãy để một mình trong khung hình và chụp lại.",
@@ -57,6 +58,14 @@
         locationHintEl.id = "kv-location-hint";
         locationHintEl.className = "kv-location-hint";
         lastPunchEl.insertAdjacentElement("afterend", locationHintEl);
+    }
+    let wifiHintEl = document.getElementById("kv-wifi-hint");
+    if (!wifiHintEl && locationHintEl) {
+        wifiHintEl = document.createElement("p");
+        wifiHintEl.id = "kv-wifi-hint";
+        wifiHintEl.className = "kv-wifi-subtext";
+        wifiHintEl.hidden = true;
+        locationHintEl.insertAdjacentElement("afterend", wifiHintEl);
     }
     let videoEl = document.getElementById("kv-camera");
     let previewEl = document.getElementById("kv-camera-preview");
@@ -322,8 +331,21 @@
         statusSnapshot = null;
         document.getElementById("pin").value = "";
         setLocationHint("");
+        setWifiFallbackHint(false);
         stopCamera();
         setCameraHint("");
+    }
+
+    function setWifiFallbackHint(visible) {
+        if (!wifiHintEl) {
+            return;
+        }
+        if (!visible) {
+            wifiHintEl.hidden = true;
+            return;
+        }
+        wifiHintEl.hidden = false;
+        wifiHintEl.textContent = "(đang lấy vị trí qua wifi)";
     }
 
     function setLocationHint(text, kind) {
@@ -345,6 +367,7 @@
         || (/iPhone|iPad|iPod/i.test(USER_AGENT) && !/Safari\//i.test(USER_AGENT));
 
     function showLocationError(code) {
+        setWifiFallbackHint(false);
         const permissionIssue = code === "geolocation_timeout" || code === "geolocation_denied";
         if (IN_APP_BROWSER && permissionIssue) {
             setLocationHint("Chưa lấy được vị trí. Hãy tải lại trang hoặc mở bằng trình duyệt.", "error");
@@ -434,26 +457,102 @@
         return { text: "Đang nằm ngoài phạm vi đơn vị", kind: "warn" };
     }
 
-    async function applyWorkplaceHint(position, options) {
-        if (!position || !position.coords) {
+    function wifiConfirmedHint(result) {
+        const name = result && result.location_name;
+        if (name) {
+            return { text: MESSAGES.wifi_location_confirmed + ": " + name, kind: "ok" };
+        }
+        return { text: MESSAGES.wifi_location_confirmed, kind: "ok" };
+    }
+
+    function punchAccepted(result) {
+        return Boolean(result && (result.result === "success" || result.result === "needs_review"));
+    }
+
+    function punchRefusedForMissingGps(result) {
+        if (!result || punchAccepted(result)) {
+            return false;
+        }
+        return result.error === "missing_gps" || result.error === "unknown_location";
+    }
+
+    function applyPunchLocationHint(result, gpsError) {
+        if (gpsError && punchAccepted(result) && result.location_name) {
+            const hint = wifiConfirmedHint(result);
+            setLocationHint(hint.text, hint.kind);
+            setWifiFallbackHint(true);
             return;
         }
+        if (gpsError && punchAccepted(result)) {
+            setLocationHint("");
+            setWifiFallbackHint(true);
+            return;
+        }
+        if (gpsError && punchRefusedForMissingGps(result)) {
+            showLocationError(gpsError);
+            return;
+        }
+        if (result && (result.location_name || result.error)) {
+            const hint = workplaceHintFromResult(result);
+            setLocationHint(hint.text, hint.kind);
+        }
+    }
+
+    async function syncWifiFallbackHint(hasCoords) {
+        if (hasCoords) {
+            setWifiFallbackHint(false);
+            return;
+        }
+        try {
+            const result = await rpc("/attendance/api/location", {});
+            setWifiFallbackHint(Boolean(result && result.wifi_punch_available));
+        } catch (_error) {
+            setWifiFallbackHint(false);
+        }
+    }
+
+    async function applyWorkplaceHint(position, options) {
         const quiet = options && options.quiet;
+        const hasCoords = Boolean(position && position.coords);
+        if (hasCoords) {
+            setWifiFallbackHint(false);
+        }
         if (!quiet) {
             setLocationHint("Đang xác định vị trí…");
         }
-        const result = await rpc("/attendance/api/location", {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            gps_accuracy: position.coords.accuracy,
-        });
+        const payload = {};
+        if (hasCoords) {
+            payload.latitude = position.coords.latitude;
+            payload.longitude = position.coords.longitude;
+            payload.gps_accuracy = position.coords.accuracy;
+        }
+        const result = await rpc("/attendance/api/location", payload);
+        if (!hasCoords) {
+            setWifiFallbackHint(Boolean(result && result.wifi_punch_available));
+        }
         const hint = workplaceHintFromResult(result);
         setLocationHint(hint.text, hint.kind);
         return result;
     }
 
+    async function geolocationPermissionState() {
+        if (!navigator.permissions || !navigator.permissions.query) {
+            return "";
+        }
+        try {
+            const status = await navigator.permissions.query({ name: "geolocation" });
+            return (status && status.state) || "";
+        } catch (_error) {
+            return "";
+        }
+    }
+
     async function requestClientLocation(options) {
         const quiet = options && options.quiet;
+        const permission = await geolocationPermissionState();
+        if (permission === "denied") {
+            throw new Error("geolocation_denied");
+        }
         if (!quiet) {
             setLocationHint("Đang xin quyền vị trí…");
         }
@@ -476,10 +575,8 @@
         try {
             const position = await requestClientLocation({ quiet: true });
             await applyWorkplaceHint(position, { quiet: true });
-        } catch (error) {
-            if (isStatusPanelVisible()) {
-                showLocationError(error && error.message);
-            }
+        } catch (_error) {
+            await applyWorkplaceHint(null, { quiet: true }).catch(() => null);
         } finally {
             locationPollInFlight = false;
         }
@@ -754,8 +851,8 @@
         requestClientLocation()
             .then((position) => applyWorkplaceHint(position))
             .catch((error) => {
-                showLocationError(error && error.message);
                 reportLocationIssue(error && error.message);
+                return applyWorkplaceHint(null).catch(() => null);
             })
             .finally(() => startCamera().catch(() => {}));
         return result;
@@ -783,8 +880,8 @@
             const location = await locationPromise;
             const camera = await cameraPromise;
             if (location && location.message) {
-                showLocationError(location.message);
                 reportLocationIssue(location.message);
+                await applyWorkplaceHint(null).catch(() => null);
             } else if (location && location.coords) {
                 await applyWorkplaceHint(location).catch(() => {
                     setLocationHint(MESSAGES.network, "error");
@@ -858,20 +955,29 @@
         checkBtn.disabled = true;
         showMessage(false);
         try {
-            let position;
-            try {
-                position = await requestClientLocation();
-            } catch (error) {
-                showLocationError(error && error.message);
-                reportLocationIssue(error && error.message);
-                return;
-            }
+            const locationAttempt = requestClientLocation().then(
+                (position) => {
+                    setWifiFallbackHint(false);
+                    return { position: position, gpsError: null };
+                },
+                (error) => {
+                    const gpsError = error && error.message;
+                    reportLocationIssue(gpsError);
+                    return syncWifiFallbackHint(false).then(() => ({
+                        position: null,
+                        gpsError: gpsError,
+                    }));
+                }
+            );
             const faceImage = await requestClientPhoto();
+            const located = await locationAttempt;
+            const coords = located.position && located.position.coords;
+            const gpsError = located.gpsError;
             const result = await punchWithRetry({
                 event_type: eventType,
-                latitude: position.coords.latitude,
-                longitude: position.coords.longitude,
-                gps_accuracy: position.coords.accuracy,
+                latitude: coords ? coords.latitude : false,
+                longitude: coords ? coords.longitude : false,
+                gps_accuracy: coords ? coords.accuracy : false,
                 face_image: faceImage,
                 request_id: (crypto.randomUUID && crypto.randomUUID()) || String(Date.now()) + "-" + Math.random(),
                 source: "personal_web",
@@ -884,10 +990,7 @@
             if (result.attendance_state) {
                 renderStatus(result);
             }
-            if (result.location_name || result.error) {
-                const hint = workplaceHintFromResult(result);
-                setLocationHint(hint.text, hint.kind);
-            }
+            applyPunchLocationHint(result, gpsError);
             if (result.result === "success") {
                 showMessage(result.event_type === "check_out" ? "Đã chấm công ra." : "Đã chấm công vào.", "ok");
             } else if (result.result === "needs_review") {

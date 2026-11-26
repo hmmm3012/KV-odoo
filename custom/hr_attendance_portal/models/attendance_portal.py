@@ -44,6 +44,12 @@ class HrAttendancePortal(models.AbstractModel):
     _description = "Attendance Portal Service"
 
     def _client_ip(self):
+        """Public client IP as seen by Odoo after proxy_mode / ProxyFix.
+
+        Use remote_addr only. Do not read X-Forwarded-For from the request:
+        a client can spoof that header. With proxy_mode enabled, Werkzeug
+        ProxyFix already copies the trusted proxy hop into REMOTE_ADDR.
+        """
         if not request:
             return False
         return request.httprequest.remote_addr
@@ -354,6 +360,14 @@ class HrAttendancePortal(models.AbstractModel):
         whole, remainder = divmod(minutes, 60)
         return "%d:%02d" % (whole, remainder)
 
+    def _wifi_punch_available(self, employee):
+        """True when this client's public IP can use WiFi punch for the employee."""
+        location, _department = self.env["hr.attendance.location"].sudo()._match_unique_public_ip(
+            employee,
+            self._client_ip(),
+        )
+        return bool(location)
+
     @api.model
     def resolve_location(self, latitude=False, longitude=False, gps_accuracy=False, token=None):
         """Match GPS to a workplace for the logged-in employee. Does not punch."""
@@ -362,16 +376,20 @@ class HrAttendancePortal(models.AbstractModel):
             return self._error_payload("invalid_session")
         employee = session.employee_id.sudo()
         source = session.source or "personal_web"
+        has_gps = latitude not in (None, False) and longitude not in (None, False)
         location, department, reason, distance = self._validate_location(
             employee, source, latitude, longitude, gps_accuracy, device=False,
         )
-        return {
+        payload = {
             "ok": True,
             "location_name": self._location_display_name(location, department),
             "distance_meters": distance,
             "error": reason or False,
             "server_time": fields.Datetime.now(),
         }
+        if not has_gps:
+            payload["wifi_punch_available"] = self._wifi_punch_available(employee)
+        return payload
 
     @api.model
     def report_client_issue(self, issue_code=False, token=None):
@@ -562,10 +580,12 @@ class HrAttendancePortal(models.AbstractModel):
             if source == "kiosk" and not company.attendance_portal_kiosk_require_gps:
                 location = device.location_id if device else self._empty_location()
                 return location, self._empty_department(), False, None
-            return self._empty_location(), self._empty_department(), "missing_gps", None
-
         location, department, reason, distance = self.env["hr.attendance.location"].sudo()._match_for_employee(
-            employee, latitude, longitude, gps_accuracy=gps_accuracy
+            employee,
+            latitude,
+            longitude,
+            gps_accuracy=gps_accuracy,
+            client_ip=self._client_ip(),
         )
         return location, department, reason, distance
 

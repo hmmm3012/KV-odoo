@@ -139,6 +139,15 @@ input {
 .kv-location-hint.is-ok { color: var(--kv-ok); }
 .kv-location-hint.is-warn { color: var(--kv-warn); }
 .kv-location-hint.is-error { color: var(--kv-danger); }
+.kv-wifi-subtext {
+    margin: 0.1rem 0 0;
+    color: var(--kv-muted);
+    font-size: 0.82rem;
+    line-height: 1.3;
+    font-weight: 400;
+    opacity: 0.88;
+}
+.kv-wifi-subtext[hidden] { display: none; }
 
 .kv-camera-slot {
     flex: 1 1 auto;
