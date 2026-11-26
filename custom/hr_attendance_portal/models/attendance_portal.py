@@ -360,6 +360,14 @@ class HrAttendancePortal(models.AbstractModel):
         whole, remainder = divmod(minutes, 60)
         return "%d:%02d" % (whole, remainder)
 
+    def _wifi_punch_available(self, employee):
+        """True when this client's public IP can use WiFi punch for the employee."""
+        location, _department = self.env["hr.attendance.location"].sudo()._match_unique_public_ip(
+            employee,
+            self._client_ip(),
+        )
+        return bool(location)
+
     @api.model
     def resolve_location(self, latitude=False, longitude=False, gps_accuracy=False, token=None):
         """Match GPS to a workplace for the logged-in employee. Does not punch."""
@@ -368,16 +376,20 @@ class HrAttendancePortal(models.AbstractModel):
             return self._error_payload("invalid_session")
         employee = session.employee_id.sudo()
         source = session.source or "personal_web"
+        has_gps = latitude not in (None, False) and longitude not in (None, False)
         location, department, reason, distance = self._validate_location(
             employee, source, latitude, longitude, gps_accuracy, device=False,
         )
-        return {
+        payload = {
             "ok": True,
             "location_name": self._location_display_name(location, department),
             "distance_meters": distance,
             "error": reason or False,
             "server_time": fields.Datetime.now(),
         }
+        if not has_gps:
+            payload["wifi_punch_available"] = self._wifi_punch_available(employee)
+        return payload
 
     @api.model
     def report_client_issue(self, issue_code=False, token=None):

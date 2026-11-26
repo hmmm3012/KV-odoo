@@ -496,15 +496,27 @@
             const hint = workplaceHintFromResult(result);
             setLocationHint(hint.text, hint.kind);
         }
-        if (gpsError) {
-            setWifiFallbackHint(true);
+    }
+
+    async function syncWifiFallbackHint(hasCoords) {
+        if (hasCoords) {
+            setWifiFallbackHint(false);
+            return;
+        }
+        try {
+            const result = await rpc("/attendance/api/location", {});
+            setWifiFallbackHint(Boolean(result && result.wifi_punch_available));
+        } catch (_error) {
+            setWifiFallbackHint(false);
         }
     }
 
     async function applyWorkplaceHint(position, options) {
         const quiet = options && options.quiet;
         const hasCoords = Boolean(position && position.coords);
-        setWifiFallbackHint(!hasCoords);
+        if (hasCoords) {
+            setWifiFallbackHint(false);
+        }
         if (!quiet) {
             setLocationHint("Đang xác định vị trí…");
         }
@@ -515,6 +527,9 @@
             payload.gps_accuracy = position.coords.accuracy;
         }
         const result = await rpc("/attendance/api/location", payload);
+        if (!hasCoords) {
+            setWifiFallbackHint(Boolean(result && result.wifi_punch_available));
+        }
         const hint = workplaceHintFromResult(result);
         setLocationHint(hint.text, hint.kind);
         return result;
@@ -536,7 +551,6 @@
         const quiet = options && options.quiet;
         const permission = await geolocationPermissionState();
         if (permission === "denied") {
-            setWifiFallbackHint(true);
             throw new Error("geolocation_denied");
         }
         if (!quiet) {
@@ -949,8 +963,10 @@
                 (error) => {
                     const gpsError = error && error.message;
                     reportLocationIssue(gpsError);
-                    setWifiFallbackHint(true);
-                    return { position: null, gpsError: gpsError };
+                    return syncWifiFallbackHint(false).then(() => ({
+                        position: null,
+                        gpsError: gpsError,
+                    }));
                 }
             );
             const faceImage = await requestClientPhoto();
