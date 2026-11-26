@@ -141,6 +141,16 @@ def unwrap_image_bytes(image_bytes):
     return data
 
 
+def is_raster_image(image_bytes):
+    """True for JPEG/PNG/WebP/GIF/BMP bytes (raw, base64 or data: URL).
+
+    Odoo 19 stores a generated SVG avatar in image_1920 for employees without
+    a photo; that is not a selfie and must not be sent to face enrollment.
+    """
+    data = unwrap_image_bytes(image_bytes)
+    return bool(data) and data.lstrip().startswith(_IMAGE_MAGIC)
+
+
 def _decode_image(image_bytes):
     import cv2
     import numpy as np
@@ -158,6 +168,8 @@ def _decode_image(image_bytes):
         from PIL import Image, ImageOps
     except ImportError:
         return None
+    from PIL import UnidentifiedImageError
+
     try:
         pil = Image.open(BytesIO(data))
         pil = ImageOps.exif_transpose(pil)
@@ -167,6 +179,10 @@ def _decode_image(image_bytes):
         if rgb.size == 0:
             return None
         return cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
+    except UnidentifiedImageError:
+        # Not a raster image (e.g. SVG placeholder avatar): no traceback noise.
+        _logger.warning("Enroll/punch image is not a supported raster image (%s bytes).", len(data))
+        return None
     except Exception:
         _logger.exception("Could not decode enroll/punch image with Pillow.")
         return None

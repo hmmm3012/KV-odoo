@@ -262,9 +262,12 @@ class HrEmployee(models.Model):
         self._ensure_attendance_pin()
         if not sync_face:
             return
+        from .face_detection import is_raster_image
+
         for employee in self:
             photo = employee.with_context(bin_size=False).image_1920
-            if not photo:
+            # No real photo yet (empty or Odoo's generated SVG avatar): skip.
+            if not photo or not is_raster_image(photo):
                 continue
             employee.with_context(
                 skip_auto_attendance=True,
