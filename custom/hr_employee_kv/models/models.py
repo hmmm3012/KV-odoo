@@ -6,17 +6,44 @@ from .id_card_ocr import decode_id_card, inspect_id_card
 
 _logger = logging.getLogger(__name__)
 
+# Odoo 19 renamed hr.employee.gender -> sex (now stored on hr.version).
+# The CCCD parsers still return "gender"; _id_card_fields() maps it.
 _ID_CARD_QR_FIELDS = (
     "name",
     "identification_id",
     "birthday",
-    "gender",
+    "sex",
     "emp_permanent_address",
     "emp_temporary_address",
     "emp_place_of_origin",
     "identification_date",
     "identification_by",
 )
+
+
+def _id_card_fields(parsed):
+    """Map CCCD parser keys to Odoo 19 field names."""
+    parsed = dict(parsed or {})
+    if "gender" in parsed:
+        parsed["sex"] = parsed.pop("gender")
+    return parsed
+
+
+class HrVersion(models.Model):
+    """Odoo 19 moved country_id / departure_date from hr.employee to
+    hr.version (hr.employee _inherits hr.version). Override them there so
+    the employee does not get shadow columns."""
+
+    _inherit = "hr.version"
+
+    # Default nationality Vietnam, read-only on the form
+    country_id = fields.Many2one(
+        string="Nationality (Country)",
+        default=lambda self: self.env.ref("base.vn", False),
+        readonly=True,
+    )
+
+    departure_date = fields.Date(string="Ngày nghỉ việc")
 
 
 class HrEmployee(models.Model):
@@ -51,14 +78,6 @@ class HrEmployee(models.Model):
         groups="hr.group_hr_user",
         help="Back of the citizen ID. Used when the QR is on this side instead of the front.",
     )
-
-    # Override country_id to set default to Vietnam and make readonly
-    country_id = fields.Many2one('res.country', 'Nationality (Country)', 
-                                default=lambda self: self.env.ref('base.vn', False),
-                                readonly=True)
-
-    # Departure date
-    departure_date = fields.Date("Ngày nghỉ việc")
 
     # Date of import
     date_import = fields.Date("Ngày nhận việc")
@@ -179,7 +198,7 @@ class HrEmployee(models.Model):
                     "message": self.env._(self._id_card_qr_warning(status)),
                 }
             }
-        for field_name, value in parsed.items():
+        for field_name, value in _id_card_fields(parsed).items():
             self[field_name] = value
 
     @api.model
@@ -214,6 +233,7 @@ class HrEmployee(models.Model):
                 self.ids or "new",
             )
             return {}
+        parsed = _id_card_fields(parsed)
         return {
             field_name: parsed[field_name]
             for field_name in _ID_CARD_QR_FIELDS

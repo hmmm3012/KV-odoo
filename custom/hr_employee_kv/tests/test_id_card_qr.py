@@ -94,7 +94,7 @@ class TestIdCardQr(TransactionCase):
         self.assertEqual(filled.name, "NGUYEN VAN A")
         self.assertEqual(filled.identification_id, "001234567890")
         self.assertEqual(filled.birthday, date(1990, 1, 1))
-        self.assertEqual(filled.gender, "male")
+        self.assertEqual(filled.sex, "male")
         self.assertEqual(filled.emp_permanent_address, PARSED["emp_permanent_address"])
         self.assertEqual(filled.identification_date, date(2021, 8, 15))
         self.assertEqual(kept.name, "Manual Name")

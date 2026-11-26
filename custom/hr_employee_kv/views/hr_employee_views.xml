@@ -29,7 +29,7 @@
         <field name="emp_temporary_address"/>
       </xpath>
 
-      <xpath expr="//div[@class='o_address_format']" position="replace">
+      <xpath expr="//div[hasclass('o_address_format')]" position="replace">
         <field name="emp_place_of_origin"/>
         <field name="private_phone" string="Số điện thoại"/>
       </xpath>
@@ -60,7 +60,8 @@
         <attribute name="invisible">1</attribute>
       </xpath>
       
-      <xpath expr="//div[@name='div_km_home_work']" position="attributes">
+      <!-- Odoo 19 reuses name div_km_home_work for the birthday row; target the distance one -->
+      <xpath expr="//div[@name='div_km_home_work'][field[@name='distance_home_work']]" position="attributes">
         <attribute name="invisible">1</attribute>
       </xpath>
 
@@ -70,7 +71,8 @@
       </xpath>
 
       <!-- Insert Work Info group before the Location group (anchor by presence of address_id field) -->
-      <xpath expr="//page[@name='public']//div[@id='o_work_employee_main']/group[./field[@name='address_id']]" position="before">
+      <!-- Odoo 19: page 'public' -> 'work_information', div o_work_employee_main -> o_work_information -->
+      <xpath expr="//page[@name='work_information']//div[@id='o_work_information']/group[./field[@name='address_id']]" position="before">
         <group>
           <field name="tax_identification_number" string="Mã số thuế"/>
           <field name="sinid" string="Mã bảo hiểm"/>
@@ -88,9 +90,7 @@
       </xpath>
 
       <!-- Hide coach_id and parent_id fields -->
-      <xpath expr="//field[@name='coach_id']" position="attributes">
-        <attribute name="invisible">1</attribute>
-      </xpath>
+      <!-- Odoo 19: coach_id is no longer on the employee form -->
       
       <xpath expr="//field[@name='parent_id']" position="attributes">
         <attribute name="invisible">1</attribute>
@@ -102,7 +102,8 @@
       </xpath>
 
       <!-- Hide Work Permit separator and related fields -->
-      <xpath expr="//separator[@name='has_work_permit']" position="attributes">
+      <!-- Odoo 19: work permit is a group 'Visa & Work Permit', no separator -->
+      <xpath expr="//group[field[@name='has_work_permit']]" position="attributes">
         <attribute name="invisible">1</attribute>
       </xpath>
       
@@ -131,7 +132,8 @@
       </xpath>
 
       <!-- Hide Family Status separator and related fields -->
-      <xpath expr="//group[@name='emergency']/separator" position="attributes">
+      <!-- Odoo 19: family fields live in group hr_family_group -->
+      <xpath expr="//group[@name='hr_family_group']" position="attributes">
         <attribute name="invisible">1</attribute>
       </xpath>
       
@@ -151,9 +153,7 @@
         <attribute name="invisible">1</attribute>
       </xpath>
 
-      <xpath expr="//field[@name='private_car_plate']" position="attributes">
-        <attribute name="invisible">1</attribute>
-      </xpath>
+      <!-- Odoo 19: private_car_plate moved to hr_fleet (not installed) -->
       <xpath expr="//field[@name='ssnid']" position="attributes">
         <attribute name="invisible">1</attribute>
       </xpath>

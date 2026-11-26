@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 {
     "name": "HR Employee Kien Viet",
-    "version": "18.0.1.4.8",
+    "version": "19.0.1.0.0",
     "summary": "Adds custom fields to Employees",
+    "author": "Kien Viet",
     "depends": ["hr"],
     "data": [
         "security/ir.model.access.csv",

@@ -34,7 +34,7 @@
         <field name="binding_model_id" ref="hr.model_hr_employee"/>
         <field name="binding_type">report</field>
         <field name="binding_view_types">list,form</field>
-        <field name="groups_id" eval="[(4, ref('hr.group_hr_user'))]"/>
+        <field name="group_ids" eval="[(4, ref('hr.group_hr_user'))]"/>
     </record>
 
     <!-- Standard Odoo badge needs wkhtmltopdf; the card above replaces it. -->

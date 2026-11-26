@@ -168,7 +168,7 @@ class HrEmployeeIntroLetterWizard(models.TransientModel):
         return {
             "recipient": self.recipient or "",
             "name": employee.name or "",
-            "gender": employee.gender or "",
+            "gender": employee.sex or "",
             "birthday": self._format_date(employee.birthday),
             "place_of_origin": self._province_from_address(
                 employee.emp_place_of_origin
