@@ -329,11 +329,7 @@ class HrAttendance(models.Model):
             attendance.can_review_overtime = (
                 open_session
                 and attendance.session_state != "denied"
-                and attendance.overtime_state in (
-                    "pending_captain",
-                    "pending_hr_review",
-                    "captain_reviewed",
-                )
+                and attendance.overtime_state == "pending_captain"
                 and bool(attendance.overtime_case_ids)
                 and (is_captain or is_hr)
             )

@@ -664,6 +664,16 @@ class TestAttendanceSession(AttendancePortalMixin, TransactionCase):
         self.assertEqual(under.payroll_overtime_hours, 0)
         self.assertIn(under.session_state, ("validated", "corrected"))
 
+    def test_review_overtime_hidden_after_captain_approved(self):
+        attendance = self._session(11)
+        captain = attendance.with_user(self.captain)
+        self.assertTrue(captain.can_review_overtime)
+        self.assertTrue(captain.can_decide_session)
+        captain.action_captain_overtime(2, "approved")
+        self.assertEqual(attendance.overtime_state, "captain_reviewed")
+        self.assertFalse(captain.can_review_overtime)
+        self.assertTrue(captain.can_decide_session)
+
     def test_adjust_work_hours_hidden_on_denied_and_closed(self):
         denied = self._session(11)
         denied.with_user(self.captain).action_deny_session("wrong person")
