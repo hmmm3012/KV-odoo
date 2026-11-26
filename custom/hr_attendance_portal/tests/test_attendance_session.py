@@ -629,8 +629,7 @@ class TestAttendanceSession(AttendancePortalMixin, TransactionCase):
         wizard = self.env["hr.attendance.correction.wizard"].with_user(self.captain).with_context(
             **action["context"]
         ).create({"reason": "nudge", "recognized_hours": 8})
-        action = wizard.with_context(nudge_hours=1).action_nudge_recognized()
-        self.assertFalse(action)
+        wizard.with_context(nudge_hours=1).action_nudge_recognized()
         self.assertFalse(wizard._fields["reason"].readonly)
         self.assertAlmostEqual(wizard.recognized_hours, 9, places=4)
         self.assertEqual(wizard.adjustment_mode, "recognized")

@@ -969,6 +969,30 @@ msgid "Adjust Work Hours"
 msgstr "Điều chỉnh giờ công"
 
 #. module: hr_attendance_portal
+#. odoo-javascript
+#: code:addons/hr_attendance_portal/static/src/hour_nudge_field.js:0
+msgid "-0.5h"
+msgstr "−0,5h"
+
+#. module: hr_attendance_portal
+#. odoo-javascript
+#: code:addons/hr_attendance_portal/static/src/hour_nudge_field.js:0
+msgid "-1h"
+msgstr "−1h"
+
+#. module: hr_attendance_portal
+#. odoo-javascript
+#: code:addons/hr_attendance_portal/static/src/hour_nudge_field.js:0
+msgid "+0.5h"
+msgstr "+0,5h"
+
+#. module: hr_attendance_portal
+#. odoo-javascript
+#: code:addons/hr_attendance_portal/static/src/hour_nudge_field.js:0
+msgid "+1h"
+msgstr "+1h"
+
+#. module: hr_attendance_portal
 #. odoo-python
 #: code:addons/hr_attendance_portal/models/hr_attendance.py:0
 msgid "No selected shift can be sent for a time correction."

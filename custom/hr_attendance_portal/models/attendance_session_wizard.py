@@ -264,11 +264,10 @@ class HrAttendanceCorrectionWizard(models.TransientModel):
         return res
 
     def action_nudge_recognized(self):
-        """Shift recognized hours by the button delta and stay in the dialog.
+        """Shift recognized hours (tests / RPC). UI uses kv_hour_nudge in-form.
 
-        Return False so Odoo keeps this wizard open in edit mode. Returning a
-        new act_window on the same res_id remounts the dialog read-only, which
-        blocked typing the reason after ±0.5h / ±1h.
+        Do not return False: Odoo 18 maps a non-object button result to
+        ir.actions.act_window_close and dismisses the wizard.
         """
         self.ensure_one()
         if not self.can_set_recognized_hours:
