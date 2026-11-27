@@ -17,6 +17,7 @@
         geolocation_denied: "Trình duyệt đã từ chối quyền vị trí. Mở cài đặt trang → Quyền → Vị trí → Cho phép, rồi nhấn Chấm công lại.",
         geolocation_insecure: "Trình duyệt chỉ cho phép GPS trên HTTPS. Hãy mở trang bằng https://.",
         geolocation_timeout: "Chưa lấy được vị trí. Hãy tải lại trang hoặc mở bằng trình duyệt khác.",
+        wifi_location_confirmed: "Đã xác nhận vị trí qua WiFi",
         missing_photo: "Không chụp được ảnh. Hãy cho phép camera và thử lại.",
         no_face: "Không thấy khuôn mặt trong ảnh. Hãy nhìn thẳng vào camera và chấm công lại.",
         multiple_faces: "Có nhiều khuôn mặt trong ảnh. Hãy để một mình trong khung hình và chụp lại.",
@@ -57,6 +58,14 @@
         locationHintEl.id = "kv-location-hint";
         locationHintEl.className = "kv-location-hint";
         lastPunchEl.insertAdjacentElement("afterend", locationHintEl);
+    }
+    let wifiHintEl = document.getElementById("kv-wifi-hint");
+    if (!wifiHintEl && locationHintEl) {
+        wifiHintEl = document.createElement("p");
+        wifiHintEl.id = "kv-wifi-hint";
+        wifiHintEl.className = "kv-wifi-subtext";
+        wifiHintEl.hidden = true;
+        locationHintEl.insertAdjacentElement("afterend", wifiHintEl);
     }
     let videoEl = document.getElementById("kv-camera");
     let previewEl = document.getElementById("kv-camera-preview");
@@ -322,8 +331,21 @@
         statusSnapshot = null;
         document.getElementById("pin").value = "";
         setLocationHint("");
+        setWifiFallbackHint(false);
         stopCamera();
         setCameraHint("");
+    }
+
+    function setWifiFallbackHint(visible) {
+        if (!wifiHintEl) {
+            return;
+        }
+        if (!visible) {
+            wifiHintEl.hidden = true;
+            return;
+        }
+        wifiHintEl.hidden = false;
+        wifiHintEl.textContent = "(đang lấy vị trí qua wifi)";
     }
 
     function setLocationHint(text, kind) {
@@ -345,6 +367,7 @@
         || (/iPhone|iPad|iPod/i.test(USER_AGENT) && !/Safari\//i.test(USER_AGENT));
 
     function showLocationError(code) {
+        setWifiFallbackHint(false);
         const permissionIssue = code === "geolocation_timeout" || code === "geolocation_denied";
         if (IN_APP_BROWSER && permissionIssue) {
             setLocationHint("Chưa lấy được vị trí. Hãy tải lại trang hoặc mở bằng trình duyệt.", "error");
@@ -372,51 +395,276 @@
         return "missing_gps";
     }
 
-    /* getCurrentPosition's own timeout ignores the time spent on the permission prompt,
-       and some in-app WebViews never answer it, so the wait is capped here. */
+    /* The locate budget starts after permission is granted. The prompt itself
+       has a separate cap so a ignored dialog cannot hold the punch forever. */
     const LOCATION_TIMEOUT_MS = 10000;
     const POLL_LOCATION_MAX_AGE_MS = 15000;
-    let nativeLocation = null;
-    let nativeLocationStartedAt = 0;
+    const COARSE_TIMEOUT_MS = 4000;
+    const WATCH_WINDOW_MS = 6000;
+    const WIFI_PUNCH_BUDGET_MS = 2500;
+    const PERMISSION_WAIT_MS = 60000;
+    const DEFAULT_ACCURACY_CAP_M = 100;
+    let accuracyCapM = DEFAULT_ACCURACY_CAP_M;
+    let accuracyCapKnown = false;
+    let wifiPunchAvailable = false;
+    let cachedFix = null;
 
-    function requestNativePosition(allowRestart, maximumAge) {
-        const stale = Date.now() - nativeLocationStartedAt >= LOCATION_TIMEOUT_MS;
-        if (nativeLocation && !(allowRestart && stale)) {
-            return nativeLocation;
-        }
-        const request = new Promise((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(
-                (pos) => resolve(pos),
-                (error) => reject(new Error(locationErrorCode(error))),
-                { enableHighAccuracy: true, timeout: LOCATION_TIMEOUT_MS, maximumAge: maximumAge || 0 }
-            );
-        });
-        nativeLocation = request;
-        nativeLocationStartedAt = Date.now();
-        const clear = () => {
-            if (nativeLocation === request) {
-                nativeLocation = null;
-            }
-        };
-        request.then(clear, clear);
-        return request;
+    function accuracyOf(position) {
+        const accuracy = position && position.coords && position.coords.accuracy;
+        return typeof accuracy === "number" ? accuracy : Infinity;
     }
 
-    function getPosition(allowRestart, maximumAge) {
-        return new Promise((resolve, reject) => {
-            if (!navigator.geolocation) {
-                reject(new Error("missing_gps"));
-                return;
+    function betterFix(first, second) {
+        if (!first) {
+            return second;
+        }
+        if (!second) {
+            return first;
+        }
+        return accuracyOf(second) < accuracyOf(first) ? second : first;
+    }
+
+    function fatalLocationError(error) {
+        const code = error && error.message;
+        return code === "geolocation_denied" || code === "geolocation_insecure" || code === "missing_gps";
+    }
+
+    function rememberFix(position) {
+        if (position && position.coords) {
+            cachedFix = { position: position, at: Date.now() };
+        }
+    }
+
+    function freshFixUnderCap() {
+        if (!accuracyCapKnown || !cachedFix) {
+            return null;
+        }
+        if (Date.now() - cachedFix.at > POLL_LOCATION_MAX_AGE_MS) {
+            return null;
+        }
+        if (accuracyOf(cachedFix.position) > accuracyCapM) {
+            return null;
+        }
+        return cachedFix.position;
+    }
+
+    function noteServerLocation(result, hasCoords) {
+        if (!result) {
+            return;
+        }
+        if (!hasCoords && typeof result.wifi_punch_available === "boolean") {
+            wifiPunchAvailable = result.wifi_punch_available;
+        }
+        const cap = Number(result.max_gps_accuracy_meters);
+        if (cap > 0) {
+            accuracyCapM = cap;
+            accuracyCapKnown = true;
+        }
+    }
+
+    function geolocationPermissionStatus() {
+        if (!navigator.permissions || !navigator.permissions.query) {
+            return Promise.resolve(null);
+        }
+        return navigator.permissions.query({ name: "geolocation" }).catch(() => null);
+    }
+
+    function waitUntilGeolocationGranted() {
+        if (!navigator.geolocation) {
+            return Promise.reject(new Error("missing_gps"));
+        }
+        if (!window.isSecureContext) {
+            return Promise.reject(new Error("geolocation_insecure"));
+        }
+        return geolocationPermissionStatus().then((status) => {
+            if (!status) {
+                return null;
             }
-            if (!window.isSecureContext) {
-                reject(new Error("geolocation_insecure"));
-                return;
+            if (status.state === "denied") {
+                throw new Error("geolocation_denied");
             }
-            const timer = window.setTimeout(() => reject(new Error("geolocation_timeout")), LOCATION_TIMEOUT_MS);
-            requestNativePosition(allowRestart, maximumAge)
-                .then(resolve, reject)
-                .finally(() => window.clearTimeout(timer));
+            if (status.state === "granted") {
+                return null;
+            }
+            return new Promise((resolve, reject) => {
+                let settled = false;
+                const finish = (error, position) => {
+                    if (settled) {
+                        return;
+                    }
+                    settled = true;
+                    window.clearTimeout(timer);
+                    status.removeEventListener("change", onChange);
+                    if (error) {
+                        reject(error);
+                    } else {
+                        resolve(position || null);
+                    }
+                };
+                const timer = window.setTimeout(() => finish(new Error("geolocation_timeout")), PERMISSION_WAIT_MS);
+                const onChange = () => {
+                    if (status.state === "granted") {
+                        finish(null, null);
+                    } else if (status.state === "denied") {
+                        finish(new Error("geolocation_denied"));
+                    }
+                };
+                status.addEventListener("change", onChange);
+                navigator.geolocation.getCurrentPosition(
+                    (position) => finish(null, position),
+                    (error) => {
+                        if (status.state === "granted") {
+                            finish(null, null);
+                        } else if (error && error.code === 1) {
+                            finish(new Error("geolocation_denied"));
+                        } else if (status.state !== "prompt") {
+                            finish(new Error(locationErrorCode(error)));
+                        }
+                    },
+                    { enableHighAccuracy: false, timeout: PERMISSION_WAIT_MS, maximumAge: POLL_LOCATION_MAX_AGE_MS }
+                );
+            });
         });
+    }
+
+    function getCurrentOnce(options) {
+        return new Promise((resolve, reject) => {
+            const timer = window.setTimeout(() => reject(new Error("geolocation_timeout")), options.timeout);
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    window.clearTimeout(timer);
+                    resolve(position);
+                },
+                (error) => {
+                    window.clearTimeout(timer);
+                    reject(new Error(locationErrorCode(error)));
+                },
+                {
+                    enableHighAccuracy: Boolean(options.enableHighAccuracy),
+                    timeout: options.timeout,
+                    maximumAge: options.maximumAge || 0,
+                }
+            );
+        });
+    }
+
+    function watchBestFix(budgetMs) {
+        return new Promise((resolve, reject) => {
+            let best = null;
+            let settled = false;
+            let watchId = null;
+            const finish = (error) => {
+                if (settled) {
+                    return;
+                }
+                settled = true;
+                window.clearTimeout(timer);
+                if (watchId !== null && navigator.geolocation.clearWatch) {
+                    navigator.geolocation.clearWatch(watchId);
+                }
+                if (best) {
+                    resolve(best);
+                } else {
+                    reject(error || new Error("geolocation_timeout"));
+                }
+            };
+            const timer = window.setTimeout(() => finish(), budgetMs);
+            const onPosition = (position) => {
+                if (settled) {
+                    return;
+                }
+                best = betterFix(best, position);
+                if (accuracyOf(best) <= accuracyCapM) {
+                    finish();
+                }
+            };
+            const onError = (error) => {
+                if (error && error.code === 1) {
+                    finish(new Error("geolocation_denied"));
+                }
+            };
+            if (!navigator.geolocation.watchPosition) {
+                getCurrentOnce({
+                    enableHighAccuracy: true,
+                    timeout: budgetMs,
+                    maximumAge: 0,
+                }).then((position) => {
+                    best = position;
+                    finish();
+                }, finish);
+                return;
+            }
+            watchId = navigator.geolocation.watchPosition(onPosition, onError, {
+                enableHighAccuracy: true,
+                maximumAge: 0,
+                timeout: budgetMs,
+            });
+        });
+    }
+
+    async function fenceNeedsFinerFix(position) {
+        try {
+            const result = await rpc("/attendance/api/location", {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+                gps_accuracy: position.coords.accuracy,
+            });
+            noteServerLocation(result, true);
+            if (result && result.gps_trusted) {
+                return false;
+            }
+            return true;
+        } catch (_error) {
+            return accuracyOf(position) > accuracyCapM;
+        }
+    }
+
+    async function collectFix(budgetMs, refine, preliminary) {
+        const started = Date.now();
+        const remaining = () => budgetMs - (Date.now() - started);
+        let best = preliminary || null;
+        if (!best) {
+            try {
+                best = await getCurrentOnce({
+                    enableHighAccuracy: false,
+                    timeout: Math.min(COARSE_TIMEOUT_MS, Math.max(1, budgetMs)),
+                    maximumAge: POLL_LOCATION_MAX_AGE_MS,
+                });
+            } catch (error) {
+                if (fatalLocationError(error)) {
+                    throw error;
+                }
+            }
+        }
+        const coarseIsEnough = best && accuracyOf(best) <= accuracyCapM;
+        if (coarseIsEnough && (!refine || remaining() < 700)) {
+            return best;
+        }
+        if (coarseIsEnough && refine) {
+            const finer = await fenceNeedsFinerFix(best);
+            if (!finer || remaining() < 700) {
+                return best;
+            }
+        }
+        if (remaining() < 400) {
+            if (best) {
+                return best;
+            }
+            throw new Error("geolocation_timeout");
+        }
+        let watched = null;
+        try {
+            watched = await watchBestFix(Math.min(WATCH_WINDOW_MS, remaining()));
+        } catch (error) {
+            if (fatalLocationError(error) && !best) {
+                throw error;
+            }
+        }
+        const chosen = betterFix(best, watched);
+        if (!chosen) {
+            throw new Error("geolocation_timeout");
+        }
+        return chosen;
     }
 
     function workplaceHintFromResult(result) {
@@ -434,19 +682,81 @@
         return { text: "Đang nằm ngoài phạm vi đơn vị", kind: "warn" };
     }
 
-    async function applyWorkplaceHint(position, options) {
-        if (!position || !position.coords) {
+    function wifiConfirmedHint(result) {
+        const name = result && result.location_name;
+        if (name) {
+            return { text: MESSAGES.wifi_location_confirmed + ": " + name, kind: "ok" };
+        }
+        return { text: MESSAGES.wifi_location_confirmed, kind: "ok" };
+    }
+
+    function punchAccepted(result) {
+        return Boolean(result && (result.result === "success" || result.result === "needs_review"));
+    }
+
+    function punchRefusedForMissingGps(result) {
+        if (!result || punchAccepted(result)) {
+            return false;
+        }
+        return result.error === "missing_gps" || result.error === "unknown_location";
+    }
+
+    function applyPunchLocationHint(result, gpsError) {
+        if (gpsError && punchAccepted(result) && result.location_name) {
+            const hint = wifiConfirmedHint(result);
+            setLocationHint(hint.text, hint.kind);
+            setWifiFallbackHint(true);
             return;
         }
+        if (gpsError && punchAccepted(result)) {
+            setLocationHint("");
+            setWifiFallbackHint(true);
+            return;
+        }
+        if (gpsError && punchRefusedForMissingGps(result)) {
+            showLocationError(gpsError);
+            return;
+        }
+        if (result && (result.location_name || result.error)) {
+            const hint = workplaceHintFromResult(result);
+            setLocationHint(hint.text, hint.kind);
+        }
+    }
+
+    async function syncWifiFallbackHint(hasCoords) {
+        if (hasCoords) {
+            setWifiFallbackHint(false);
+            return;
+        }
+        try {
+            const result = await rpc("/attendance/api/location", {});
+            noteServerLocation(result, false);
+            setWifiFallbackHint(Boolean(result && result.wifi_punch_available));
+        } catch (_error) {
+            setWifiFallbackHint(false);
+        }
+    }
+
+    async function applyWorkplaceHint(position, options) {
         const quiet = options && options.quiet;
+        const hasCoords = Boolean(position && position.coords);
+        if (hasCoords) {
+            setWifiFallbackHint(false);
+        }
         if (!quiet) {
             setLocationHint("Đang xác định vị trí…");
         }
-        const result = await rpc("/attendance/api/location", {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            gps_accuracy: position.coords.accuracy,
-        });
+        const payload = {};
+        if (hasCoords) {
+            payload.latitude = position.coords.latitude;
+            payload.longitude = position.coords.longitude;
+            payload.gps_accuracy = position.coords.accuracy;
+        }
+        const result = await rpc("/attendance/api/location", payload);
+        noteServerLocation(result, hasCoords);
+        if (!hasCoords) {
+            setWifiFallbackHint(Boolean(result && result.wifi_punch_available));
+        }
         const hint = workplaceHintFromResult(result);
         setLocationHint(hint.text, hint.kind);
         return result;
@@ -454,10 +764,23 @@
 
     async function requestClientLocation(options) {
         const quiet = options && options.quiet;
+        const reuse = Boolean(options && options.reuse);
+        if (reuse) {
+            const cached = freshFixUnderCap();
+            if (cached) {
+                return cached;
+            }
+        }
         if (!quiet) {
             setLocationHint("Đang xin quyền vị trí…");
         }
-        return getPosition(!quiet, quiet ? POLL_LOCATION_MAX_AGE_MS : 0);
+        const preliminary = await waitUntilGeolocationGranted();
+        const shortBudget = reuse && wifiPunchAvailable;
+        const budgetMs = shortBudget ? WIFI_PUNCH_BUDGET_MS : LOCATION_TIMEOUT_MS;
+        const refine = !shortBudget;
+        const position = await collectFix(budgetMs, refine, preliminary);
+        rememberFix(position);
+        return position;
     }
 
     const LOCATION_POLL_MS = 30000;
@@ -474,12 +797,10 @@
         }
         locationPollInFlight = true;
         try {
-            const position = await requestClientLocation({ quiet: true });
+            const position = await requestClientLocation({ quiet: true, reuse: false });
             await applyWorkplaceHint(position, { quiet: true });
-        } catch (error) {
-            if (isStatusPanelVisible()) {
-                showLocationError(error && error.message);
-            }
+        } catch (_error) {
+            await applyWorkplaceHint(null, { quiet: true }).catch(() => null);
         } finally {
             locationPollInFlight = false;
         }
@@ -754,8 +1075,8 @@
         requestClientLocation()
             .then((position) => applyWorkplaceHint(position))
             .catch((error) => {
-                showLocationError(error && error.message);
                 reportLocationIssue(error && error.message);
+                return applyWorkplaceHint(null).catch(() => null);
             })
             .finally(() => startCamera().catch(() => {}));
         return result;
@@ -783,8 +1104,8 @@
             const location = await locationPromise;
             const camera = await cameraPromise;
             if (location && location.message) {
-                showLocationError(location.message);
                 reportLocationIssue(location.message);
+                await applyWorkplaceHint(null).catch(() => null);
             } else if (location && location.coords) {
                 await applyWorkplaceHint(location).catch(() => {
                     setLocationHint(MESSAGES.network, "error");
@@ -858,20 +1179,29 @@
         checkBtn.disabled = true;
         showMessage(false);
         try {
-            let position;
-            try {
-                position = await requestClientLocation();
-            } catch (error) {
-                showLocationError(error && error.message);
-                reportLocationIssue(error && error.message);
-                return;
-            }
+            const locationAttempt = requestClientLocation({ reuse: true }).then(
+                (position) => {
+                    setWifiFallbackHint(false);
+                    return { position: position, gpsError: null };
+                },
+                (error) => {
+                    const gpsError = error && error.message;
+                    reportLocationIssue(gpsError);
+                    return syncWifiFallbackHint(false).then(() => ({
+                        position: null,
+                        gpsError: gpsError,
+                    }));
+                }
+            );
             const faceImage = await requestClientPhoto();
+            const located = await locationAttempt;
+            const coords = located.position && located.position.coords;
+            const gpsError = located.gpsError;
             const result = await punchWithRetry({
                 event_type: eventType,
-                latitude: position.coords.latitude,
-                longitude: position.coords.longitude,
-                gps_accuracy: position.coords.accuracy,
+                latitude: coords ? coords.latitude : false,
+                longitude: coords ? coords.longitude : false,
+                gps_accuracy: coords ? coords.accuracy : false,
                 face_image: faceImage,
                 request_id: (crypto.randomUUID && crypto.randomUUID()) || String(Date.now()) + "-" + Math.random(),
                 source: "personal_web",
@@ -884,10 +1214,7 @@
             if (result.attendance_state) {
                 renderStatus(result);
             }
-            if (result.location_name || result.error) {
-                const hint = workplaceHintFromResult(result);
-                setLocationHint(hint.text, hint.kind);
-            }
+            applyPunchLocationHint(result, gpsError);
             if (result.result === "success") {
                 showMessage(result.event_type === "check_out" ? "Đã chấm công ra." : "Đã chấm công vào.", "ok");
             } else if (result.result === "needs_review") {

@@ -42,22 +42,29 @@ class TestAttendanceSession(AttendancePortalMixin, TransactionCase):
             attendance.with_context(attendance_original_punch=True).write({"check_out": end})
         return attendance
 
-    def test_worked_time_rounds_to_whole_hour(self):
+    def test_worked_time_rounds_to_payroll_hours(self):
         Attendance = self.env["hr.attendance"]
         end = fields.Datetime.now().replace(microsecond=0)
         cases = (
             (timedelta(), 0),
-            (timedelta(hours=1, minutes=44), 1.0),
-            (timedelta(hours=1, minutes=45), 2.0),
-            (timedelta(hours=2, minutes=30), 2.0),
-            (timedelta(hours=2, minutes=44, seconds=59), 2.0),
+            (timedelta(hours=1, minutes=24), 1.0),
+            (timedelta(hours=1, minutes=25), 1.5),
+            (timedelta(hours=1, minutes=30), 1.5),
+            (timedelta(hours=1, minutes=31), 1.0),
+            (timedelta(hours=1, minutes=49), 1.0),
+            (timedelta(hours=1, minutes=50), 2.0),
+            (timedelta(hours=1, minutes=52), 2.0),
+            (timedelta(hours=2, minutes=20), 2.0),
+            (timedelta(hours=2, minutes=28), 2.5),
+            (timedelta(hours=2, minutes=40), 2.0),
+            (timedelta(hours=2, minutes=55), 3.0),
+            (timedelta(hours=7, minutes=27), 7.5),
             (timedelta(hours=9, minutes=15), 9.0),
-            (timedelta(hours=12, minutes=44), 12.0),
-            (timedelta(hours=12, minutes=45), 13.0),
-            (timedelta(hours=12, minutes=14), 12.0),
-            (timedelta(hours=12, minutes=15), 12.0),
+            (timedelta(hours=12, minutes=24), 12.0),
+            (timedelta(hours=12, minutes=30), 12.5),
+            (timedelta(hours=12, minutes=49), 12.0),
+            (timedelta(hours=12, minutes=50), 13.0),
             (timedelta(hours=12), 12.0),
-            (timedelta(hours=12, minutes=30), 12.0),
         )
         for delta, expected in cases:
             rounded = Attendance._round_elapsed_hours(end - delta, end)

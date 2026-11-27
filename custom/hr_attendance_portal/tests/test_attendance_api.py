@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import base64
+from unittest.mock import patch
 
 from odoo.tests.common import HttpCase, TransactionCase, tagged
 
@@ -141,6 +142,9 @@ class TestAttendancePortalAPI(AttendancePortalMixin, TransactionCase):
         self.assertTrue(result["ok"])
         self.assertEqual(result["location_name"], "Van Phong HCM")
         self.assertFalse(result["error"])
+        self.assertTrue(result["gps_trusted"])
+        self.assertTrue(result["inside_fence"])
+        self.assertEqual(result["max_gps_accuracy_meters"], 80)
 
         far = self.portal.resolve_location(
             latitude=21.0285,
@@ -151,6 +155,27 @@ class TestAttendancePortalAPI(AttendancePortalMixin, TransactionCase):
         self.assertTrue(far["ok"])
         self.assertFalse(far["location_name"])
         self.assertEqual(far["error"], "unknown_location")
+        self.assertFalse(far["gps_trusted"])
+        self.assertFalse(far["inside_fence"])
+        self.assertNotIn("wifi_punch_available", result)
+
+    def test_resolve_location_wifi_punch_available_without_gps(self):
+        self.location.write({
+            "wifi_punch_enabled": True,
+            "allowed_public_ips": "203.0.113.10",
+        })
+        _, token = self._issue_token()
+        with patch.object(type(self.portal), "_client_ip", return_value="203.0.113.10"):
+            yes = self.portal.resolve_location(token=token)
+        self.assertTrue(yes["ok"])
+        self.assertTrue(yes["wifi_punch_available"])
+        self.assertEqual(yes["location_name"], "Van Phong HCM")
+
+        with patch.object(type(self.portal), "_client_ip", return_value="198.51.100.1"):
+            no = self.portal.resolve_location(token=token)
+        self.assertTrue(no["ok"])
+        self.assertFalse(no["wifi_punch_available"])
+        self.assertFalse(no["location_name"])
 
     def test_department_coordinates_do_not_replace_workplace(self):
         self.env["hr.department"].create({
@@ -530,7 +555,8 @@ class TestAttendancePortalHttp(AttendancePortalMixin, HttpCase):
         response = self.url_open("/attendance")
         self.assertEqual(response.status_code, 200)
         self.assertIn("Chấm công", response.text)
-        self.assertIn("attendance_portal.js?v=20261031c", response.text)
+        self.assertIn("attendance_portal.js?v=20261126b", response.text)
+        self.assertIn("(đang lấy vị trí qua wifi)", response.text)
         self.assertIn("Bảng công", response.text)
 
     def test_http_login_sets_cookie_and_check_in(self):

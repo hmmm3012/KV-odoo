@@ -44,6 +44,12 @@ class HrAttendancePortal(models.AbstractModel):
     _description = "Attendance Portal Service"
 
     def _client_ip(self):
+        """Public client IP as seen by Odoo after proxy_mode / ProxyFix.
+
+        Use remote_addr only. Do not read X-Forwarded-For from the request:
+        a client can spoof that header. With proxy_mode enabled, Werkzeug
+        ProxyFix already copies the trusted proxy hop into REMOTE_ADDR.
+        """
         if not request:
             return False
         return request.httprequest.remote_addr
@@ -354,6 +360,25 @@ class HrAttendancePortal(models.AbstractModel):
         whole, remainder = divmod(minutes, 60)
         return "%d:%02d" % (whole, remainder)
 
+    def _wifi_punch_available(self, employee):
+        """True when this client's public IP can use WiFi punch for the employee."""
+        location, _department = self.env["hr.attendance.location"].sudo()._match_unique_public_ip(
+            employee,
+            self._client_ip(),
+        )
+        return bool(location)
+
+    def _accuracy_cap_meters(self, employee, location):
+        """Workplace accuracy cap the portal should aim for, in meters."""
+        if location and location.max_gps_accuracy_meters:
+            return location.max_gps_accuracy_meters
+        Location = self.env["hr.attendance.location"].sudo()
+        home = employee.department_id
+        home_location = Location._resolved_workplace(home) if home else Location.browse()
+        if home_location and home_location.max_gps_accuracy_meters:
+            return home_location.max_gps_accuracy_meters
+        return 100
+
     @api.model
     def resolve_location(self, latitude=False, longitude=False, gps_accuracy=False, token=None):
         """Match GPS to a workplace for the logged-in employee. Does not punch."""
@@ -362,16 +387,32 @@ class HrAttendancePortal(models.AbstractModel):
             return self._error_payload("invalid_session")
         employee = session.employee_id.sudo()
         source = session.source or "personal_web"
+        has_gps = latitude not in (None, False) and longitude not in (None, False)
         location, department, reason, distance = self._validate_location(
             employee, source, latitude, longitude, gps_accuracy, device=False,
         )
-        return {
+        Location = self.env["hr.attendance.location"].sudo()
+        inside_fence = False
+        gps_trusted = False
+        if has_gps:
+            gps_location, _gps_department, gps_reason, _gps_distance = Location._match_gps_for_employee(
+                employee, latitude, longitude, gps_accuracy=gps_accuracy, client_ip=self._client_ip(),
+            )
+            inside_fence = bool(gps_location)
+            gps_trusted = bool(gps_location) and not gps_reason
+        payload = {
             "ok": True,
             "location_name": self._location_display_name(location, department),
             "distance_meters": distance,
             "error": reason or False,
             "server_time": fields.Datetime.now(),
+            "max_gps_accuracy_meters": self._accuracy_cap_meters(employee, location),
+            "inside_fence": inside_fence,
+            "gps_trusted": gps_trusted,
         }
+        if not has_gps:
+            payload["wifi_punch_available"] = self._wifi_punch_available(employee)
+        return payload
 
     @api.model
     def report_client_issue(self, issue_code=False, token=None):
@@ -562,10 +603,12 @@ class HrAttendancePortal(models.AbstractModel):
             if source == "kiosk" and not company.attendance_portal_kiosk_require_gps:
                 location = device.location_id if device else self._empty_location()
                 return location, self._empty_department(), False, None
-            return self._empty_location(), self._empty_department(), "missing_gps", None
-
         location, department, reason, distance = self.env["hr.attendance.location"].sudo()._match_for_employee(
-            employee, latitude, longitude, gps_accuracy=gps_accuracy
+            employee,
+            latitude,
+            longitude,
+            gps_accuracy=gps_accuracy,
+            client_ip=self._client_ip(),
         )
         return location, department, reason, distance
 

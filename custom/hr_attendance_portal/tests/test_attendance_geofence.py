@@ -133,6 +133,39 @@ class TestAttendanceGeofence(AttendancePortalMixin, TransactionCase):
             small._distance_meters(8.0302, 111.8552),
         )
 
+    def test_inside_polygon_with_accuracy_within_cap_is_trusted(self):
+        self._draw(self.location, [
+            (10.8200, 106.6270),
+            (10.8200, 106.6320),
+            (10.8260, 106.6320),
+            (10.8260, 106.6270),
+        ])
+        self.assertTrue(self.location._gps_fix_trusted(10.8230, 106.6295, 12))
+        edge_lat = 10.8202
+        self.assertTrue(self.location._contains_gps(edge_lat, 106.6295))
+        self.assertTrue(self.location._gps_fix_trusted(edge_lat, 106.6295, 40))
+        other = self.env["hr.attendance.location"].create({
+            "name": "WiFi Lot",
+            "latitude": 21.0285,
+            "longitude": 105.8542,
+            "allowed_radius_meters": 80,
+            "company_id": self.company.id,
+            "wifi_punch_enabled": True,
+            "allowed_public_ips": "198.51.100.10",
+        })
+        self.env["hr.department"].create({
+            "name": "WiFi Department",
+            "company_id": self.company.id,
+            "attendance_location_id": other.id,
+        })
+        location, department, reason, distance = self.env["hr.attendance.location"]._match_for_employee(
+            self.employee, edge_lat, 106.6295, gps_accuracy=40, client_ip="198.51.100.10",
+        )
+        self.assertEqual(location, self.location)
+        self.assertEqual(department, self.department)
+        self.assertFalse(reason)
+        self.assertIsNotNone(distance)
+
     def test_clearing_polygon_uses_radius_again(self):
         self._draw(self.location, [
             (7.5000, 110.5000),
