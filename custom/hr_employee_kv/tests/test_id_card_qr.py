@@ -70,33 +70,88 @@ class TestIdCardQr(TransactionCase):
         self.assertEqual(parse_cccd_payload("001234567890|1|NAME|32011990|Nam|Addr|01012021"), {})
         self.assertNotIn("identification_by", parse_cccd_payload(SAMPLE))
 
-    def test_create_fills_empty_fields_and_keeps_typed_name(self):
+    def test_create_does_not_autofill_from_id_card(self):
         front = (
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8"
             "z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
         )
         with patch(
-            "odoo.addons.hr_employee_kv.models.models.decode_id_card",
-            return_value=dict(PARSED),
+            "odoo.addons.hr_employee_kv.models.id_card_ocr.inspect_id_card",
+            return_value=(dict(PARSED), "qr"),
         ):
-            filled = self.env["hr.employee"].create({
-                "id_card_front": front,
-                "emp_code": "QR-FILL-001",
-                "company_id": self.env.company.id,
-            })
-            kept = self.env["hr.employee"].create({
+            employee = self.env["hr.employee"].create({
                 "name": "Manual Name",
                 "id_card_front": front,
                 "id_card_back": front,
                 "emp_code": "QR-KEEP-001",
                 "company_id": self.env.company.id,
             })
-        self.assertEqual(filled.name, "NGUYEN VAN A")
-        self.assertEqual(filled.identification_id, "001234567890")
-        self.assertEqual(filled.birthday, date(1990, 1, 1))
-        self.assertEqual(filled.sex, "male")
-        self.assertEqual(filled.emp_permanent_address, PARSED["emp_permanent_address"])
-        self.assertEqual(filled.identification_date, date(2021, 8, 15))
-        self.assertEqual(kept.name, "Manual Name")
-        self.assertEqual(kept.identification_id, "001234567890")
-        self.assertTrue(kept.id_card_back)
+        self.assertEqual(employee.name, "Manual Name")
+        self.assertFalse(employee.identification_id)
+        self.assertFalse(employee.birthday)
+        self.assertFalse(employee.sex)
+        self.assertTrue(employee.id_card_front)
+        self.assertTrue(employee.id_card_back)
+
+    def test_read_id_card_from_images_returns_mapped_fields(self):
+        front = (
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8"
+            "z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+        )
+        with patch(
+            "odoo.addons.hr_employee_kv.models.models.inspect_id_card",
+            return_value=(dict(PARSED), "qr"),
+        ):
+            result = self.env["hr.employee"].read_id_card_from_images(front=front)
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["source"], "qr")
+        self.assertEqual(result["values"]["name"], "NGUYEN VAN A")
+        self.assertEqual(result["values"]["identification_id"], "001234567890")
+        self.assertEqual(result["values"]["birthday"], "1990-01-01")
+        self.assertEqual(result["values"]["sex"], "male")
+        self.assertEqual(result["values"]["identification_date"], "2021-08-15")
+        self.assertIn("mã QR", result["message"])
+
+    def test_read_id_card_from_images_without_photo(self):
+        result = self.env["hr.employee"].read_id_card_from_images()
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["status"], "empty")
+        self.assertEqual(result["notification_type"], "warning")
+        self.assertIn("Chưa có ảnh CCCD", result["message"])
+
+    def test_action_fill_from_id_card_writes_fields(self):
+        from odoo.exceptions import UserError
+
+        front = (
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8"
+            "z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+        )
+        empty = self.env["hr.employee"].create({
+            "name": "No Card",
+            "emp_code": "QR-EMPTY-001",
+            "company_id": self.env.company.id,
+        })
+        with self.assertRaises(UserError) as error:
+            empty.action_fill_from_id_card()
+        self.assertIn("Chưa có ảnh CCCD", error.exception.args[0])
+
+        employee = self.env["hr.employee"].create({
+            "name": "Manual Name",
+            "id_card_front": front,
+            "emp_code": "QR-FILL-001",
+            "company_id": self.env.company.id,
+        })
+        with patch(
+            "odoo.addons.hr_employee_kv.models.models.inspect_id_card",
+            return_value=(dict(PARSED), "qr"),
+        ):
+            action = employee.action_fill_from_id_card()
+        self.assertEqual(employee.name, "NGUYEN VAN A")
+        self.assertEqual(employee.identification_id, "001234567890")
+        self.assertEqual(employee.birthday, date(1990, 1, 1))
+        self.assertEqual(employee.sex, "male")
+        self.assertEqual(employee.emp_permanent_address, PARSED["emp_permanent_address"])
+        self.assertEqual(employee.identification_date, date(2021, 8, 15))
+        self.assertEqual(action["tag"], "display_notification")
+        self.assertEqual(action["params"]["type"], "success")
+        self.assertIn("mã QR", action["params"]["message"])

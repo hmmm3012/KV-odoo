@@ -72,7 +72,7 @@ class TestIdCardOcr(TransactionCase):
         if not path.is_file():
             self.skipTest("sample card is not in the module")
         values, status = inspect_id_card_front(path.read_bytes())
-        self.assertEqual(status, "ok")
+        self.assertIn(status, ("qr", "ocr"))
         self.assertEqual(values["identification_id"], "079203042389")
         self.assertIn("MINH", values["name"])
         self.assertEqual(values["birthday"], date(2003, 12, 30))
@@ -100,7 +100,7 @@ class TestIdCardOcr(TransactionCase):
             return_value=(SAMPLE_TEXT, "ok"),
         ):
             values, status = inspect_id_card(b"FRONT", b"BACK", prefer="back")
-        self.assertEqual(status, "ok")
+        self.assertEqual(status, "qr")
         self.assertEqual(values["identification_id"], "079203042389")
         self.assertEqual(values["identification_date"], date(2023, 5, 22))
         self.assertEqual(values["emp_place_of_origin"], "Dưỡng Điểm, Châu Thành, Tiền Giang")

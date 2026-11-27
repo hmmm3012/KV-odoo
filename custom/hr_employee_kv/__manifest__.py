@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     "name": "HR Employee Kien Viet",
-    "version": "19.0.1.2.0",
+    "version": "19.0.1.3.0",
     "summary": "Adds custom fields to Employees",
     "author": "Kien Viet",
     "depends": ["hr", "mail", "calendar"],
@@ -18,6 +18,8 @@
     "assets": {
         "web.assets_backend": [
             "hr_employee_kv/static/src/employee_thumbs.css",
+            "hr_employee_kv/static/src/id_card_autofill.js",
+            "hr_employee_kv/static/src/id_card_autofill.xml",
             "hr_employee_kv/static/src/versions_timeline_patch.js",
             "hr_employee_kv/static/src/versions_timeline_patch.xml",
         ],

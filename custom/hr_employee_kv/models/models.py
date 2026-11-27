@@ -1,8 +1,10 @@
 import logging
+from datetime import date, datetime
 
 from odoo import api, fields, models
+from odoo.exceptions import UserError
 
-from .id_card_ocr import decode_id_card, inspect_id_card
+from .id_card_ocr import inspect_id_card
 
 _logger = logging.getLogger(__name__)
 
@@ -20,6 +22,9 @@ _ID_CARD_QR_FIELDS = (
     "identification_by",
 )
 
+# Sentinel from the form widget: use the photo already stored on the employee.
+_FROM_RECORD = "FROM_RECORD"
+
 
 def _id_card_fields(parsed):
     """Map CCCD parser keys to Odoo 19 field names."""
@@ -27,6 +32,19 @@ def _id_card_fields(parsed):
     if "gender" in parsed:
         parsed["sex"] = parsed.pop("gender")
     return parsed
+
+
+def _serialize_id_card_values(parsed):
+    """JSON-safe field values for the form widget / RPC."""
+    values = {}
+    for field_name, value in _id_card_fields(parsed).items():
+        if field_name not in _ID_CARD_QR_FIELDS:
+            continue
+        if isinstance(value, date):
+            values[field_name] = value.isoformat()
+        else:
+            values[field_name] = value
+    return values
 
 
 class HrVersion(models.Model):
@@ -68,7 +86,7 @@ class HrEmployee(models.Model):
         max_height=1920,
         copy=False,
         groups="hr.group_hr_user",
-        help="Ảnh mặt trước CCCD. Mã QR ở một trong hai mặt sẽ điền các trường trên thẻ. Quê quán in trên CCCD được đọc từ ảnh này.",
+        help="Ảnh mặt trước CCCD. Sau khi tải ảnh lên, bấm Tự nhập thông tin để đọc mã QR hoặc chữ in trên thẻ. Quê quán in trên CCCD được đọc từ ảnh này.",
     )
     id_card_back = fields.Image(
         string="CCCD mặt sau",
@@ -76,7 +94,7 @@ class HrEmployee(models.Model):
         max_height=1920,
         copy=False,
         groups="hr.group_hr_user",
-        help="Ảnh mặt sau CCCD. Dùng khi mã QR nằm ở mặt sau thay vì mặt trước.",
+        help="Ảnh mặt sau CCCD. Dùng khi mã QR nằm ở mặt sau thay vì mặt trước. Sau khi tải ảnh lên, bấm Tự nhập thông tin để bắt đầu đọc.",
     )
 
     # Date of import
@@ -129,8 +147,6 @@ class HrEmployee(models.Model):
         """Override create to assign emp_code using company-specific ir.sequence"""
         IrSequence = self.env['ir.sequence'].sudo()
         for vals in vals_list:
-            if vals.get("id_card_front") or vals.get("id_card_back"):
-                vals.update(self._id_card_qr_updates(vals))
             # Only assign emp_code if not already provided
             if not vals.get('emp_code'):
                 # Get company_id from vals or use current company
@@ -165,77 +181,89 @@ class HrEmployee(models.Model):
                 vals['emp_code'] = emp_code or False
         return super().create(vals_list)
 
-    def write(self, vals):
-        if (
-            (vals.get("id_card_front") or vals.get("id_card_back"))
-            and not self.env.context.get("skip_id_card_qr")
-        ):
-            if len(self) == 1:
-                vals = dict(vals)
-                vals.update(self._id_card_qr_updates(vals))
-            else:
-                res = super().write(vals)
-                for employee in self:
-                    updates = employee._id_card_qr_updates(vals)
-                    if updates:
-                        employee.with_context(skip_id_card_qr=True).write(updates)
-                return res
-        return super().write(vals)
-
-    @api.onchange("id_card_front", "id_card_back")
-    def _onchange_id_card_images(self):
-        if not self.id_card_front and not self.id_card_back:
-            return
-        parsed, status = inspect_id_card(
-            self.id_card_front,
-            self.id_card_back,
-            prefer="back" if self.id_card_back and not self.id_card_front else "front",
+    def _id_card_user_feedback(self, status, values):
+        """Vietnamese notification for the Tự nhập thông tin button."""
+        if status == "qr":
+            message = "Đã đọc thông tin từ mã QR trên ảnh CCCD."
+            if values.get("emp_place_of_origin"):
+                message += " Quê quán được bổ sung từ chữ in trên thẻ."
+            return "success", message
+        if status == "ocr":
+            return (
+                "success",
+                "Không đọc được mã QR, đã nhập thông tin từ chữ in trên ảnh CCCD (OCR).",
+            )
+        if status == "empty":
+            return (
+                "warning",
+                "Chưa có ảnh CCCD. Hãy tải lên ảnh mặt trước hoặc mặt sau rồi bấm Tự nhập thông tin.",
+            )
+        if status == "unreadable":
+            return (
+                "warning",
+                "Không mở được ảnh CCCD. Hãy tải lên ảnh JPG, PNG hoặc WebP rõ nét.",
+            )
+        return (
+            "warning",
+            "Không đọc được mã QR hoặc chữ in trên ảnh CCCD. Ảnh vẫn được giữ lại, hãy nhập tay các trường thông tin.",
         )
-        if not parsed:
-            return {
-                "warning": {
-                    "title": self.env._("CCCD"),
-                    "message": self.env._(self._id_card_qr_warning(status)),
-                }
-            }
-        for field_name, value in _id_card_fields(parsed).items():
-            self[field_name] = value
 
-    @api.model
-    def _id_card_qr_warning(self, status):
-        return {
-            "unreadable": (
-                "The ID card image could not be opened. Upload a JPG or PNG photo of the card."
-            ),
-        }.get(status, (
-            "No QR code or printed card text could be read on either side. "
-            "The photo is kept; fill in the fields manually."
-        ))
-
-    def _id_card_images(self, incoming):
-        front = incoming.get("id_card_front")
-        back = incoming.get("id_card_back")
-        record = self[:1]
-        if "id_card_front" not in incoming and record:
-            front = record.with_context(bin_size=False).id_card_front
-        if "id_card_back" not in incoming and record:
-            back = record.with_context(bin_size=False).id_card_back
+    def _resolve_id_card_images(self, front, back, employee_id=None):
+        record = self.browse(employee_id) if employee_id else self[:1]
+        if record:
+            record = record.exists().with_context(bin_size=False)
+        if front == _FROM_RECORD:
+            front = record.id_card_front if record else False
+        if back == _FROM_RECORD:
+            back = record.id_card_back if record else False
         return front, back
 
-    def _id_card_qr_updates(self, incoming):
-        """QR/OCR values for fields this save did not already set."""
-        front, back = self._id_card_images(incoming)
-        prefer = "back" if incoming.get("id_card_back") and not incoming.get("id_card_front") else "front"
-        parsed = decode_id_card(front, back, prefer=prefer)
-        if not parsed:
-            _logger.warning(
-                "CCCD was not read (employees %s).",
-                self.ids or "new",
-            )
-            return {}
-        parsed = _id_card_fields(parsed)
+    @api.model
+    def read_id_card_from_images(self, front=None, back=None, employee_id=False):
+        """Read QR (then OCR) from CCCD photos without writing the employee.
+
+        Called by the Tự nhập thông tin form widget so it also works on a
+        new, unsaved employee. Dates are returned as ISO strings.
+        """
+        front, back = self._resolve_id_card_images(front, back, employee_id)
+        prefer = "back" if back and not front else "front"
+        parsed, status = inspect_id_card(front, back, prefer=prefer)
+        values = _serialize_id_card_values(parsed)
+        notification_type, message = self._id_card_user_feedback(status, values)
         return {
-            field_name: parsed[field_name]
-            for field_name in _ID_CARD_QR_FIELDS
-            if field_name in parsed and field_name not in incoming
+            "ok": bool(values),
+            "source": status if status in ("qr", "ocr") else False,
+            "status": status,
+            "values": values,
+            "title": "Tự nhập thông tin",
+            "message": message,
+            "notification_type": notification_type,
+        }
+
+    def action_fill_from_id_card(self):
+        """Fill this employee from stored CCCD photos (tests / fallback)."""
+        self.ensure_one()
+        result = self.read_id_card_from_images(
+            front=_FROM_RECORD if self.id_card_front else False,
+            back=_FROM_RECORD if self.id_card_back else False,
+            employee_id=self.id,
+        )
+        if result["status"] == "empty":
+            raise UserError(result["message"])
+        if result["values"]:
+            write_vals = dict(result["values"])
+            for field_name in ("birthday", "identification_date"):
+                raw = write_vals.get(field_name)
+                if raw and isinstance(raw, str):
+                    write_vals[field_name] = datetime.strptime(raw, "%Y-%m-%d").date()
+            self.write(write_vals)
+        return {
+            "type": "ir.actions.client",
+            "tag": "display_notification",
+            "params": {
+                "title": result["title"],
+                "message": result["message"],
+                "type": result["notification_type"],
+                "sticky": False,
+            },
         }

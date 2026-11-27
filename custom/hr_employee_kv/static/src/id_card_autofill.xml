@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="hr_employee_kv.IdCardAutofill">
+        <button type="button"
+                class="btn btn-secondary o_kv_id_card_autofill_btn"
+                t-on-click="onClick"
+                t-att-disabled="props.readonly or state.busy">
+            <t t-if="state.busy">Đang đọc CCCD...</t>
+            <t t-else="">Tự nhập thông tin</t>
+        </button>
+    </t>
+</templates>

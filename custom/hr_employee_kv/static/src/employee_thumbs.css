@@ -13,3 +13,12 @@
     max-height: 100px;
     object-fit: contain;
 }
+
+.o_widget_kv_id_card_autofill {
+    margin-top: 0.25rem;
+    margin-bottom: 0.5rem;
+}
+
+.o_kv_id_card_autofill_btn {
+    white-space: nowrap;
+}

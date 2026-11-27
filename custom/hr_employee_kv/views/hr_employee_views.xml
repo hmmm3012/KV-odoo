@@ -47,6 +47,9 @@
         <field name="identification_by"/>
         <field name="id_card_front" widget="image" class="o_kv_id_thumb" groups="hr.group_hr_user" options="{'zoom': true, 'zoom_delay': 200}"/>
         <field name="id_card_back" widget="image" class="o_kv_id_thumb" groups="hr.group_hr_user" options="{'zoom': true, 'zoom_delay': 200}"/>
+        <div class="o_kv_id_card_autofill_row" groups="hr.group_hr_user">
+          <widget name="kv_id_card_autofill"/>
+        </div>
       </xpath>
 
       <!-- Make country_id readonly and ensure it shows Vietnam -->

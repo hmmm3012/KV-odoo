@@ -136,7 +136,7 @@ def inspect_id_card(front=None, back=None, prefer="front"):
             "CCCD QR decoded from %s; OCR is used for place of origin only.",
             qr_side,
         )
-        return merge_card_reads(qr_values, text if status == "ok" else ""), "ok"
+        return merge_card_reads(qr_values, text if status == "ok" else ""), "qr"
     if status != "ok":
         _logger.warning("CCCD was not read: %s", status)
         return {}, status.split()[0]
@@ -144,7 +144,7 @@ def inspect_id_card(front=None, back=None, prefer="front"):
     if not values:
         _logger.warning("CCCD OCR found text but not a 12-digit ID and birth date.")
         return {}, "not_found"
-    return values, "ok"
+    return values, "ocr"
 
 
 def _read_text(raw):
