@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="0">
+    <!--
+    Đúng 6 tiêu chí KPI ngày — một dòng mỗi nhóm A–F (Minh 24/11/2026).
+    Tên khớp bảng Ý nghĩa trong kpi-parking-lot-plan.md; chi tiết (trễ, ngủ, …) ghi ở ghi chú dòng ngày.
+    Nhập tay tháng (manual_a/b_*) giữ trên tổng hợp; tất cả nhóm dưới đây dùng cho dropdown KPI ngày.
+    -->
+    <record id="kpi_criterion_safety" model="hr.kpi.criterion">
+        <field name="code">A_SAFETY</field>
+        <field name="name">A — An toàn, an ninh (mất phụ tùng / phụ kiện)</field>
+        <field name="group_code">A</field>
+        <field name="deduction_type">tiered</field>
+        <field name="tier1_percent">20</field>
+        <field name="tier2_percent">50</field>
+        <field name="tier_threshold">2</field>
+        <field name="cap_percent">50</field>
+        <field name="sequence">10</field>
+    </record>
+    <record id="kpi_criterion_skill" model="hr.kpi.criterion">
+        <field name="code">B_SKILL</field>
+        <field name="name">B — Kỹ năng nghiệp vụ</field>
+        <field name="group_code">B</field>
+        <field name="deduction_type">fixed_once</field>
+        <field name="fixed_percent">10</field>
+        <field name="cap_percent">10</field>
+        <field name="sequence">20</field>
+    </record>
+    <record id="kpi_criterion_uniform" model="hr.kpi.criterion">
+        <field name="code">C_UNIFORM</field>
+        <field name="name">C — Đồng phục / tác phong</field>
+        <field name="group_code">C</field>
+        <field name="deduction_type">tiered</field>
+        <field name="tier1_percent">5</field>
+        <field name="tier2_percent">20</field>
+        <field name="tier_threshold">3</field>
+        <field name="cap_percent">20</field>
+        <field name="sequence">30</field>
+    </record>
+    <record id="kpi_criterion_late" model="hr.kpi.criterion">
+        <field name="code">D_LATE</field>
+        <field name="name">D — Nội quy công ty (trễ ca, điện thoại, ngủ, …)</field>
+        <field name="group_code">D</field>
+        <field name="deduction_type">tiered</field>
+        <field name="tier1_percent">20</field>
+        <field name="tier2_percent">50</field>
+        <field name="tier_threshold">3</field>
+        <field name="cap_percent">50</field>
+        <field name="sequence">40</field>
+    </record>
+    <record id="kpi_criterion_serious" model="hr.kpi.criterion">
+        <field name="code">E_SERIOUS</field>
+        <field name="name">E — Vi phạm nghiêm trọng</field>
+        <field name="group_code">E</field>
+        <field name="deduction_type">fixed_once</field>
+        <field name="fixed_percent">50</field>
+        <field name="cap_percent">50</field>
+        <field name="sequence">50</field>
+    </record>
+    <record id="kpi_criterion_phone" model="hr.kpi.criterion">
+        <field name="code">F_PHONE</field>
+        <field name="name">F — Sử dụng điện thoại khi trực</field>
+        <field name="group_code">F</field>
+        <field name="deduction_type">per_hit</field>
+        <field name="per_hit_percent">20</field>
+        <field name="cap_percent">50</field>
+        <field name="sequence">60</field>
+    </record>
+</odoo>
