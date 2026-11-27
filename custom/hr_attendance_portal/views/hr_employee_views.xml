@@ -9,9 +9,8 @@
             <xpath expr="//chatter" position="attributes">
                 <attribute name="groups">hr.group_hr_user</attribute>
             </xpath>
-            <xpath expr="//button[@name='action_timesheet_from_employee']" position="attributes">
-                <attribute name="groups">hr.group_hr_user</attribute>
-            </xpath>
+            <!-- action_timesheet_from_employee belongs to hr_timesheet, which is not
+                 installed on this HR-only stack. Do not xpath it. -->
             <!-- Odoo 19: contract_warning_tooltip widget no longer exists -->
             <xpath expr="//field[@name='job_id']" position="after">
                 <field name="pin" password="True" string="Attendance PIN"/>
