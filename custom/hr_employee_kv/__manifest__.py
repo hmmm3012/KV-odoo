@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 {
     "name": "HR Employee Kien Viet",
-    "version": "19.0.1.1.0",
+    "version": "19.0.1.2.0",
     "summary": "Adds custom fields to Employees",
     "author": "Kien Viet",
-    "depends": ["hr"],
+    "depends": ["hr", "mail", "calendar"],
     "data": [
         "security/ir.model.access.csv",
         "data/hr_employee_sequence.xml",
@@ -13,6 +13,7 @@
         "views/intro_letter_wizard_views.xml",
         "views/badge_wizard_views.xml",
         "views/hr_employee_views.xml",
+        "views/hide_unused_menus.xml",
     ],
     "assets": {
         "web.assets_backend": [
