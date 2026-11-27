@@ -113,7 +113,7 @@ class TestAttendancePublicIp(AttendancePortalMixin, TransactionCase):
             self.location._distance_meters(near_edge_lat, self.location.longitude),
             self.location.allowed_radius_meters,
         )
-        self.assertFalse(self.location._accuracy_circle_inside(
+        self.assertTrue(self.location._gps_fix_trusted(
             near_edge_lat, self.location.longitude, 40,
         ))
         edged, edged_department, reason, _distance = self._match(
@@ -122,8 +122,8 @@ class TestAttendancePublicIp(AttendancePortalMixin, TransactionCase):
             gps_accuracy=40,
             client_ip="198.51.100.10",
         )
-        self.assertEqual(edged, other)
-        self.assertEqual(edged_department, other_department)
+        self.assertEqual(edged, self.location)
+        self.assertEqual(edged_department, self.department)
         self.assertFalse(reason)
 
         self.location.max_gps_accuracy_meters = 20
