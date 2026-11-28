@@ -53,7 +53,7 @@ class ResUsers(models.Model):
         return tuple(row[0] for row in self.env.cr.fetchall())
 
     @api.model
-    def _hr_department_access_domain(self, model_name):
+    def _hr_department_access_domain(self, model_name, mode="read"):
         """Extra domain applied when this user is limited to departments."""
         department_ids = list(self._hr_authorized_department_ids())
         if not department_ids:
@@ -71,6 +71,21 @@ class ResUsers(models.Model):
             ("employee_id.user_id", "=", user_id),
             employee_in_department,
         ]
+        # hr.employee _inherits hr.version: the first version is created
+        # *before* the employee row exists, so employee_id is empty and a
+        # domain that only looks at employee_id.department_id denies a hire
+        # into an allowed department. Allow that initial version when its
+        # own department_id is in scope; do not use a bare department_id OR
+        # (that would let a user attach a version to an out-of-scope employee).
+        initial_or_employee_version = [
+            "|",
+            "|",
+            ("employee_id.user_id", "=", user_id),
+            employee_in_department,
+            "&",
+            ("employee_id", "=", False),
+            ("department_id", "child_of", department_ids),
+        ]
         domains = {
             "hr.employee": own_employee,
             "hr.employee.public": own_employee,
@@ -79,7 +94,7 @@ class ResUsers(models.Model):
             # Odoo 19: hr.attendance.overtime -> hr.attendance.overtime.line,
             # hr.contract (+ hr.contract.history) -> hr.version.
             "hr.attendance.overtime.line": own_or_employee,
-            "hr.version": own_or_employee,
+            "hr.version": initial_or_employee_version,
             "hr.attendance.event": [
                 "|",
                 "|",
@@ -93,4 +108,10 @@ class ResUsers(models.Model):
                 ("location_id.linked_department_ids", "child_of", department_ids)
             ],
         }
+        # hr.employee._create pops version_id and calls check_access("create")
+        # before the version is linked, so department_id (inherited) is still
+        # empty and a record rule would deny a valid hire. Enforce the same
+        # scope in hr.employee.create from the submitted values instead.
+        if model_name in ("hr.employee", "hr.employee.public") and mode == "create":
+            return []
         return domains.get(model_name, [])

@@ -289,6 +289,27 @@
         }
       ],
       "notes": "Sửa _fmt_date/_pdf_text. Module version 19.0.1.2.1."
+    },
+    {
+      "id": "dept-access-001",
+      "priority": 1,
+      "area": "hr_department_access",
+      "title": "Tạo NV trong phòng ban được phép không còn AccessError trên hr.version",
+      "user_visible_behavior": "User bị giới hạn phòng ban vẫn tạo được nhân viên và hợp đồng trong phòng ban (và phòng ban con) được phép; không tạo được ngoài phạm vi, kể cả khi gán department_id giả.",
+      "status": "passing",
+      "passes": true,
+      "verification": [
+        "./scripts/agent-verify.sh hr_department_access"
+      ],
+      "evidence": [
+        {
+          "command": "./scripts/agent-verify.sh hr_department_access",
+          "result": "EXIT 0, ~70s; 0 failed, 0 error(s) of 6 tests (was 1 error / 6). Extra cases: no-department hire denied; spoofed department_id on an out-of-scope employee denied.",
+          "at": "2026-11-28 10:11 +07 (UTC+7)",
+          "notes": "Odoo 19 hr.employee _inherits hr.version: first version is created before the employee row exists; check_access(create) on employee runs before the version is linked."
+        }
+      ],
+      "notes": "Module 19.0.1.0.1. Portal signature _hr_department_access_domain(..., mode=) forwarded (19.0.1.1.1)."
     }
   ]
 }

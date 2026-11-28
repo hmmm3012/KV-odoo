@@ -17,7 +17,7 @@ class IrRule(models.Model):
         domain = super()._compute_domain(model_name, mode)
         if self.env.su:
             return domain
-        extra = self.env["res.users"]._hr_department_access_domain(model_name)
+        extra = self.env["res.users"]._hr_department_access_domain(model_name, mode=mode)
         if not extra:
             return domain
         return Domain(domain) & Domain(extra)

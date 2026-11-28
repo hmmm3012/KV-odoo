@@ -76,6 +76,9 @@ class TestHrDepartmentAccess(TransactionCase):
             "department_id": self.team.id,
         })
         self.assertEqual(created.department_id, self.team)
+        # Creating an employee with no department is out of scope.
+        with self.assertRaises(AccessError):
+            Employee.create({"name": "No Department Hire"})
 
     def test_attendance_and_contract_follow_the_employee_department(self):
         Attendance = self.env["hr.attendance"].sudo()
@@ -101,6 +104,15 @@ class TestHrDepartmentAccess(TransactionCase):
             "contract_date_start": Date.today(),
         })
         self.assertEqual(contract.employee_id, self.inside)
+        with self.assertRaises(AccessError):
+            self.env["hr.version"].with_user(self.hr_user).create({
+                "name": "Spoofed department",
+                "employee_id": self.outside.id,
+                "department_id": self.team.id,
+                "wage": 1,
+                "date_version": Date.add(Date.today(), days=2),
+                "contract_date_start": Date.today(),
+            })
 
     def test_public_directory_and_own_employee_outside_the_site(self):
         public_outside = self.env["hr.employee.public"].with_user(self.hr_user).search([

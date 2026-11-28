@@ -2,3 +2,4 @@
 
 from . import res_users
 from . import ir_rule
+from . import hr_employee

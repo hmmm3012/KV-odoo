@@ -94,13 +94,13 @@ class ResUsers(models.Model):
         return [("id", "in", location_ids)]
 
     @api.model
-    def _hr_department_access_domain(self, model_name):
+    def _hr_department_access_domain(self, model_name, mode="read"):
         """Let a department limit include punches recorded at that workplace.
 
         The base rule only matches the employee's own department. A captain
         must also see visitors who checked in or out at their workplace.
         """
-        domain = super()._hr_department_access_domain(model_name)
+        domain = super()._hr_department_access_domain(model_name, mode=mode)
         if model_name == "hr.department.off":
             department_ids = list(self._hr_authorized_department_ids())
             return [("department_id", "child_of", department_ids)] if department_ids else []
