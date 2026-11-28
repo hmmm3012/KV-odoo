@@ -178,5 +178,4 @@
 
     <function model="res.users" name="_assign_attendance_captain_home_action"/>
     <function model="ir.ui.menu" name="_sync_valid_attendance_label"/>
-    <function model="ir.ui.menu" name="_sync_session_vietnamese_labels"/>
 </odoo>

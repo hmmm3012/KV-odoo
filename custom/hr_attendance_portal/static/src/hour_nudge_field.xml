@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="hr_attendance_portal.HourNudgeField">
+        <div class="kv_hour_nudge">
+            <button type="button" class="btn btn-secondary" t-on-click.stop.prevent="() => this.onNudge(-0.5)" t-esc="minusHalf"/>
+            <button type="button" class="btn btn-secondary" t-on-click.stop.prevent="() => this.onNudge(-1)" t-esc="minusOne"/>
+            <button type="button" class="btn btn-secondary" t-on-click.stop.prevent="() => this.onNudge(0.5)" t-esc="plusHalf"/>
+            <button type="button" class="btn btn-secondary" t-on-click.stop.prevent="() => this.onNudge(1)" t-esc="plusOne"/>
+        </div>
+    </t>
+</templates>

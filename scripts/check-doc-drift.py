@@ -46,6 +46,10 @@ def main():
                 continue
             if not looks_like_repo_path(s):
                 continue
+            # Absolute paths in docs (e.g. /home/debian1/kv-odoo-19-upgrade/...) are
+            # server-side references, not files in this git tree.
+            if s.startswith(("/", "http://", "https://")):
+                continue
             checked += 1
             if not (REPO / s).exists():
                 missing.append(f"{src.relative_to(REPO)}: {s}")
