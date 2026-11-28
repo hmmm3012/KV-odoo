@@ -268,6 +268,27 @@
         }
       ],
       "notes": "Không bịt là CI đã chạy trên GitHub-hosted nếu thực tế chưa có runner."
+    },
+    {
+      "id": "contract-002",
+      "priority": 1,
+      "area": "kv_hr_contract",
+      "title": "create_pdf không còn 500 khi thiếu ngày",
+      "user_visible_behavior": "In PDF hợp đồng vẫn ra file khi thiếu ngày sinh, ngày cấp CCCD, ngày kết thúc hoặc ngày bắt đầu; các ô trống để trống.",
+      "status": "passing",
+      "passes": true,
+      "verification": [
+        "./scripts/agent-verify.sh kv_hr_contract"
+      ],
+      "evidence": [
+        {
+          "command": "./scripts/agent-verify.sh kv_hr_contract",
+          "result": "EXIT 0 in 42s; 0 failed, 0 error(s) of 10 tests (was 7 before the PDF tests). create_pdf no longer calls strftime on False dates.",
+          "at": "2026-11-28 10:00 +07 (UTC+7)",
+          "notes": "Also hardened empty salary, department not in decode map, and missing contract_date_start."
+        }
+      ],
+      "notes": "Sửa _fmt_date/_pdf_text. Module version 19.0.1.2.1."
     }
   ]
 }

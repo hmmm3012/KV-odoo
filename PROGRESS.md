@@ -5,8 +5,8 @@ Nhật ký tiến độ giữa các phiên. Đây là nguồn sự thật cùng 
 ## Trạng thái hiện tại
 
 - Nhánh: `19.0-upgrade` (local, không push)
-- Việc đang mở (`in_progress`, WIP=1): không có (Pha 1–4 đã ghi evidence)
-- Việc tiếp theo: nợ sản phẩm ngoài harness (portal chấm công, AccessError `hr.version`, PDF hợp đồng); CI unit-test chờ self-hosted runner — chưa push, chưa trigger Actions
+- Việc đang mở (`in_progress`, WIP=1): không có
+- Việc tiếp theo: sửa AccessError `hr.version` (`hr_department_access`), rồi test `hr_attendance_portal`, rồi `i18n/vi.po`
 
 ## Nhật ký phiên
 
@@ -67,4 +67,11 @@ Nhật ký tiến độ giữa các phiên. Đây là nguồn sự thật cùng 
 - `./init.sh` (gắn thêm i18n + doc-drift) và `./scripts/e2e-smoke.sh` đều EXIT 0. HTTP login 200.
 
 Nợ sản phẩm còn lại (không thuộc harness): test `hr_attendance_portal` (5 fail + 23 error / 130), AccessError `hr.version` khi tạo NV trong `hr_department_access`, `create_pdf` 500 khi thiếu date.
+
+### 2026-11-28 — Sửa create_pdf khi thiếu ngày (staging 19)
+
+- Nguyên nhân: `create_pdf` gọi `.strftime()` trên `birthday` và `identification_date` (Odoo để False khi trống). Cùng lớp lỗi với `contract_date_start` trống; `department_decode[department]` KeyError nếu tên phòng ban không có trong map.
+- Cách sửa: `_fmt_date`, `_fmt_date_long`, `_pdf_text`; ô trống để trống; workplace fallback tên phòng ban; không in debug `print(date_end)`. Version module `19.0.1.2.1`.
+- Trước: PDF HTTP 500; 7 unit test xanh (chưa gọi `create_pdf`).
+- Sau: `./scripts/agent-verify.sh kv_hr_contract` EXIT 0, 42s, **0 failed, 0 error(s) of 10 tests** (thêm 3 test PDF: thiếu ngày tùy chọn, HĐ không xác định thời hạn, không có ngày bắt đầu).
 

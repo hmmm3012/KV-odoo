@@ -125,20 +125,43 @@ def search_and_replace_text(doc, original_text, new_text, font_name, font_size):
     return doc
 
 
+
+def _pdf_text(value, default=""):
+    """Coerce Odoo empty values (False/None) to a string safe for ReportLab."""
+    if value is False or value is None:
+        return default
+    return str(value)
+
+
+def _fmt_date(value, fmt="%d/%m/%Y"):
+    """Format a date field; empty Odoo dates are False and have no strftime."""
+    if not value:
+        return ""
+    return value.strftime(fmt)
+
+
+def _fmt_date_long(value):
+    """Vietnamese long date used in the contract header, or empty if missing."""
+    if not value:
+        return ""
+    return f"Ngày {value.day} tháng {value.month} năm {value.year}"
+
+
 def create_pdf(contract):
     _register_pdf_fonts()
-    contract_name = contract.name
-    employee_name = contract.employee_id.name
+    employee = contract.employee_id
+    contract_name = _pdf_text(contract.name)
+    employee_name = _pdf_text(employee.name)
     date_start = contract.contract_date_start
     date_end = contract.contract_date_end
-    job_id = contract.job_id.name
-    temp_address = contract.employee_id.emp_temporary_address
-    perm_address = contract.employee_id.emp_permanent_address
-    employee_id = contract.employee_id.identification_id
-    employee_id_date = contract.employee_id.identification_date
-    employee_id_by = contract.employee_id.identification_by
-    employee_birthday = contract.employee_id.birthday
-    department = contract.employee_id.department_id.name
+    job_id = _pdf_text(contract.job_id.name if contract.job_id else "")
+    temp_address = _pdf_text(employee.emp_temporary_address)
+    perm_address = _pdf_text(employee.emp_permanent_address)
+    employee_id = _pdf_text(employee.identification_id)
+    employee_id_date = employee.identification_date
+    employee_id_by = _pdf_text(employee.identification_by)
+    employee_birthday = employee.birthday
+    department = employee.department_id.name if employee.department_id else ""
     salary = contract.wage
     # doc = fitz.open("dev/kv_hr_contract/report/pos_rp.pdf")
     # search_and_replace_text(doc, "%date_start%", employee_name, "tiro", 12)
@@ -160,12 +183,7 @@ def create_pdf(contract):
     )
     add_text_to_page(
         c1,
-        "Ngày "
-        + str(date_start.day)
-        + " tháng "
-        + str(date_start.month)
-        + " năm "
-        + str(date_start.year),
+        _fmt_date_long(date_start),
         "tiro_italic",
         11,
         403.42999267578125,
@@ -181,7 +199,7 @@ def create_pdf(contract):
         295.94403076171875 - 1,
         1,
     )
-    birthday = employee_birthday.strftime(("%d/%m/%Y"))
+    birthday = _fmt_date(employee_birthday)
     add_text_to_page(
         c1,
         birthday,
@@ -227,7 +245,7 @@ def create_pdf(contract):
         356.9640197753906 - 1,
         1,
     )
-    id_date = employee_id_date.strftime(("%d/%m/%Y"))
+    id_date = _fmt_date(employee_id_date)
     add_text_to_page(
         c1,
         id_date,
@@ -237,9 +255,12 @@ def create_pdf(contract):
         356.9640197753906 - 1,
         1,
     )
+    salary_text = (
+        format_number_with_dots(salary) + "đ/tháng." if salary else ""
+    )
     add_text_to_page(
         c1,
-        format_number_with_dots(salary) + "đ/tháng.",
+        salary_text,
         "tiro",
         12,
         229.35000610351562 - 10,
@@ -255,10 +276,10 @@ def create_pdf(contract):
         460.9840087890625 + 13,
         1,
     )
-    date_start = date_start.strftime(("%d/%m/%Y"))
+    date_start_s = _fmt_date(date_start)
     add_text_to_page(
         c2,
-        "ngày " + date_start,
+        ("ngày " + date_start_s) if date_start_s else "",
         "tiro_bold",
         12,
         191.3300018310547,
@@ -268,35 +289,38 @@ def create_pdf(contract):
 
     add_text_to_page(
         c1,
-        date_start,
+        date_start_s,
         "tiro",
         12,
         154.3300018310547,
         444.7340087890625 - 12,
         1,
     )
+    workplace = department_decode.get(department, _pdf_text(department))
     add_text_to_page(
         c1,
-        "Bãi xe " + department_decode[department],
+        ("Bãi xe " + workplace) if workplace else "",
         "tiro",
         12,
         218.85000610351562,
         458.7340087890625 - 12,
         1,
     )
-    print(date_end)
-    if date_end is not False:
+    if date_end:
         add_text_to_page(
             c1,
-            date_end.strftime(("%d/%m/%Y")),
+            _fmt_date(date_end),
             "tiro",
             12,
             295.6300048828125,
             444.7340087890625 - 12,
             1,
         )
-        period = contract.contract_date_end.year - contract.contract_date_start.year
-        if period == 0:
+        if date_start:
+            period = date_end.year - date_start.year
+            if period == 0:
+                period = 1
+        else:
             period = 1
         add_text_to_page(
             c1,
@@ -379,7 +403,7 @@ class ContractPDFController(http.Controller):
             ("Content-Type", "application/pdf"),
             (
                 "Content-Disposition",
-                content_disposition(f"{contract.name}.pdf"),
+                content_disposition(f"{_pdf_text(contract.name, default='hop-dong')}.pdf"),
             ),
         ]
         return request.make_response(pdf_res, headers=headers)

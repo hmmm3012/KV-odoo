@@ -90,12 +90,7 @@ class TestContractAutonumber(TransactionCase):
 
 
     def test_print_action_points_at_pdf_route(self):
-        """The print button targets /contracts/pdf/<id>.
-
-        Full PDF rendering still 500s on sparse test data
-        (create_pdf calls strftime on a False date). That product bug is
-        not fixed in the harness phase; this test only locks the route.
-        """
+        """The print button targets /contracts/pdf/<id>."""
         employee = self.env["hr.employee"].create({"name": "KV TEST PDF"})
         employee.write({
             "contract_date_start": date(2026, 1, 1),
@@ -105,3 +100,55 @@ class TestContractAutonumber(TransactionCase):
         action = employee.action_kv_print_contract()
         self.assertEqual(action.get("type"), "ir.actions.act_url")
         self.assertIn(f"/contracts/pdf/{employee.version_id.id}", action.get("url") or "")
+
+
+    def _create_contract_employee(self, name, **vals):
+        employee = self.env["hr.employee"].create({"name": name})
+        payload = {
+            "contract_date_start": date(2026, 1, 1),
+            "contract_date_end": date(2026, 12, 31),
+            "wage": 5_000_000,
+        }
+        payload.update(vals)
+        employee.write(payload)
+        return employee
+
+    def test_create_pdf_with_missing_optional_dates(self):
+        """Sparse records (no birthday / ID issue date) must still yield a PDF."""
+        from odoo.addons.kv_hr_contract.models.kv_pdf_contract_controller import (
+            create_pdf,
+        )
+
+        employee = self._create_contract_employee("KV TEST PDF SPARSE")
+        pdf = create_pdf(employee.version_id)
+        self.assertTrue(pdf.startswith(b"%PDF"), "expected a PDF header")
+        self.assertGreater(len(pdf), 1000)
+
+    def test_create_pdf_with_indefinite_contract_and_full_id(self):
+        from odoo.addons.kv_hr_contract.models.kv_pdf_contract_controller import (
+            create_pdf,
+        )
+
+        employee = self._create_contract_employee(
+            "KV TEST PDF FULL",
+            contract_date_end=False,
+            birthday=date(1990, 5, 20),
+            identification_id="001234567890",
+            identification_date=date(2015, 3, 15),
+            identification_by="Cuc Canh Sat",
+            emp_permanent_address="1 Le Loi",
+            emp_temporary_address="2 Nguyen Hue",
+        )
+        pdf = create_pdf(employee.version_id)
+        self.assertTrue(pdf.startswith(b"%PDF"))
+        self.assertGreater(len(pdf), 1000)
+
+    def test_create_pdf_without_contract_start_does_not_crash(self):
+        from odoo.addons.kv_hr_contract.models.kv_pdf_contract_controller import (
+            create_pdf,
+        )
+
+        employee = self.env["hr.employee"].create({"name": "KV TEST PDF NO START"})
+        pdf = create_pdf(employee.version_id)
+        self.assertTrue(pdf.startswith(b"%PDF"))
+
