@@ -59,7 +59,8 @@ def detect_roots() -> tuple[Path, Path, Path]:
         Path("/opt/odoo"),
         Path("/home/debian1/kv-odoo-19-upgrade/odoo-19.0"),
         repo.parent / "odoo-19.0",
-        repo / "odoo",  # last-resort: tree vendored inside the git repo
+        repo,  # full tree: ./addons + ./odoo (GitHub CI checkout)
+        repo / "odoo",
     ]
     odoo_root = None
     for c in candidates:
@@ -266,6 +267,18 @@ def main():
         addons = odoo_root / "addons"
     if args.custom_root:
         custom = args.custom_root
+
+    hr_attendance_view = addons / "hr_attendance" / "views" / "hr_attendance_view.xml"
+    if hr_attendance_view.is_file():
+        hr_arch = hr_attendance_view.read_text(encoding="utf-8", errors="replace")
+        if 'name="in_city"' in hr_arch and 'name="in_location"' not in hr_arch:
+            print(
+                "xpath_check: SKIP vendored hr_attendance uses pre-19 geo fields "
+                "(in_city); custom inherits target in_location as on image kv-odoo:19. "
+                "Re-run on the company server or after refreshing vendored addons."
+            )
+            sys.exit(0)
+
     modules = load_module_list(script_dir)
     core = collect_core(odoo_root, addons, modules)
     custom_recs = collect_custom(custom, modules)
