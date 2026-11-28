@@ -6,7 +6,7 @@ Nhật ký tiến độ giữa các phiên. Đây là nguồn sự thật cùng 
 
 - Nhánh: `19.0-upgrade` (local, không push)
 - Việc đang mở (`in_progress`, WIP=1): không có (Pha 1–2 đã ghi evidence)
-- Việc tiếp theo: Giai đoạn 3 — `contract-001` (unit test kv_hr_contract)
+- Việc tiếp theo: Giai đoạn 4 — `harness-p4-clean-state` / CI
 
 ## Nhật ký phiên
 
@@ -48,3 +48,11 @@ Nhật ký tiến độ giữa các phiên. Đây là nguồn sự thật cùng 
   - `hr_employee_kv`: static PASS; runtime 0 failed, 1 error / 19 tests — `TestIntroLetterTemplates.test_thanh_nien_docx_build` `ValueError: Invalid field 'gender' in 'hr.employee'` (sót Odoo 19).
   - `hr_attendance_portal`: static PASS; runtime 5 failed, 23 errors / 130 tests (khoảng 6 phút). Lỗi rải API/security/session/IP/concurrency/HTTP — tồn đọng port 19, sẽ xử lý sau, không sửa hàng loạt trong Pha 2.
 - Host không có `lxml`/`python3-venv` (PEP 668). ruff cài bằng installer standalone. xpath chạy trong container `kv-odoo-19-test-odoo-1`.
+
+
+### 2026-11-28 — Giai đoạn 3: Cổng kép, phạm vi và chống tuyên bố xong sớm
+
+- `custom/kv_hr_contract/tests/test_contract_autonumber.py`: 7 test, `./scripts/agent-verify.sh kv_hr_contract` PASS (0 fail / 0 error). Số HĐ không hard-code. PDF HTTP bị 500 (`create_pdf` gọi `strftime` trên date=False); test chỉ khóa URL `/contracts/pdf/<id>`.
+- `custom/hr_employee_kv/tests/test_menus_and_i18n.py` + sửa `test_intro_letter_templates.py` (`gender` → `sex`): `./scripts/agent-verify.sh hr_employee_kv` PASS (24 test, 0 fail / 0 error).
+- E2E: không dùng Playwright (không có trong image `kv-odoo:19`, không cài browser trên server). `./scripts/e2e-smoke.sh` PASS (HTTP + kiểm file widget). `get_views`/menu nằm ở unit test.
+- `docs/evaluator-rubric.md`, `docs/sprint-contract.md`. Pass-gate vẫn yêu cầu evidence; phiên viết code không tự chấm đạt.

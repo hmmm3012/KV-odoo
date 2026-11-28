@@ -49,3 +49,6 @@ Không sửa core `odoo/` hay `addons/`.
 - `custom/docs/ACM_Agent_Operating_Guide v0.1.md` — hướng dẫn ACM cũ (tham khảo, không thay harness này)
 - `feature_list.json` — nguồn chân lý về việc cần làm và evidence
 - `PROGRESS.md` — nhật ký tiến độ giữa các phiên
+- `docs/evaluator-rubric.md`, `docs/sprint-contract.md` — chấm tách biệt và hợp đồng sprint UI
+- `scripts/e2e-smoke.sh` — smoke HTTP (không dùng Playwright)
+- `scripts/agent-verify.sh`, `scripts/agent-reset-testdb.sh` — kiểm chứng đầy đủ trên DB tạm

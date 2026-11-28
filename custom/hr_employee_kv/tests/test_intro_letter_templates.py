@@ -14,7 +14,7 @@ class TestIntroLetterTemplates(TransactionCase):
             {
                 "name": "Nguyễn Văn Test",
                 "company_id": company.id,
-                "gender": "male",
+                "sex": "male",
             }
         )
         wizard = self.env["hr.employee.intro.letter.wizard"].create(
