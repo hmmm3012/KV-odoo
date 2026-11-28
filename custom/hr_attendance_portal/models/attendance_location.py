@@ -340,28 +340,6 @@ class HrAttendanceLocation(models.Model):
             return False
         return float(gps_accuracy) > cap
 
-    def _accuracy_circle_inside(self, latitude, longitude, gps_accuracy):
-        """True when the accuracy circle sits entirely inside a containing fence.
-
-        A missing accuracy cannot be checked and is treated as fitting when the
-        point itself is inside. A positive accuracy must leave at least that
-        many meters between the point and the fence boundary.
-        """
-        self.ensure_one()
-        if not gps_accuracy:
-            return self._contains_gps(latitude, longitude)
-        accuracy = float(gps_accuracy)
-        if accuracy <= 0:
-            return self._contains_gps(latitude, longitude)
-        if self._uses_polygon():
-            return any(
-                zone._contains_gps(latitude, longitude)
-                and zone._interior_margin_m(latitude, longitude) + 1e-3 >= accuracy
-                for zone in self._polygon_zones()
-            )
-        margin = self.allowed_radius_meters - self._distance_meters(latitude, longitude)
-        return margin + 1e-3 >= accuracy
-
     def _gps_fix_trusted(self, latitude, longitude, gps_accuracy):
         """True when this fix may decide the workplace ahead of public IP."""
         self.ensure_one()
@@ -369,7 +347,7 @@ class HrAttendanceLocation(models.Model):
             return False
         if self._gps_reading_exceeds_cap(gps_accuracy):
             return False
-        return self._accuracy_circle_inside(latitude, longitude, gps_accuracy)
+        return True
 
     def _fence_area_m2(self):
         self.ensure_one()
@@ -631,8 +609,8 @@ class HrAttendanceLocation(models.Model):
     def _match_gps_for_employee(self, employee, latitude, longitude, gps_accuracy=None, client_ip=None):
         """GPS geofence match. Untrusted fixes are not selected here.
 
-        A fix is trusted when it is inside a fence, within that workplace's
-        accuracy cap, and the accuracy circle sits inside the fence. Home is
+        A fix is trusted when it is inside a fence and within that workplace's
+        accuracy cap (``max_gps_accuracy_meters``; 0 disables the cap). Home is
         preferred when it is trusted; otherwise the smallest trusted zone.
         If fences contain the point but none of the fixes are trusted, the
         home (or smallest) containing workplace is returned with gps_inaccurate
@@ -653,12 +631,12 @@ class HrAttendanceLocation(models.Model):
     def _match_for_employee(self, employee, latitude, longitude, gps_accuracy=None, client_ip=None):
         """Return (location, department, reason_code, distance).
 
-        A trusted GPS fix wins: inside a fence, accuracy within that
-        workplace's cap, and the accuracy circle sitting inside the fence.
-        Home is preferred, otherwise the smallest containing zone.
+        A trusted GPS fix wins: inside a fence and accuracy within that
+        workplace's cap (0 disables the cap). Home is preferred, otherwise the
+        smallest containing zone.
 
-        An untrusted point (missing, outside every fence, worse than the
-        accuracy cap, or too coarse to sit inside the fence) falls through to
+        An untrusted point (missing, outside every fence, or worse than the
+        accuracy cap) falls through to
         a unique public-IP allowlist match. That match is a success only when
         WiFi punch is enabled. If the point was inside a fence but untrusted
         and no IP matches, the result is gps_inaccurate for that fence.
