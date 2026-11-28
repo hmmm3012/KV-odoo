@@ -412,7 +412,28 @@ class HrEmployee(models.Model):
 
         Later edits of those timestamps are rejected. The portal and kiosk
         both go through this method.
+
+        Odoo 19 replaced in_city/in_country_name with in_location. The stock
+        helper writes in_<key> for every geo key, so drop unknown keys and
+        map the old city/country pair onto location.
         """
         return super(
             HrEmployee, self.with_context(attendance_original_punch=True)
-        )._attendance_action_change(geo_information)
+        )._attendance_action_change(self._portal_geo_information(geo_information))
+
+    def _portal_geo_information(self, geo_information):
+        if not geo_information:
+            return geo_information
+        geo = dict(geo_information)
+        if "location" not in geo:
+            location = ", ".join(
+                part for part in (geo.pop("city", None), geo.pop("country_name", None)) if part
+            )
+            if location:
+                geo["location"] = location
+        Attendance = self.env["hr.attendance"]
+        return {
+            key: value
+            for key, value in geo.items()
+            if ("in_%s" % key) in Attendance._fields
+        }

@@ -6,7 +6,7 @@ Nhật ký tiến độ giữa các phiên. Đây là nguồn sự thật cùng 
 
 - Nhánh: `19.0-upgrade` (local, không push)
 - Việc đang mở (`in_progress`, WIP=1): không có
-- Việc tiếp theo: sửa test/bug `hr_attendance_portal` (5 fail + 23 error / 130), rồi thêm `i18n/vi.po`
+- Việc tiếp theo: thêm `i18n/vi.po` cho `hr_department_access` và `kv_hr_contract`
 
 ## Nhật ký phiên
 
@@ -80,4 +80,18 @@ Nợ sản phẩm còn lại (không thuộc harness): test `hr_attendance_porta
 - Nguyên nhân (Odoo 19): `hr.employee` `_inherits` `hr.version`. Version đầu được tạo *trước* khi có dòng nhân viên (`employee_id` trống) nên domain chỉ nhìn `employee_id.department_id` chặn hire hợp lệ. Sau đó `hr.employee._create` gọi `check_access("create")` trước khi gắn version, nên `department_id` (inherited) vẫn trống.
 - Cách sửa: domain `hr.version` cho phép version chưa có `employee_id` khi `department_id` thuộc phạm vi (không OR trần `department_id` để tránh gán version cho NV ngoài phạm vi). Với `hr.employee` create, bỏ record rule (trống lúc check) và kiểm tra `department_id` từ vals. `hr_attendance_portal` chuyển tiếp tham số `mode`. Version `hr_department_access` 19.0.1.0.1, `hr_attendance_portal` 19.0.1.1.1.
 - Trước: 1 error / 6 tests. Sau: `./scripts/agent-verify.sh hr_department_access` EXIT 0, ~70s, **0 failed, 0 error(s) of 6 tests**.
+
+### 2026-11-28 — Sửa test/bug hr_attendance_portal trên Odoo 19 (staging 19)
+
+- Trước: 5 failed + 23 error / 130 tests. Sau: `./scripts/agent-verify.sh hr_attendance_portal` EXIT 0, 354s, **0 failed, 0 error(s) of 130 tests**. Version `19.0.1.1.2`.
+- Bug thật (sửa code):
+  - Odoo 19 đổi `in_city`/`in_country_name` thành `in_location`. Portal vẫn truyền `city`/`country_name` nên `_attendance_action_change` ghi field không tồn tại (20 error). Map sang `location` và lọc key hợp lệ.
+  - `_location_display_name` ưu tiên tên phòng ban thay vì tên bãi (workplace).
+  - `order="complete_name"` trên `hr.department` lỗi vì field không còn stored.
+  - Đội trưởng đọc `department.member_ids` / `employee.department_id` đụng `version_id` (groups `hr.group_hr_user`) → AccessError khi mở/lưu lịch OFF. Đọc bằng sudo.
+- Test chỉnh (không xóa/skip), vì test lệch hành vi hoặc phụ thuộc cấu hình DB template:
+  - Ca mở từ 22/10 quá ngưỡng 12h → ghi chú đúng là "Quên giờ ra" (không còn "Chưa ra").
+  - `_session(20)` phải `check_out=False` (ca đóng 20 giờ sẽ chồng lên ca ngắn trong cùng test; `missing_checkout` chỉ đúng khi chưa ra).
+  - `location_name` thống nhất theo tên bãi.
+  - `test_face_not_enrolled_needs_review` set policy `needs_review` (DB template có thể đang để reject).
 

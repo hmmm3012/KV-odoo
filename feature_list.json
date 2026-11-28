@@ -310,6 +310,27 @@
         }
       ],
       "notes": "Module 19.0.1.0.1. Portal signature _hr_department_access_domain(..., mode=) forwarded (19.0.1.1.1)."
+    },
+    {
+      "id": "portal-001",
+      "priority": 1,
+      "area": "hr_attendance_portal",
+      "title": "Sửa 5 fail + 23 error unit test portal trên Odoo 19",
+      "user_visible_behavior": "Chấm công portal/kiosk không còn 500 vì in_city; tên bãi là tên workplace; đội trưởng mở được lịch OFF; bảng công ghi 'Quên giờ ra' khi hết hạn checkout.",
+      "status": "passing",
+      "passes": true,
+      "verification": [
+        "./scripts/agent-verify.sh hr_attendance_portal"
+      ],
+      "evidence": [
+        {
+          "command": "./scripts/agent-verify.sh hr_attendance_portal",
+          "result": "EXIT 0 in 354s; 0 failed, 0 error(s) of 130 tests (was 5 failed + 23 error / 130).",
+          "at": "2026-11-28 10:36 +07 (UTC+7)",
+          "notes": "Main code fixes: Odoo 19 geo keys (in_location not in_city), workplace display name, complete_name sort in Python, sudo for captain access to member_ids/department_id. Tests updated only where they lagged product behavior or company policy on the template DB. Filestore FileNotFound warnings remain (private empty volume vs cloned attachment rows) and are not test failures."
+        }
+      ],
+      "notes": "Module 19.0.1.1.2."
     }
   ]
 }

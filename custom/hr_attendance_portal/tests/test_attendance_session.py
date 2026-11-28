@@ -110,7 +110,10 @@ class TestAttendanceSession(AttendancePortalMixin, TransactionCase):
         self.assertAlmostEqual(counted.recognized_regular_hours, 0.0, places=4)
         self.assertFalse(self.env["hr.attendance"].search([("id", "=", counted.id)] + domain))
 
-        forgotten = self._session(20)
+        # Must stay open: a 20-hour closed slice would overlap the short
+        # sessions already created in this test, and missing_checkout only
+        # applies when there is no check-out.
+        forgotten = self._session(20, check_out=False)
         self.assertEqual(forgotten.exception_code, "missing_checkout")
         self.assertEqual(forgotten.recognized_regular_hours, 0)
         self.assertTrue(self.env["hr.attendance"].search([("id", "=", forgotten.id)] + domain))

@@ -210,7 +210,7 @@ class TestAttendancePublicIp(AttendancePortalMixin, TransactionCase):
             )
         self.assertTrue(result["ok"])
         self.assertEqual(result["result"], "success")
-        self.assertEqual(result["location_name"], "Portal Site")
+        self.assertEqual(result["location_name"], "Van Phong HCM")
         attendance = self.env["hr.attendance"].search(
             [("employee_id", "=", self.employee.id)], limit=1
         )
@@ -227,7 +227,7 @@ class TestAttendancePublicIp(AttendancePortalMixin, TransactionCase):
         with patch.object(type(self.portal), "_client_ip", return_value="198.51.100.10"):
             result = self._register(token, "check_in", request_id="gps-wins")
         self.assertTrue(result["ok"])
-        self.assertEqual(result["location_name"], "Portal Site")
+        self.assertEqual(result["location_name"], "Van Phong HCM")
         attendance = self.env["hr.attendance"].search(
             [("employee_id", "=", self.employee.id)], limit=1
         )

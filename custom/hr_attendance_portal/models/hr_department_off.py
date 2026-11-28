@@ -64,15 +64,18 @@ class HrDepartmentOff(models.Model):
     @api.depends("employee_id")
     def _compute_department_id(self):
         for off in self:
-            if off.employee_id.department_id:
-                off.department_id = off.employee_id.department_id
+            # department_id lives on hr.version in Odoo 19; captains may not
+            # have hr.group_hr_user and cannot read version_id directly.
+            employee = off.employee_id.sudo()
+            if employee.department_id:
+                off.department_id = employee.department_id
 
     @api.depends("employee_id")
     def _compute_shift(self):
         Timesheet = self.env["hr.attendance.timesheet.wizard"]
         for off in self:
             if off.employee_id:
-                off.shift = Timesheet._employee_work_shift_kind(off.employee_id)
+                off.shift = Timesheet._employee_work_shift_kind(off.employee_id.sudo())
             elif not off.shift:
                 off.shift = "day"
 
@@ -181,9 +184,10 @@ class HrDepartmentOff(models.Model):
 
     @api.model
     def off_calendar_departments(self):
-        departments = self.env["hr.department"].search(
-            self._off_calendar_department_domain(), order="complete_name"
-        )
+        departments = self.env["hr.department"].search(self._off_calendar_department_domain())
+        # complete_name is no longer stored in Odoo 19, so it cannot be used
+        # as a SQL order. Sort in Python and still display the complete name.
+        departments = departments.sorted(lambda dep: (dep.complete_name or dep.name or "").casefold())
         return [{"id": department.id, "name": department.complete_name} for department in departments]
 
     @api.model
@@ -196,7 +200,7 @@ class HrDepartmentOff(models.Model):
             ("date", "<=", date_to),
         ])
         Timesheet = self.env["hr.attendance.timesheet.wizard"]
-        employees = (department.member_ids | offs.employee_id).sorted(
+        employees = (department.sudo().member_ids | offs.employee_id).sorted(
             lambda employee: (employee.name or "").casefold()
         )
         days = {}
@@ -244,7 +248,7 @@ class HrDepartmentOff(models.Model):
             ("date", ">=", date_from),
             ("date", "<=", date_to),
         ])
-        allowed_ids = set((department.member_ids | existing.employee_id).ids)
+        allowed_ids = set((department.sudo().member_ids | existing.employee_id).ids)
         desired = {}
         for day_key, shifts in (offs or {}).items():
             day = fields.Date.to_date(day_key)

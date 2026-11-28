@@ -96,7 +96,9 @@ class TestAttendancePortalAPI(AttendancePortalMixin, TransactionCase):
         self.assertEqual(sheet["total_overtime_hours"], "0:00")
         self.assertEqual(sheet["rows"][1]["check_in"], "06:30")
         self.assertEqual(sheet["rows"][1]["check_out"], "")
-        self.assertEqual(sheet["rows"][1]["note"], "Chưa ra")
+        # Open since 22/10, more than attendance_missing_checkout_hours (12h)
+        # before "now" (test day in late November 2026) → forgotten checkout.
+        self.assertEqual(sheet["rows"][1]["note"], "Quên giờ ra")
         self.assertNotIn(other.name, str(sheet["rows"]))
         self.assertTrue(open_shift)
         missing = self.portal.attendance_sheet(year=13, month=2026, token=token)
@@ -330,6 +332,7 @@ class TestAttendancePortalAPI(AttendancePortalMixin, TransactionCase):
             "force_reject": False,
             "cosine": None,
         }
+        self.company.attendance_portal_face_not_enrolled_policy = "needs_review"
         _, token = self._issue_token()
         result = self._register(token, "check_in", request_id="face-not-enrolled")
         self.assertTrue(result["ok"])
@@ -467,7 +470,7 @@ class TestAttendancePortalAPI(AttendancePortalMixin, TransactionCase):
             longitude=105.8542,
         )
         self.assertTrue(result["ok"])
-        self.assertEqual(result["location_name"], "Other Department")
+        self.assertEqual(result["location_name"], "Other Site")
         self.assertFalse(result["error"])
         attendance = self.env["hr.attendance"].search([("employee_id", "=", self.employee.id)], limit=1)
         self.assertEqual(attendance.in_department_id, other_department)

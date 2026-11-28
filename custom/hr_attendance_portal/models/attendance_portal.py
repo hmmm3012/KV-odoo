@@ -592,9 +592,10 @@ class HrAttendancePortal(models.AbstractModel):
         return self.env["hr.department"].browse()
 
     def _location_display_name(self, location, department=None):
-        if department:
-            return department.name or False
-        return location.name if location else False
+        """Show the workplace name; fall back to the department only if needed."""
+        if location:
+            return location.name or False
+        return department.name if department else False
 
     def _validate_location(self, employee, source, latitude, longitude, gps_accuracy, device):
         company = employee.company_id
@@ -745,9 +746,11 @@ class HrAttendancePortal(models.AbstractModel):
             event = self._create_event(event_vals)
             return self._event_payload(event)
 
+        location_label = ", ".join(
+            part for part in (self._geoip_city(), self._geoip_country()) if part
+        ) or False
         geo_information = {
-            "city": self._geoip_city() or False,
-            "country_name": self._geoip_country() or False,
+            "location": location_label,
             "latitude": latitude or False,
             "longitude": longitude or False,
             "ip_address": ip_address or False,
