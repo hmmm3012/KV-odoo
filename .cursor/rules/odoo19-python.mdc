@@ -1,0 +1,16 @@
+---
+description: Quy ước Python Odoo 19 cho module custom Kiến Việt
+globs: custom/**/*.py,scripts/**/*.py
+alwaysApply: false
+---
+
+# Python Odoo 19 (custom/)
+
+- Chỉ sửa `custom/` và `scripts/`. Không sửa core `odoo/` hay `addons/`.
+- Hợp đồng: inherit `hr.version`, không dùng model `hr.contract`.
+- Giới tính nhân viên: ghi field `sex`, không ghi `gender`. Parser CCCD được trả khóa dict nội bộ `"gender"` rồi map sang `sex` trong `_id_card_fields()`.
+- Ràng buộc: `models.Constraint`, không `_sql_constraints`.
+- HTTP JSON: `type="jsonrpc"`, không `type="json"`.
+- Test đặt trong thư mục tests của module (ví dụ `custom/hr_employee_kv/tests/`). Dùng dữ liệu tổng hợp, không dùng nhân sự / CCCD thật. Module kv_hr_contract hiện chưa có thư mục tests.
+- Không đọc hay in mật khẩu, API key, hay `.env`.
+- Chi tiết: `docs/ODOO19.md`. Kiểm chứng nền: `./init.sh`. Lệnh verify đầy đủ trên DB tạm sẽ được thêm ở Giai đoạn 2.

@@ -1,0 +1,13 @@
+---
+description: Quy ước dịch tiếng Việt cho module custom Odoo 19 Kiến Việt
+globs: custom/**/i18n/**,custom/**/*.po,custom/**/*.pot
+alwaysApply: false
+---
+
+# i18n tiếng Việt
+
+- Chuỗi UI mới trong `custom/` phải có bản dịch tiếng Việt trong đúng module. Hiện đã có `custom/hr_attendance_portal/i18n/vi.po` và `custom/hr_employee_kv/i18n/vi.po`.
+- Odoo 19 lưu một số bản dịch trên cột `jsonb`, không còn bảng `ir_translation`.
+- Giữ đúng thuật ngữ đã dùng trên hệ thống: tab **Hợp đồng & Lương**; nhóm `Department Captain` dịch là **Đội trưởng bộ phận** (không dùng "Đội trưởng bãi" trong code hay PO).
+- Không nhét dữ liệu nhân sự thật, số CCCD, hay lương thật vào file dịch hoặc test.
+- Chi tiết: `docs/ODOO19.md`.

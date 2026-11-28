@@ -1,0 +1,13 @@
+---
+description: An toàn production, staging 18, mốc 16:00 UTC+7 và dữ liệu nhạy cảm
+alwaysApply: true
+---
+
+# An toàn deploy
+
+- **CẤM** đụng, restart, hay chạy lệnh lên production (`/home/debian1/KV-odoo`, compose `kv-odoo`, `hrmkienviet.ddns.net`) và staging Odoo 18 (`/home/debian1/KV-odoo-staging`, compose `kv-odoo-staging`).
+- Không gây downtime server công ty từ 16:00 UTC+7. Stack test `kv-odoo-19-test` / `odoo.psm.im` không phải production, nhưng production vẫn không đụng bất kỳ giờ nào.
+- Chỉ làm việc với project Docker `kv-odoo-19-test`. Không làm bẩn DB `odoo_19_test` (DB test tay). Kiểm chứng đầy đủ trên DB tạm. Nếu buộc phải cập nhật `odoo_19_test`, chạy lại `/home/debian1/kv-odoo-19-upgrade/scripts/rehearsal-resanitize.sql`.
+- Không commit mật khẩu, API key, `.env`, dump DB, hay dữ liệu nhân sự / ảnh CCCD thật.
+- Không `git push` trừ khi được yêu cầu rõ. Nhánh làm việc: `19.0-upgrade`.
+- Chi tiết: `docs/SAFETY.md`. Mỗi phiên bắt đầu bằng `./init.sh`.

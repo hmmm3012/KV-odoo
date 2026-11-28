@@ -1,0 +1,15 @@
+---
+description: Quy ước view XML / QWeb / OWL Odoo 19 cho module custom Kiến Việt
+globs: custom/**/*.xml,custom/**/*.js
+alwaysApply: false
+---
+
+# Views và OWL (custom/)
+
+- Inherit bằng XPath hẹp, không copy nguyên form gốc.
+- Mọi view kế thừa phải được kiểm XPath trên đúng stack 73 module chỉ HR. Không giả định còn `project`, `hr_timesheet`, `account`, hay `stock`. Script kiểm sẽ có ở Giai đoạn 2.
+- Menu Thảo luận và Lịch đang ẩn trong `custom/hr_employee_kv/views/hide_unused_menus.xml` — đừng gỡ `mail` / `calendar`.
+- Widget CCCD: `kv_id_card_autofill`. Upload ảnh không tự chạy QR/OCR; chỉ chạy khi bấm **Tự nhập thông tin**.
+- Asset backend khai báo trong manifest của module (ví dụ `custom/hr_employee_kv/__manifest__.py`) → `web.assets_backend`.
+- Chuỗi UI mới phải dịch tiếng Việt (ví dụ `custom/hr_employee_kv/i18n/vi.po`; `hr_department_access` và `kv_hr_contract` hiện chưa có file dịch).
+- Chi tiết: `docs/ODOO19.md`, `docs/ARCHITECTURE.md`.

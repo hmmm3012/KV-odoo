@@ -1,0 +1,186 @@
+{
+  "project": "kv-odoo-19",
+  "last_updated": "2026-11-28",
+  "rules": {
+    "single_active_feature": true,
+    "passing_requires_evidence": true,
+    "do_not_skip_verification": true
+  },
+  "features": [
+    {
+      "id": "harness-p1-system-of-record",
+      "priority": 1,
+      "area": "harness",
+      "phase": 1,
+      "title": "System of record: AGENTS.md, docs/, init.sh, feature_list.json, PROGRESS.md, .cursor/rules",
+      "user_visible_behavior": "Một phiên agent mới, không có lịch sử chat, chạy ./init.sh là biết hệ thống là gì, tổ chức ra sao, chạy thế nào, kiểm chứng thế nào, và đang làm dở tới đâu.",
+      "status": "passing",
+      "passes": true,
+      "verification": [
+        "./init.sh  (exit 0, hoàn thành dưới 10s)",
+        "AGENTS.md dài 50-200 dòng; mọi path nêu trong AGENTS.md và .cursor/rules đều tồn tại trên đĩa",
+        "python3 -m json.tool feature_list.json"
+      ],
+      "evidence": [
+        {
+          "at": "2026-11-28 09:09 +07 (UTC+7)",
+          "commands": [
+            "./init.sh -> exit 0; lần chạy nguội 10.512s (compileall lần đầu), hai lần sau 0.912s và 0.819s",
+            "wc -l AGENTS.md -> 50 dòng (trong khoảng 50-200)",
+            "python3 -m json.tool feature_list.json -> OK",
+            "mọi path trong AGENTS.md và .cursor/rules/*.mdc đều tồn tại trên đĩa (35 path)"
+          ],
+          "notes": "HTTP 127.0.0.1:8269/web/login và /attendance = 200; container kv-odoo-19-test đang chạy. Không đụng production / staging 18."
+        }
+      ],
+      "notes": "Giai đoạn 1 chỉ dựng hạ tầng vận hành, không viết tính năng sản phẩm."
+    },
+    {
+      "id": "harness-p2-agent-verify",
+      "priority": 2,
+      "area": "harness",
+      "phase": 2,
+      "title": "Đóng gói scripts/agent-verify.sh thành định nghĩa hoàn thành",
+      "user_visible_behavior": "Một lệnh ./scripts/agent-verify.sh <module> chạy từ nhanh đến chậm (ruff, compileall, XML, xpath, linter bất biến, nâng cấp và unit test trên DB tạm) rồi tóm tắt PASS/FAIL theo cổng.",
+      "status": "not_started",
+      "passes": false,
+      "verification": [
+        "./scripts/agent-verify.sh hr_employee_kv",
+        "./scripts/agent-verify.sh hr_attendance_portal",
+        "./scripts/agent-verify.sh hr_department_access",
+        "./scripts/agent-verify.sh kv_hr_contract"
+      ],
+      "evidence": [],
+      "notes": "Makefile (init, verify, test, upgrade, reset-db) đi kèm."
+    },
+    {
+      "id": "harness-p2-testdb-template",
+      "priority": 3,
+      "area": "harness",
+      "phase": 2,
+      "title": "Tách DB test dùng một lần khỏi odoo_19_test",
+      "user_visible_behavior": "scripts/agent-reset-testdb.sh tạo DB tạm từ template, agent-verify.sh không ghi vào odoo_19_test / odoo.psm.im, và xóa DB tạm khi xong.",
+      "status": "not_started",
+      "passes": false,
+      "verification": [
+        "./scripts/agent-reset-testdb.sh --print-only hoặc tạo rồi xóa một DB tạm",
+        "psql \\l xác nhận odoo_19_test vẫn còn; không restart production"
+      ],
+      "evidence": [],
+      "notes": "Template nên tạo bằng pg_dump/restore để không ngắt kết nối Odoo đang phục vụ odoo.psm.im."
+    },
+    {
+      "id": "harness-p2-invariants-linter",
+      "priority": 4,
+      "area": "harness",
+      "phase": 2,
+      "title": "Custom linter bất biến Odoo 19 + ruff cho custom/",
+      "user_visible_behavior": "scripts/check-odoo19-invariants.py bắt sửa core, hr.contract, field gender trên model, _sql_constraints, type=json, và hostname production trong script. Lỗi chỉ cách sửa.",
+      "status": "not_started",
+      "passes": false,
+      "verification": [
+        "python3 scripts/check-odoo19-invariants.py",
+        "ruff check custom/",
+        "pyproject.toml tồn tại và Makefile có target verify"
+      ],
+      "evidence": [],
+      "notes": "Parser CCCD được phép dùng khóa dict nội bộ 'gender' rồi map sang sex."
+    },
+    {
+      "id": "contract-001",
+      "priority": 5,
+      "area": "kv_hr_contract",
+      "phase": 3,
+      "title": "Unit test cấp số hợp đồng HD.YYYY.NNN",
+      "user_visible_behavior": "Hợp đồng mới nhận số HD.YYYY.NNN; gia hạn cấp số mới; đổi lương giữ nguyên số cũ; PDF /contracts/pdf/<id> tải được.",
+      "status": "not_started",
+      "passes": false,
+      "verification": [
+        "./scripts/agent-verify.sh kv_hr_contract",
+        "Test autonumber, renew, salary change và PDF đều PASS"
+      ],
+      "evidence": [],
+      "notes": "Module đang có 0 file test trong repo. Bản shell rollback sẵn có ở /home/debian1/kv-odoo-19-upgrade/tests/test_contract_autonumber.py (không hard-code số thứ tự phụ thuộc DB tay)."
+    },
+    {
+      "id": "harness-p3-menus-i18n-smoke",
+      "priority": 6,
+      "area": "hr_employee_kv",
+      "phase": 3,
+      "title": "Smoke test quyền, menu và i18n cho Admin / Nhân sự / Đội trưởng bộ phận",
+      "user_visible_behavior": "Unit test kiểm được menu chính (Liên hệ, Nhân viên, Chấm công, Ngày nghỉ), tab Hợp đồng & Lương, và nút Tự nhập thông tin không bị lệch nhóm quyền.",
+      "status": "not_started",
+      "passes": false,
+      "verification": [
+        "./scripts/agent-verify.sh hr_employee_kv",
+        "custom/hr_employee_kv/tests/test_menus_and_i18n.py PASS"
+      ],
+      "evidence": [],
+      "notes": ""
+    },
+    {
+      "id": "harness-p3-e2e-smoke",
+      "priority": 7,
+      "area": "harness",
+      "phase": 3,
+      "title": "Cổng end-to-end cho /web/login, /attendance, form Nhân viên, Ngày nghỉ",
+      "user_visible_behavior": "Một lệnh e2e (Playwright nếu cài được; nếu không thì HTTP + get_views theo role) kiểm login, cổng chấm công, form nhân viên và Ngày nghỉ.",
+      "status": "not_started",
+      "passes": false,
+      "verification": [
+        "scripts/e2e-smoke.mjs hoặc lệnh thay thế đã ghi trong PROGRESS.md chạy thật và PASS"
+      ],
+      "evidence": [],
+      "notes": "Nếu Playwright không có trong image kv-odoo:19, dùng phương án HTTP/JS asset + get_views và ghi rõ là thay thế, không bịt là đã chạy Playwright."
+    },
+    {
+      "id": "harness-p3-pass-gate-evaluator",
+      "priority": 8,
+      "area": "harness",
+      "phase": 3,
+      "title": "Pass-gate, evaluator tách biệt, sprint contract, tín hiệu quan sát",
+      "user_visible_behavior": "feature_list.json khóa passing khi thiếu evidence. docs/evaluator-rubric.md và docs/sprint-contract.md tồn tại. agent-verify.sh xuất traceback/HTTP/test/DB.",
+      "status": "not_started",
+      "passes": false,
+      "verification": [
+        "ls docs/evaluator-rubric.md docs/sprint-contract.md",
+        "agent-verify.sh in tín hiệu log/HTTP/DB"
+      ],
+      "evidence": [],
+      "notes": "Phiên viết code không tự chấm đạt."
+    },
+    {
+      "id": "harness-p4-clean-state",
+      "priority": 9,
+      "area": "harness",
+      "phase": 4,
+      "title": "Clean-state, QUALITY.md, dọn entropy, kiểm tra i18n và doc-drift",
+      "user_visible_behavior": "Phiên chỉ xong khi ./init.sh và cổng kiểm chứng vẫn chạy, PROGRESS/feature_list khớp thật, scripts/cleanup.sh idempotent, có docs/QUALITY.md và session-handoff.md.",
+      "status": "not_started",
+      "passes": false,
+      "verification": [
+        "./scripts/cleanup.sh && ./init.sh",
+        "python3 scripts/check-i18n-vi.py",
+        "python3 scripts/check-doc-drift.py"
+      ],
+      "evidence": [],
+      "notes": ""
+    },
+    {
+      "id": "harness-p4-ci",
+      "priority": 10,
+      "area": "harness",
+      "phase": 4,
+      "title": "GitHub Actions CI cho linter, XPath và unit test 4 module",
+      "user_visible_behavior": "Workflow .github/workflows/odoo19-ci.yml chạy được (hoặc có chú thích rõ nếu cần self-hosted runner vì image kv-odoo:19 chỉ có trên server).",
+      "status": "not_started",
+      "passes": false,
+      "verification": [
+        "file .github/workflows/odoo19-ci.yml tồn tại và được review",
+        "job tĩnh (linter/XPath) mô tả rõ; job Odoo ghi rõ runner yêu cầu"
+      ],
+      "evidence": [],
+      "notes": "Không bịt là CI đã chạy trên GitHub-hosted nếu thực tế chưa có runner."
+    }
+  ]
+}
