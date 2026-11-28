@@ -1,6 +1,6 @@
 {
     "name": "KV HR Contract",
-    "version": "19.0.1.2.1",
+    "version": "19.0.1.2.2",
     "license": "LGPL-3",
     "description": "A Custom Module for HR Contracts (Odoo 19: contracts live on hr.version)",
     "summary": "A Custom Module for HR Contracts",

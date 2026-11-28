@@ -1,6 +1,6 @@
 {
   "project": "kv-odoo-19",
-  "last_updated": "2026-11-28",
+  "last_updated": "2026-11-28 10:45 +07 (UTC+7)",
   "rules": {
     "single_active_feature": true,
     "passing_requires_evidence": true,
@@ -331,6 +331,29 @@
         }
       ],
       "notes": "Module 19.0.1.1.2."
+    },
+    {
+      "id": "i18n-001",
+      "priority": 1,
+      "area": "i18n",
+      "title": "Thêm i18n/vi.po cho hr_department_access và kv_hr_contract",
+      "user_visible_behavior": "Form user (Ủy quyền phòng ban, Phòng ban được ủy quyền) và form hợp đồng (Số hợp đồng, Năm hợp đồng, Hợp đồng nhân viên) hiện tiếng Việt; AccessError tạo NV ngoài phạm vi cũng ra tiếng Việt.",
+      "status": "passing",
+      "passes": true,
+      "verification": [
+        "python3 scripts/check-i18n-vi.py --strict",
+        "./scripts/agent-verify.sh hr_department_access",
+        "./scripts/agent-verify.sh kv_hr_contract"
+      ],
+      "evidence": [
+        {
+          "command": "python3 scripts/check-i18n-vi.py --strict; ./scripts/agent-verify.sh hr_department_access; ./scripts/agent-verify.sh kv_hr_contract",
+          "result": "check-i18n-vi --strict: no gaps found (EXIT 0). hr_department_access: 0 failed, 0 error(s) of 6 tests. kv_hr_contract: 0 failed, 0 error(s) of 10 tests. PO exported with official Odoo 19 `odoo-bin i18n export` then filled msgstr.",
+          "at": "2026-11-28 10:44 +07 (UTC+7)",
+          "notes": "Already-Vietnamese UI strings keep identical msgstr. English field labels translated: Authorized Departments, Department Authorization, Contract Number, Contract Year, Employee Contract, and the hire AccessError message."
+        }
+      ],
+      "notes": "hr_department_access 19.0.1.0.2; kv_hr_contract 19.0.1.2.2."
     }
   ]
 }

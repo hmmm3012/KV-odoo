@@ -95,3 +95,9 @@ Nợ sản phẩm còn lại (không thuộc harness): test `hr_attendance_porta
   - `location_name` thống nhất theo tên bãi.
   - `test_face_not_enrolled_needs_review` set policy `needs_review` (DB template có thể đang để reject).
 
+### 2026-11-28 — Thêm i18n/vi.po cho hr_department_access và kv_hr_contract (staging 19)
+
+- Nguyên nhân: hai module chưa có `i18n/vi.po`; `check-i18n-vi.py` (không `--strict`) chỉ báo thiếu file, không fail.
+- Cách làm: export chính thức bằng `odoo-bin i18n export -c /etc/odoo/odoo.conf -d odoo_19_test -l vi -o FILE MODULE` (Odoo 19, `-c` đứng sau subcommand; `-o` trên volume ghi được vì addons mount ro), rồi điền msgstr tiếng Việt. Giữ xmlid. Version `hr_department_access` 19.0.1.0.2, `kv_hr_contract` 19.0.1.2.2.
+- Trước: không có vi.po. Sau: `python3 scripts/check-i18n-vi.py --strict` EXIT 0 (no gaps); `./scripts/agent-verify.sh hr_department_access` 0 failed / 0 error / 6 tests; `./scripts/agent-verify.sh kv_hr_contract` 0 failed / 0 error / 10 tests.
+

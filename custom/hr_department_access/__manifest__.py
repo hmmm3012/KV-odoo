@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     "name": "HR Department Access",
-    "version": "19.0.1.0.1",
+    "version": "19.0.1.0.2",
     "category": "Human Resources",
     "summary": "Limit an HR user to selected departments and their sub-departments",
     "description": """
