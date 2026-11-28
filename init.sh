@@ -90,6 +90,21 @@ if [[ -f scripts/check-odoo19-invariants.py ]]; then
   fi
 fi
 
+if [[ -f scripts/check-i18n-vi.py ]]; then
+  if python3 scripts/check-i18n-vi.py; then
+    ok "scripts/check-i18n-vi.py"
+  else
+    bad "check-i18n-vi.py thất bại"
+  fi
+fi
+if [[ -f scripts/check-doc-drift.py ]]; then
+  if python3 scripts/check-doc-drift.py; then
+    ok "scripts/check-doc-drift.py"
+  else
+    bad "check-doc-drift.py thất bại"
+  fi
+fi
+
 hdr "feature_list.json và PROGRESS.md"
 if [[ -f feature_list.json ]]; then
   if python3 -m json.tool feature_list.json >/dev/null; then

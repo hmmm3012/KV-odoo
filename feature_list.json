@@ -229,14 +229,21 @@
       "phase": 4,
       "title": "Clean-state, QUALITY.md, dọn entropy, kiểm tra i18n và doc-drift",
       "user_visible_behavior": "Phiên chỉ xong khi ./init.sh và cổng kiểm chứng vẫn chạy, PROGRESS/feature_list khớp thật, scripts/cleanup.sh idempotent, có docs/QUALITY.md và session-handoff.md.",
-      "status": "not_started",
-      "passes": false,
+      "status": "passing",
+      "passes": true,
       "verification": [
         "./scripts/cleanup.sh && ./init.sh",
         "python3 scripts/check-i18n-vi.py",
         "python3 scripts/check-doc-drift.py"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "command": "./scripts/cleanup.sh; python3 scripts/check-i18n-vi.py; python3 scripts/check-doc-drift.py; ./init.sh; ./scripts/e2e-smoke.sh",
+          "result": "cleanup.sh EXIT 0 (idempotent); check-i18n-vi EXIT 0 (reports missing vi.po for hr_department_access and kv_hr_contract, not --strict); check-doc-drift checked 113 paths EXIT 0; init.sh EXIT 0; e2e-smoke.sh PASS. docs/QUALITY.md, docs/clean-state-checklist.md, session-handoff.md, docs/PR-REVIEW-PRODUCTION.md created.",
+          "at": "2026-11-28 ~09:50 +07 (UTC+7)",
+          "notes": "i18n gaps are pre-existing (two modules have no vi.po). Not marked as product pass."
+        }
+      ],
       "notes": ""
     },
     {
@@ -246,13 +253,20 @@
       "phase": 4,
       "title": "GitHub Actions CI cho linter, XPath và unit test 4 module",
       "user_visible_behavior": "Workflow .github/workflows/odoo19-ci.yml chạy được (hoặc có chú thích rõ nếu cần self-hosted runner vì image kv-odoo:19 chỉ có trên server).",
-      "status": "not_started",
-      "passes": false,
+      "status": "passing",
+      "passes": true,
       "verification": [
         "file .github/workflows/odoo19-ci.yml tồn tại và được review",
         "job tĩnh (linter/XPath) mô tả rõ; job Odoo ghi rõ runner yêu cầu"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "command": "wrote .github/workflows/odoo19-ci.yml; ran local equivalent of job static (ruff, compileall, invariants, xpath, i18n, doc-drift)",
+          "result": "Workflow file exists. Job static is designed for GitHub-hosted ubuntu-latest (ruff+lxml, no kv-odoo:19 needed). Job odoo-tests has if: false and runs-on: self-hosted because image kv-odoo:19 exists only on the company server and no self-hosted runner is registered. GitHub Actions itself has NOT been triggered (no push, as required). Local static equivalent: ruff OK, invariants OK, xpath 18 views 0 errors, compileall OK, check-i18n-vi OK, check-doc-drift OK.",
+          "at": "2026-11-28 ~09:50 +07 (UTC+7)",
+          "notes": "Do not claim GitHub-hosted CI or the unit-test job has run."
+        }
+      ],
       "notes": "Không bịt là CI đã chạy trên GitHub-hosted nếu thực tế chưa có runner."
     }
   ]

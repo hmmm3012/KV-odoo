@@ -33,3 +33,12 @@ invariants:
 
 xpath:
 	./scripts/agent-verify.sh --skip-runtime $(if $(MODULE),$(MODULE),hr_employee_kv)
+
+i18n:
+	python3 scripts/check-i18n-vi.py
+
+doc-drift:
+	python3 scripts/check-doc-drift.py
+
+cleanup:
+	./scripts/cleanup.sh

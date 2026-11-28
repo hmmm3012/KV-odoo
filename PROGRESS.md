@@ -5,8 +5,8 @@ Nhật ký tiến độ giữa các phiên. Đây là nguồn sự thật cùng 
 ## Trạng thái hiện tại
 
 - Nhánh: `19.0-upgrade` (local, không push)
-- Việc đang mở (`in_progress`, WIP=1): không có (Pha 1–2 đã ghi evidence)
-- Việc tiếp theo: Giai đoạn 4 — `harness-p4-clean-state` / CI
+- Việc đang mở (`in_progress`, WIP=1): không có (Pha 1–4 đã ghi evidence)
+- Việc tiếp theo: nợ sản phẩm ngoài harness (portal chấm công, AccessError `hr.version`, PDF hợp đồng); CI unit-test chờ self-hosted runner — chưa push, chưa trigger Actions
 
 ## Nhật ký phiên
 
@@ -56,3 +56,15 @@ Nhật ký tiến độ giữa các phiên. Đây là nguồn sự thật cùng 
 - `custom/hr_employee_kv/tests/test_menus_and_i18n.py` + sửa `test_intro_letter_templates.py` (`gender` → `sex`): `./scripts/agent-verify.sh hr_employee_kv` PASS (24 test, 0 fail / 0 error).
 - E2E: không dùng Playwright (không có trong image `kv-odoo:19`, không cài browser trên server). `./scripts/e2e-smoke.sh` PASS (HTTP + kiểm file widget). `get_views`/menu nằm ở unit test.
 - `docs/evaluator-rubric.md`, `docs/sprint-contract.md`. Pass-gate vẫn yêu cầu evidence; phiên viết code không tự chấm đạt.
+
+### 2026-11-28 — Giai đoạn 4: Clean-state, CI và chống entropy
+
+- `docs/QUALITY.md`, `docs/clean-state-checklist.md`, `docs/PR-REVIEW-PRODUCTION.md`, `session-handoff.md`.
+- `scripts/cleanup.sh` (idempotent, EXIT 0): dọn `/tmp/kv-odoo-agent-*`, leftover `odoo_19_agent_*` nếu có, `__pycache__` dưới custom/scripts. Không đụng `odoo_19_test` / template / production.
+- `scripts/check-i18n-vi.py` EXIT 0: `hr_department_access` và `kv_hr_contract` chưa có `i18n/vi.po` (nợ sẵn, không `--strict`).
+- `scripts/check-doc-drift.py` EXIT 0 (113 path trong AGENTS/docs/rules).
+- `.github/workflows/odoo19-ci.yml`: job `static` chạy được trên GitHub-hosted (ruff, lxml, xpath trên cây Odoo vendored). Job `odoo-tests` `if: false`, `runs-on: self-hosted` vì image `kv-odoo:19` chỉ có trên server công ty; **chưa đăng ký runner, chưa trigger GitHub Actions** (không push). Tương đương job static đã chạy local: PASS.
+- `./init.sh` (gắn thêm i18n + doc-drift) và `./scripts/e2e-smoke.sh` đều EXIT 0. HTTP login 200.
+
+Nợ sản phẩm còn lại (không thuộc harness): test `hr_attendance_portal` (5 fail + 23 error / 130), AccessError `hr.version` khi tạo NV trong `hr_department_access`, `create_pdf` 500 khi thiếu date.
+

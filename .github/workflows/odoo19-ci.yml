@@ -1,0 +1,54 @@
+# CI for the Kiến Việt Odoo 19 custom tree (branch 19.0-upgrade / 19.0).
+#
+# job "static" can run on GitHub-hosted runners (no Docker image required).
+# job "odoo-tests" needs a self-hosted runner that already has image kv-odoo:19
+# and access to /home/debian1/kv-odoo-19-upgrade. That image is NOT published
+# to GitHub Container Registry; this job is written here but will stay skipped
+# until a self-hosted runner is registered. Do not claim it has run.
+name: odoo19-ci
+
+on:
+  push:
+    branches: ["19.0-upgrade", "19.0"]
+  pull_request:
+    branches: ["19.0-upgrade", "19.0"]
+
+jobs:
+  static:
+    name: Linters, XML, XPath, invariants
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install ruff and lxml
+        run: pip install "ruff>=0.8" lxml
+      - name: ruff
+        run: ruff check custom/
+      - name: compileall
+        run: python3 -m compileall -q custom/ scripts/
+      - name: Odoo 19 invariants
+        run: python3 scripts/check-odoo19-invariants.py
+      - name: i18n and doc-drift
+        run: |
+          python3 scripts/check-i18n-vi.py
+          python3 scripts/check-doc-drift.py
+      - name: xpath_check on vendored Odoo 19 + custom
+        run: python3 scripts/xpath_check.py --all-custom
+
+  odoo-tests:
+    name: Unit tests on image kv-odoo:19 (self-hosted)
+    # Requires a self-hosted runner with Docker image kv-odoo:19 and the
+    # isolated compose project kv-odoo-19-test. Image exists only on the
+    # company server. Keep this job skipped on GitHub-hosted until then.
+    if: ${{ false }}
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify isolated environment
+        run: |
+          test -x ./scripts/agent-verify.sh
+          ./scripts/agent-reset-testdb.sh --print-status
+      - name: agent-verify all custom modules on temp DBs
+        run: ./scripts/agent-verify.sh --all

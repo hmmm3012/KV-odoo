@@ -52,3 +52,6 @@ Không sửa core `odoo/` hay `addons/`.
 - `docs/evaluator-rubric.md`, `docs/sprint-contract.md` — chấm tách biệt và hợp đồng sprint UI
 - `scripts/e2e-smoke.sh` — smoke HTTP (không dùng Playwright)
 - `scripts/agent-verify.sh`, `scripts/agent-reset-testdb.sh` — kiểm chứng đầy đủ trên DB tạm
+- `docs/QUALITY.md`, `docs/clean-state-checklist.md`, `docs/PR-REVIEW-PRODUCTION.md`, `session-handoff.md`
+- `scripts/cleanup.sh`, `scripts/check-i18n-vi.py`, `scripts/check-doc-drift.py`
+- `.github/workflows/odoo19-ci.yml` — job static chạy được trên GitHub-hosted; job unit test cần self-hosted + image `kv-odoo:19` (hiện bị skip)
