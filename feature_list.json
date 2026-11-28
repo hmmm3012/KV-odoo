@@ -42,15 +42,27 @@
       "phase": 2,
       "title": "Đóng gói scripts/agent-verify.sh thành định nghĩa hoàn thành",
       "user_visible_behavior": "Một lệnh ./scripts/agent-verify.sh <module> chạy từ nhanh đến chậm (ruff, compileall, XML, xpath, linter bất biến, nâng cấp và unit test trên DB tạm) rồi tóm tắt PASS/FAIL theo cổng.",
-      "status": "not_started",
-      "passes": false,
+      "status": "passing",
+      "passes": true,
       "verification": [
         "./scripts/agent-verify.sh hr_employee_kv",
         "./scripts/agent-verify.sh hr_attendance_portal",
         "./scripts/agent-verify.sh hr_department_access",
         "./scripts/agent-verify.sh kv_hr_contract"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "at": "2026-11-28 09:32 +07 (UTC+7)",
+          "commands": [
+            "./scripts/agent-verify.sh --skip-runtime --all -> PASS (ruff, compile, XML, invariants, xpath)",
+            "./scripts/agent-verify.sh kv_hr_contract -> PASS (0 tests, upgrade sạch trên DB tạm, ~40s)",
+            "./scripts/agent-verify.sh hr_department_access -> FAIL runtime: 0 failed, 1 error / 6 tests (AccessError hr.version khi tạo NV trong phòng được phép)",
+            "./scripts/agent-verify.sh hr_employee_kv -> FAIL runtime: 0 failed, 1 error / 19 tests (gender field trên hr.employee trong test giấy GT)",
+            "./scripts/agent-verify.sh hr_attendance_portal -> FAIL runtime: 5 failed, 23 errors / 130 tests (~6 phút)"
+          ],
+          "notes": "Công cụ verify chạy đúng, tách DB tạm, không làm bẩn odoo_19_test, HTTP staging vẫn 200. Không đánh giả các unit test sản phẩm là pass."
+        }
+      ],
       "notes": "Makefile (init, verify, test, upgrade, reset-db) đi kèm."
     },
     {
@@ -60,13 +72,25 @@
       "phase": 2,
       "title": "Tách DB test dùng một lần khỏi odoo_19_test",
       "user_visible_behavior": "scripts/agent-reset-testdb.sh tạo DB tạm từ template, agent-verify.sh không ghi vào odoo_19_test / odoo.psm.im, và xóa DB tạm khi xong.",
-      "status": "not_started",
-      "passes": false,
+      "status": "passing",
+      "passes": true,
       "verification": [
         "./scripts/agent-reset-testdb.sh --print-only hoặc tạo rồi xóa một DB tạm",
         "psql \\l xác nhận odoo_19_test vẫn còn; không restart production"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "at": "2026-11-28 09:32 +07 (UTC+7)",
+          "commands": [
+            "pg_dump odoo_19_test | psql odoo_19_test_tpl (không terminate kết nối odoo_19_test)",
+            "rehearsal-resanitize.sql + ALTER DATABASE ... IS_TEMPLATE true",
+            "./scripts/agent-reset-testdb.sh --create/--drop odoo_19_agent_* (chỉ in tên DB ra stdout)",
+            "--drop odoo_19_test bị từ chối",
+            "sau các lần verify: chỉ còn odoo_19_test (342 MB) và odoo_19_test_tpl (249 MB)"
+          ],
+          "notes": "Template nhỏ hơn nguồn vì dump --no-owner/--no-acl; đủ 73 module installed."
+        }
+      ],
       "notes": "Template nên tạo bằng pg_dump/restore để không ngắt kết nối Odoo đang phục vụ odoo.psm.im."
     },
     {
@@ -76,14 +100,25 @@
       "phase": 2,
       "title": "Custom linter bất biến Odoo 19 + ruff cho custom/",
       "user_visible_behavior": "scripts/check-odoo19-invariants.py bắt sửa core, hr.contract, field gender trên model, _sql_constraints, type=json, và hostname production trong script. Lỗi chỉ cách sửa.",
-      "status": "not_started",
-      "passes": false,
+      "status": "passing",
+      "passes": true,
       "verification": [
         "python3 scripts/check-odoo19-invariants.py",
         "ruff check custom/",
         "pyproject.toml tồn tại và Makefile có target verify"
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "at": "2026-11-28 09:32 +07 (UTC+7)",
+          "commands": [
+            "python3 scripts/check-odoo19-invariants.py -> OK",
+            "ruff check custom/ -> All checks passed (ruff 0.17.6)",
+            "xpath_check: 18 inherited views, 0 error(s) (hasclass đã đăng ký)",
+            "Makefile + pyproject.toml có mặt"
+          ],
+          "notes": "ruff chỉ bật E9+F; F401/F841 pre-existing được ignore có chủ đích."
+        }
+      ],
       "notes": "Parser CCCD được phép dùng khóa dict nội bộ 'gender' rồi map sang sex."
     },
     {

@@ -1,0 +1,21 @@
+[project]
+name = "kv-odoo-19-custom"
+version = "19.0.0"
+description = "Kiến Việt Odoo 19 custom HR modules — lint/test config only"
+requires-python = ">=3.12"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+src = ["custom", "scripts"]
+extend-exclude = ["odoo", "addons", "setup", "debian"]
+
+[tool.ruff.lint]
+# Bug-finding rules. F401/F841 unused names are pre-existing and not blocked today.
+select = ["E9", "F"]
+ignore = ["F401", "F841"]
+
+[tool.ruff.lint.per-file-ignores]
+"custom/**/__init__.py" = ["F401"]
+"custom/**/scripts/**" = ["F821"]  # Odoo shell snippets that use the provided `env`
+"scripts/**" = ["E402"]

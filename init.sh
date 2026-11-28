@@ -2,6 +2,7 @@
 # init.sh — chuẩn khởi động phiên (kiểm tra nền, không nâng cấp module, không đụng production)
 set -euo pipefail
 cd "$(dirname "$0")"
+export PATH="$HOME/.local/bin:$PATH"
 
 RED=$'\033[31m'
 GRN=$'\033[32m'
@@ -61,13 +62,24 @@ else
 fi
 
 if [[ -f scripts/xpath_check.py ]]; then
-  if python3 scripts/xpath_check.py --all-custom; then
+  xpath_ok=0
+  if python3 -c "from lxml import etree" >/dev/null 2>&1; then
+    python3 scripts/xpath_check.py --all-custom && xpath_ok=1
+  elif docker ps --format "{{.Names}}" </dev/null | grep -qx "kv-odoo-19-test-odoo-1"; then
+    docker exec kv-odoo-19-test-odoo-1 mkdir -p /tmp/kv-harness-scripts </dev/null
+    docker cp scripts/xpath_check.py kv-odoo-19-test-odoo-1:/tmp/kv-harness-scripts/xpath_check.py
+    docker cp scripts/installed-modules-19.txt kv-odoo-19-test-odoo-1:/tmp/kv-harness-scripts/installed-modules-19.txt
+    docker exec kv-odoo-19-test-odoo-1 python3 /tmp/kv-harness-scripts/xpath_check.py --addons-root /opt/odoo --custom-root /opt/odoo-custom --all-custom </dev/null && xpath_ok=1
+  else
+    echo "    (không có lxml trên host và container test không chạy)"
+  fi
+  if [[ "$xpath_ok" -eq 1 ]]; then
     ok "scripts/xpath_check.py --all-custom"
   else
     bad "xpath_check.py thất bại"
   fi
 else
-  echo "    (bỏ qua xpath_check.py: chưa có trong repo — Giai đoạn 2)"
+  echo "    (bỏ qua xpath_check.py: chưa có trong repo)"
 fi
 
 if [[ -f scripts/check-odoo19-invariants.py ]]; then

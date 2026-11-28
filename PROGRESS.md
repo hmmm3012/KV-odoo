@@ -5,8 +5,8 @@ Nhật ký tiến độ giữa các phiên. Đây là nguồn sự thật cùng 
 ## Trạng thái hiện tại
 
 - Nhánh: `19.0-upgrade` (local, không push)
-- Việc đang mở (`in_progress`, WIP=1): không có (Pha 1 đã passing)
-- Việc tiếp theo: Giai đoạn 2 — `harness-p2-agent-verify`
+- Việc đang mở (`in_progress`, WIP=1): không có (Pha 1–2 đã ghi evidence)
+- Việc tiếp theo: Giai đoạn 3 — `contract-001` (unit test kv_hr_contract)
 
 ## Nhật ký phiên
 
@@ -34,3 +34,17 @@ Nhật ký tiến độ giữa các phiên. Đây là nguồn sự thật cùng 
 - Giai đoạn 2: lệnh verify đầy đủ, DB template/tạm, linter bất biến, ruff, Makefile
 - Giai đoạn 3: unit test `kv_hr_contract`, smoke menu/i18n, e2e, evaluator
 - Giai đoạn 4: clean-state, QUALITY.md, CI
+
+
+### 2026-11-28 — Giai đoạn 2: Phản hồi máy móc và môi trường cô lập
+
+- Artifact: `scripts/agent-verify.sh`, `scripts/agent-reset-testdb.sh`, `scripts/xpath_check.py`, `scripts/check-odoo19-invariants.py`, `scripts/installed-modules-19.txt`, `pyproject.toml`, `Makefile`.
+- Template DB `odoo_19_test_tpl` tạo bằng `pg_dump`/`psql` từ `odoo_19_test` (không ngắt kết nối, không restart container). Sau đó chạy `rehearsal-resanitize.sql` và `IS_TEMPLATE true`. `odoo_19_test` vẫn 342 MB / 73 module; HTTP `/web/login` = 200.
+- `./scripts/agent-reset-testdb.sh --create` / `--drop` chỉ chấp nhận tên `odoo_19_agent_*`; từ chối `odoo_19_test`.
+- Linter ruff (standalone `~/.local/bin/ruff` 0.17.6, `pyproject.toml` chọn E9+F, bỏ qua F401/F841 và F821 trong `custom/**/scripts/**`) và `check-odoo19-invariants.py` + xpath trên 73 module: PASS.
+- Runtime `./scripts/agent-verify.sh` (DB tạm, filestore riêng, không publish cổng, không đụng `odoo_19_test`):
+  - `kv_hr_contract`: PASS (0 unit test trong module — đúng hiện trạng; nâng cấp sạch)
+  - `hr_department_access`: static PASS; runtime 0 failed, 1 error / 6 tests — `test_cannot_read_or_create_outside_department` AccessError khi tạo `hr.version` (record rule phòng ban lúc create employee). Đã thêm `hr.group_hr_contract_manager` vào user test nhưng lỗi vẫn còn (không phải thiếu ACL). Đây là lỗi sẵn có, không bịt PASS.
+  - `hr_employee_kv`: static PASS; runtime 0 failed, 1 error / 19 tests — `TestIntroLetterTemplates.test_thanh_nien_docx_build` `ValueError: Invalid field 'gender' in 'hr.employee'` (sót Odoo 19).
+  - `hr_attendance_portal`: static PASS; runtime 5 failed, 23 errors / 130 tests (khoảng 6 phút). Lỗi rải API/security/session/IP/concurrency/HTTP — tồn đọng port 19, sẽ xử lý sau, không sửa hàng loạt trong Pha 2.
+- Host không có `lxml`/`python3-venv` (PEP 668). ruff cài bằng installer standalone. xpath chạy trong container `kv-odoo-19-test-odoo-1`.

@@ -31,7 +31,7 @@ class TestHrDepartmentAccess(TransactionCase):
         cls.hr_user = new_test_user(
             cls.env,
             login="dept_hr_site_a",
-            groups="hr.group_hr_manager,hr_attendance.group_hr_attendance_manager",
+            groups="hr.group_hr_manager,hr.group_hr_contract_manager,hr_attendance.group_hr_attendance_manager",
         )
         cls.hr_user.sudo().write({
             "hr_authorized_department_ids": [(6, 0, [cls.site.id])],

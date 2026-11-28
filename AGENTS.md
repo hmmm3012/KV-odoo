@@ -36,7 +36,8 @@ Không sửa core `odoo/` hay `addons/`.
 ## Kiểm chứng
 
 - Khởi động / kiểm tra nền: `./init.sh`
-- Kiểm chứng đầy đủ theo module trên DB tạm: sẽ được đóng gói ở Giai đoạn 2.
+- Kiểm chứng đầy đủ theo module trên DB tạm: `./scripts/agent-verify.sh <ten_module>`
+- Tạo/xóa DB tạm: `./scripts/agent-reset-testdb.sh --create` / `--drop <name>`
 
 ## Tài liệu chuyên đề (đọc khi đúng việc)
 
